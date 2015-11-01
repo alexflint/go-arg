@@ -1,4 +1,8 @@
+[![GoDoc](https://godoc.org/github.com/alexflint/go-arg?status.svg)](https://godoc.org/github.com/alexflint/go-arg)
+
 ## Structured argument parsing for Go
+
+Declare the command line arguments your program accepts by defining a struct.
 
 ```go
 var args struct {
@@ -43,8 +47,8 @@ var args struct {
 	Output  []string `arg:"positional"`
 }
 arg.MustParse(&args)
-fmt.Println("Input:", input)
-fmt.Println("Output:", output)
+fmt.Println("Input:", args.Input)
+fmt.Println("Output:", args.Output)
 ```
 
 ```
@@ -101,6 +105,10 @@ Fetching the following IDs from foo: [1 2 3]
 ```shell
 go get github.com/alexflint/go-arg
 ```
+
+### Documentation
+
+https://godoc.org/github.com/alexflint/go-arg
 
 ### Rationale
 

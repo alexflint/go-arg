@@ -1,3 +1,37 @@
+// Package arg parses command line arguments using the fields from a struct.
+// Any exported field is interpreted as a command line option, so
+//
+//    var args struct {
+//	    Iter int
+//      Debug bool
+//   }
+//   arg.MustParse(&args)
+//
+// defines two command line arguments, which can be set using any of
+//
+//    ./example --iter=1 --bar    // bar is a boolean flag so its value is optional
+//    ./example -iter 1           // bar will default to its zero value
+//    ./example --bar=true        // foo will default to its zero value
+//
+// The fastest way to learn how to use go-arg is to read the examples below.
+//
+// Fields can be bool, string, any float type, or any signed or unsigned integer type.
+// They can also be slices of any of the above, or slices of pointers to any of the above.
+//
+// Tags can be specified using the `arg` package name:
+//
+//    var args struct {
+//	    Input string   `arg:"positional"`
+//	    Log string     `arg:"positional,required"`
+//      Debug bool     `arg:"-d,help:turn on debug mode"`
+//      RealMode bool  `arg:"--real"
+//      Wr io.Writer   `arg:"-"`
+//   }
+//
+// The valid tag strings are `positional`, `required`, and `help`. Further, any tag string
+// that starts with a single hyphen is the short form for an argument (e.g. `./example -d`),
+// and any tag string that starts with two hyphens is the long form for the argument
+// (instead of the field name). Fields can be excluded from processing with `arg:"-"`.
 package arg
 
 import (
