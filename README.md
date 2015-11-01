@@ -1,11 +1,9 @@
 # Argument parsing for Go
 
 ```go
-import "github.com/alexflint/go-arg"
-
 var args struct {
-	Foo  string
-	Bar  bool
+	Foo string
+	Bar bool
 }
 arg.MustParse(&args)
 fmt.Println(args.Foo, args.Bar)
@@ -57,6 +55,17 @@ Output: [x.out y.out z.out]
 ```
 
 ### Usage strings
+```go
+var args struct {
+	Input    string   `arg:"positional"`
+	Output   []string `arg:"positional"`
+	Verbose  bool     `arg:"-v,help:verbosity level"`
+	Dataset  string   `arg:"help:dataset to use"`
+	Optimize int      `arg:"-O,help:optimization level"`
+}
+arg.MustParse(&args)
+```
+
 ```shell
 $ ./example -h
 usage: [--verbose] [--dataset DATASET] [--optimize OPTIMIZE] [--help] INPUT [OUTPUT [OUTPUT ...]] 
@@ -74,7 +83,7 @@ options:
 ```
 
 ### Options with multiple values
-```
+```go
 var args struct {
 	Database string
 	IDs      []int64
