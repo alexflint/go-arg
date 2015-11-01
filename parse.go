@@ -1,5 +1,6 @@
 // Package arg parses command line arguments using the fields from a struct.
-// Any exported field is interpreted as a command line option, so
+//
+// For example,
 //
 //	var args struct {
 //		Iter int
@@ -9,7 +10,7 @@
 //
 // defines two command line arguments, which can be set using any of
 //
-//	./example --iter=1 --bar    // bar is a boolean flag so its value is optional
+//	./example --iter=1 --bar    // bar is a boolean flag so its value is set to true
 //	./example -iter 1           // bar will default to its zero value
 //	./example --bar=true        // foo will default to its zero value
 //
