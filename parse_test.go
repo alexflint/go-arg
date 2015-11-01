@@ -8,15 +8,19 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func split(s string) []string {
-	return strings.Split(s, " ")
+func parse(cmdline string, dest interface{}) error {
+	p, err := NewParser(dest)
+	if err != nil {
+		return err
+	}
+	return p.Parse(strings.Split(cmdline, " "))
 }
 
 func TestStringSingle(t *testing.T) {
 	var args struct {
 		Foo string
 	}
-	err := ParseFrom(split("--foo bar"), &args)
+	err := parse("--foo bar", &args)
 	require.NoError(t, err)
 	assert.Equal(t, "bar", args.Foo)
 }
@@ -30,7 +34,7 @@ func TestMixed(t *testing.T) {
 		Spam float32
 	}
 	args.Bar = 3
-	err := ParseFrom(split("123 -spam=1.2 -ham -f xyz"), &args)
+	err := parse("123 -spam=1.2 -ham -f xyz", &args)
 	require.NoError(t, err)
 	assert.Equal(t, "xyz", args.Foo)
 	assert.Equal(t, 3, args.Bar)
@@ -43,7 +47,7 @@ func TestRequired(t *testing.T) {
 	var args struct {
 		Foo string `arg:"required"`
 	}
-	err := ParseFrom(nil, &args)
+	err := parse("", &args)
 	require.Error(t, err, "--foo is required")
 }
 
@@ -52,15 +56,15 @@ func TestShortFlag(t *testing.T) {
 		Foo string `arg:"-f"`
 	}
 
-	err := ParseFrom(split("-f xyz"), &args)
+	err := parse("-f xyz", &args)
 	require.NoError(t, err)
 	assert.Equal(t, "xyz", args.Foo)
 
-	err = ParseFrom(split("-foo xyz"), &args)
+	err = parse("-foo xyz", &args)
 	require.NoError(t, err)
 	assert.Equal(t, "xyz", args.Foo)
 
-	err = ParseFrom(split("--foo xyz"), &args)
+	err = parse("--foo xyz", &args)
 	require.NoError(t, err)
 	assert.Equal(t, "xyz", args.Foo)
 }
@@ -71,7 +75,7 @@ func TestCaseSensitive(t *testing.T) {
 		Upper bool `arg:"-V"`
 	}
 
-	err := ParseFrom(split("-v"), &args)
+	err := parse("-v", &args)
 	require.NoError(t, err)
 	assert.True(t, args.Lower)
 	assert.False(t, args.Upper)
@@ -83,7 +87,7 @@ func TestCaseSensitive2(t *testing.T) {
 		Upper bool `arg:"-V"`
 	}
 
-	err := ParseFrom(split("-V"), &args)
+	err := parse("-V", &args)
 	require.NoError(t, err)
 	assert.False(t, args.Lower)
 	assert.True(t, args.Upper)
@@ -94,7 +98,7 @@ func TestPositional(t *testing.T) {
 		Input  string `arg:"positional"`
 		Output string `arg:"positional"`
 	}
-	err := ParseFrom(split("foo"), &args)
+	err := parse("foo", &args)
 	require.NoError(t, err)
 	assert.Equal(t, "foo", args.Input)
 	assert.Equal(t, "", args.Output)
@@ -105,7 +109,7 @@ func TestRequiredPositional(t *testing.T) {
 		Input  string `arg:"positional"`
 		Output string `arg:"positional,required"`
 	}
-	err := ParseFrom(split("foo"), &args)
+	err := parse("foo", &args)
 	assert.Error(t, err)
 }
 
@@ -114,7 +118,7 @@ func TestTooManyPositional(t *testing.T) {
 		Input  string `arg:"positional"`
 		Output string `arg:"positional"`
 	}
-	err := ParseFrom(split("foo bar baz"), &args)
+	err := parse("foo bar baz", &args)
 	assert.Error(t, err)
 }
 
@@ -123,7 +127,7 @@ func TestMultiple(t *testing.T) {
 		Foo []int
 		Bar []string
 	}
-	err := ParseFrom(split("--foo 1 2 3 --bar x y z"), &args)
+	err := parse("--foo 1 2 3 --bar x y z", &args)
 	require.NoError(t, err)
 	assert.Equal(t, []int{1, 2, 3}, args.Foo)
 	assert.Equal(t, []string{"x", "y", "z"}, args.Bar)

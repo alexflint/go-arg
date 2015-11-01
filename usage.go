@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 )
 
-// Usage prints usage information to stdout information and exits with status zero
+// Usage prints usage information to stdout and exits with status zero
 func Usage(dest ...interface{}) {
 	if err := WriteUsage(os.Stdout, dest...); err != nil {
 		fmt.Println(err)
@@ -31,20 +32,12 @@ func WriteUsage(w io.Writer, dest ...interface{}) error {
 	if err != nil {
 		return err
 	}
-	writeUsage(w, spec)
+	writeUsage(w, filepath.Base(os.Args[0]), spec)
 	return nil
 }
 
-func synopsis(spec *spec, form string) string {
-	if spec.dest.Kind() == reflect.Bool {
-		return form
-	} else {
-		return form + " " + strings.ToUpper(spec.long)
-	}
-}
-
 // writeUsage writes usage information to the given writer
-func writeUsage(w io.Writer, specs []*spec) {
+func writeUsage(w io.Writer, cmd string, specs []*spec) {
 	var positionals, options []*spec
 	for _, spec := range specs {
 		if spec.positional {
@@ -54,7 +47,7 @@ func writeUsage(w io.Writer, specs []*spec) {
 		}
 	}
 
-	fmt.Fprint(w, "usage: ")
+	fmt.Fprint(w, "usage: %s ", cmd)
 
 	// write the option component of the one-line usage message
 	for _, spec := range options {
@@ -108,5 +101,13 @@ func writeUsage(w io.Writer, specs []*spec) {
 			}
 			fmt.Fprint(w, "\n")
 		}
+	}
+}
+
+func synopsis(spec *spec, form string) string {
+	if spec.dest.Kind() == reflect.Bool {
+		return form
+	} else {
+		return form + " " + strings.ToUpper(spec.long)
 	}
 }

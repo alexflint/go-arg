@@ -1,8 +1,11 @@
 package arg
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strconv"
 	"strings"
@@ -20,48 +23,74 @@ type spec struct {
 	wasPresent bool
 }
 
+// Parse returns this value to indicate that -h or --help were provided
+var ErrHelp = errors.New("help requested by user")
+
 // MustParse processes command line arguments and exits upon failure.
 func MustParse(dest ...interface{}) {
-	err := Parse(dest...)
+	p, err := NewParser(dest...)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-}
-
-// Parse processes command line arguments and stores the result in args.
-func Parse(dest ...interface{}) error {
-	return ParseFrom(os.Args[1:], dest...)
-}
-
-// ParseFrom processes command line arguments and stores the result in args.
-func ParseFrom(args []string, dest ...interface{}) error {
-	// Add the help option if one is not already defined
-	var internal struct {
-		Help bool `arg:"-h,help:print this help message"`
+	err = p.Parse(os.Args[1:])
+	if err != nil {
+		fmt.Println(err)
+		writeUsage(os.Stdout, filepath.Base(os.Args[0]), p.spec)
+		os.Exit(1)
 	}
+}
 
-	// Parse the spec
-	dest = append(dest, &internal)
+// Parse processes command line arguments and stores them in dest.
+func Parse(dest ...interface{}) error {
+	p, err := NewParser(dest...)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	return p.Parse(os.Args[1:])
+}
+
+// Parser represents a set of command line options with destination values
+type Parser struct {
+	spec []*spec
+}
+
+// NewParser constructs a parser from a list of destination structs
+func NewParser(dest ...interface{}) (*Parser, error) {
 	spec, err := extractSpec(dest...)
 	if err != nil {
-		return err
+		return nil, err
+	}
+	return &Parser{spec: spec}, nil
+}
+
+// Parse processes the given command line option, storing the results in the field
+// of the structs from which NewParser was constructed
+func (p *Parser) Parse(args []string) error {
+	// If -h or --help were specified then print usage
+	for _, arg := range args {
+		if arg == "-h" || arg == "--help" {
+			return ErrHelp
+		}
+		if arg == "--" {
+			break
+		}
 	}
 
-	// Process args
-	err = processArgs(spec, args)
+	// Process all command line arguments
+	err := process(p.spec, args)
 	if err != nil {
 		return err
-	}
-
-	// If -h or --help were specified then print help
-	if internal.Help {
-		writeUsage(os.Stdout, spec)
-		os.Exit(0)
 	}
 
 	// Validate
-	return validate(spec)
+	return validate(p.spec)
+}
+
+// WriteUsage writes usage information to the given writer
+func (p *Parser) WriteUsage(w io.Writer) {
+	writeUsage(w, filepath.Base(os.Args[0]), p.spec)
 }
 
 // extractSpec gets specifications for each argument from the tags in a struct
@@ -143,8 +172,9 @@ func extractSpec(dests ...interface{}) ([]*spec, error) {
 	return specs, nil
 }
 
-// processArgs processes arguments using a pre-constructed spec
-func processArgs(specs []*spec, args []string) error {
+// process goes through arguments the arguments one-by-one, parses them, and assigns the result to
+// the underlying struct field
+func process(specs []*spec, args []string) error {
 	// construct a map from --option to spec
 	optionMap := make(map[string]*spec)
 	for _, spec := range specs {
