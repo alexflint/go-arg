@@ -25,7 +25,7 @@ args.Foo = "default value"
 arg.MustParse(&args)
 ```
 
-### Required options
+### Required arguments
 
 ```go
 var args struct {
@@ -35,7 +35,7 @@ var args struct {
 arg.MustParse(&args)
 ```
 
-### Positional argument
+### Positional arguments
 
 ```go
 var args struct {
@@ -81,7 +81,7 @@ options:
 --help, -h               print this help message
 ```
 
-### Options with multiple values
+### Arguments with multiple values
 ```go
 var args struct {
 	Database string
