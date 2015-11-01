@@ -40,7 +40,7 @@ func TestMixed(t *testing.T) {
 	assert.Equal(t, 3, args.Bar)
 	assert.Equal(t, uint(123), args.Baz)
 	assert.Equal(t, true, args.Ham)
-	assert.Equal(t, 1.2, args.Spam)
+	assert.EqualValues(t, 1.2, args.Spam)
 }
 
 func TestRequired(t *testing.T) {
