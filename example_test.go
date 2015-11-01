@@ -3,8 +3,6 @@ package arg
 import (
 	"fmt"
 	"os"
-
-	"github.com/alexflint/go-arg"
 )
 
 // This example demonstrates basic usage
@@ -16,7 +14,7 @@ func Example_Basic() {
 		Foo string
 		Bar bool
 	}
-	arg.MustParse(&args)
+	MustParse(&args)
 	fmt.Println(args.Foo, args.Bar)
 }
 
@@ -30,7 +28,7 @@ func Example_DefaultValues() {
 		Bar bool
 	}
 	args.Foo = "default value"
-	arg.MustParse(&args)
+	MustParse(&args)
 	fmt.Println(args.Foo, args.Bar)
 }
 
@@ -43,7 +41,7 @@ func Example_RequiredArguments() {
 		Foo string `arg:"required"`
 		Bar bool
 	}
-	arg.MustParse(&args)
+	MustParse(&args)
 }
 
 // This example demonstrates positional arguments
@@ -55,7 +53,7 @@ func Example_PositionalArguments() {
 		Input  string   `arg:"positional"`
 		Output []string `arg:"positional"`
 	}
-	arg.MustParse(&args)
+	MustParse(&args)
 	fmt.Println("Input:", args.Input)
 	fmt.Println("Output:", args.Output)
 }
@@ -69,7 +67,7 @@ func Example_MultipleValues() {
 		Database string
 		IDs      []int64
 	}
-	arg.MustParse(&args)
+	MustParse(&args)
 	fmt.Printf("Fetching the following IDs from %s: %q", args.Database, args.IDs)
 }
 
@@ -85,5 +83,5 @@ func Example_UsageString() {
 		Dataset  string   `arg:"help:dataset to use"`
 		Optimize int      `arg:"-O,help:optimization level"`
 	}
-	arg.MustParse(&args)
+	MustParse(&args)
 }
