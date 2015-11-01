@@ -14,6 +14,12 @@ $ ./example --foo=hello --bar
 hello true
 ```
 
+### Installation
+
+```shell
+go get github.com/alexflint/go-arg
+```
+
 ### Default values
 
 ```go
@@ -98,10 +104,10 @@ Fetching the following IDs from foo: [1 2 3]
 
 ### Rationale
 
-There are many command line argument parsing libraries for golang, including one in the standard library, so why build another?
+There are many command line argument parsing libraries for Go, including one in the standard library, so why build another?
 
-The shortcomings of the `flag` library that ships in the standard library are well known. Positional arguments must preceed options, so `./prog x --foo=1` does what you expect but `./prog --foo=1 x` does not. Bool arguments must have explicit values, so `./prog -debug=1` sets debug to true but `./myprog -debug` does not.
+The shortcomings of the `flag` library that ships in the standard library are well known. Positional arguments must preceed options, so `./prog x --foo=1` does what you expect but `./prog --foo=1 x` does not. Boolean arguments must have explicit values, so `./prog -debug=1` sets debug to true but `./myprog -debug` does not.
 
-Many third-party argument parsing libraries are geared for writing sophisticated command line interfaces. The excellent `codegangsta/cli` is perfect for implementing sophisticated command line tools, with multiple sub-commands and nested flags, but is probably overkill for a simple script with a handful of flags.
+Many third-party argument parsing libraries are geared for writing sophisticated command line interfaces. The excellent `codegangsta/cli` is perfect for working with multiple sub-commands and nested flags, but is probably overkill for a simple script with a handful of flags.
 
-The main idea behind `go-arg` is that golang already has an excellent way to describe named data structures using structs, so there is no need to develop more levels of abstraction on top of this. Instead of one API to specify which arguments your program accepts, and then another API to get the values of those arguments, why not just describe both with a single struct?
+The main idea behind `go-arg` is that Go already has an excellent way to describe data structures using Go structs, so there is no need to develop more levels of abstraction on top of this. Instead of one API to specify which arguments your program accepts, and then another API to get the values of those arguments, why not replace both with a single struct?
