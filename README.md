@@ -1,6 +1,6 @@
 # Argument parsing for Go
 
-```golang
+```go
 import "github.com/alexflint/go-arg"
 
 var args struct {
@@ -8,19 +8,17 @@ var args struct {
 	Bar  bool
 }
 arg.MustParse(&args)
-fmt.Println(args.Foo)
-fmt.Println(args.Bar)
+fmt.Println(args.Foo, args.Bar)
 ```
 
-```bash
+```shell
 $ ./example --foo=hello --bar
-hello
-True
+hello True
 ```
 
 ### Default values
 
-```golang
+```go
 var args struct {
 	Foo string
 	Bar bool
@@ -31,7 +29,7 @@ arg.MustParse(&args)
 
 ### Marking options as required
 
-```golang
+```go
 var args struct {
 	Foo string `arg:"required"`
 	Bar bool
@@ -41,7 +39,7 @@ arg.MustParse(&args)
 
 ### Positional argument
 
-```golang
+```go
 var args struct {
 	Input   string   `arg:"positional"`
 	Output  []string `arg:"positional"`
@@ -59,7 +57,7 @@ Output: [x.out y.out z.out]
 ```
 
 ### Usage strings
-```bash
+```shell
 $ ./example -h
 usage: [--verbose] [--dataset DATASET] [--optimize OPTIMIZE] [--help] INPUT [OUTPUT [OUTPUT ...]] 
 
@@ -85,7 +83,7 @@ arg.MustParse(&args)
 fmt.Printf("Fetching the following IDs from %s: %q", args.Database, args.IDs)
 ```
 
-```bash
+```shell
 ./example -database foo -ids 1 2 3
 Fetching the following IDs from foo: [1 2 3]
 ```
