@@ -19,17 +19,6 @@ $ ./example --foo=hello --bar
 hello true
 ```
 
-### Default values
-
-```go
-var args struct {
-	Foo string
-	Bar bool
-}
-args.Foo = "default value"
-arg.MustParse(&args)
-```
-
 ### Required arguments
 
 ```go
@@ -38,6 +27,12 @@ var args struct {
 	Bar bool
 }
 arg.MustParse(&args)
+```
+
+```shell
+$ ./example
+usage: example --foo FOO [--bar] 
+error: --foo is required
 ```
 
 ### Positional arguments
@@ -79,11 +74,22 @@ positional arguments:
   output
 
 options:
---verbose, -v            verbosity level
---dataset DATASET        dataset to use
---optimize OPTIMIZE, -O OPTIMIZE
-                         optimization level
---help, -h               print this help message
+  --verbose, -v            verbosity level
+  --dataset DATASET        dataset to use
+  --optimize OPTIMIZE, -O OPTIMIZE
+                           optimization level
+  --help, -h               print this help message
+```
+
+### Default values
+
+```go
+var args struct {
+	Foo string
+	Bar bool
+}
+args.Foo = "default value"
+arg.MustParse(&args)
 ```
 
 ### Arguments with multiple values

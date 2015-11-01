@@ -64,11 +64,11 @@ func MustParse(dest ...interface{}) {
 	p, err := NewParser(dest...)
 	if err != nil {
 		fmt.Println(err)
-		os.Exit(1)
+		os.Exit(-1)
 	}
 	err = p.Parse(os.Args[1:])
 	if err == ErrHelp {
-		p.WriteUsage(os.Stdout)
+		p.WriteHelp(os.Stdout)
 		os.Exit(0)
 	}
 	if err != nil {

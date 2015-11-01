@@ -11,9 +11,9 @@ import (
 
 // Fail prints usage information to stdout and exits with non-zero status
 func (p *Parser) Fail(msg string) {
-	fmt.Println(msg)
 	p.WriteUsage(os.Stdout)
-	os.Exit(1)
+	fmt.Println("error:", msg)
+	os.Exit(-1)
 }
 
 // WriteUsage writes usage information to the given writer
@@ -29,7 +29,7 @@ func (p *Parser) WriteUsage(w io.Writer) {
 
 	fmt.Fprintf(w, "usage: %s ", filepath.Base(os.Args[0]))
 
-	// write the option component of the one-line usage message
+	// write the option component of the usage message
 	for _, spec := range options {
 		if !spec.required {
 			fmt.Fprint(w, "[")
@@ -41,7 +41,7 @@ func (p *Parser) WriteUsage(w io.Writer) {
 		fmt.Fprint(w, " ")
 	}
 
-	// write the positional component of the one-line usage message
+	// write the positional component of the usage message
 	for _, spec := range positionals {
 		up := strings.ToUpper(spec.long)
 		if spec.multiple {
@@ -52,6 +52,20 @@ func (p *Parser) WriteUsage(w io.Writer) {
 		fmt.Fprint(w, " ")
 	}
 	fmt.Fprint(w, "\n")
+}
+
+// WriteHelp writes the usage string followed by the full help string for each option
+func (p *Parser) WriteHelp(w io.Writer) {
+	var positionals, options []*spec
+	for _, spec := range p.spec {
+		if spec.positional {
+			positionals = append(positionals, spec)
+		} else {
+			options = append(options, spec)
+		}
+	}
+
+	p.WriteUsage(w)
 
 	// write the list of positionals
 	if len(positionals) > 0 {
@@ -66,9 +80,9 @@ func (p *Parser) WriteUsage(w io.Writer) {
 		fmt.Fprint(w, "\noptions:\n")
 		const colWidth = 25
 		for _, spec := range options {
-			left := fmt.Sprint(synopsis(spec, "--"+spec.long))
+			left := "  " + synopsis(spec, "--"+spec.long)
 			if spec.short != "" {
-				left += ", " + fmt.Sprint(synopsis(spec, "-"+spec.short))
+				left += ", " + synopsis(spec, "-"+spec.short)
 			}
 			fmt.Print(left)
 			if spec.help != "" {
