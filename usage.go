@@ -9,37 +9,17 @@ import (
 	"strings"
 )
 
-// Usage prints usage information to stdout and exits with status zero
-func Usage(dest ...interface{}) {
-	if err := WriteUsage(os.Stdout, dest...); err != nil {
-		fmt.Println(err)
-	}
-	os.Exit(0)
-}
-
 // Fail prints usage information to stdout and exits with non-zero status
-func Fail(msg string, dest ...interface{}) {
+func (p *Parser) Fail(msg string) {
 	fmt.Println(msg)
-	if err := WriteUsage(os.Stdout, dest...); err != nil {
-		fmt.Println(err)
-	}
+	p.WriteUsage(os.Stdout)
 	os.Exit(1)
 }
 
 // WriteUsage writes usage information to the given writer
-func WriteUsage(w io.Writer, dest ...interface{}) error {
-	spec, err := extractSpec(dest...)
-	if err != nil {
-		return err
-	}
-	writeUsage(w, filepath.Base(os.Args[0]), spec)
-	return nil
-}
-
-// writeUsage writes usage information to the given writer
-func writeUsage(w io.Writer, cmd string, specs []*spec) {
+func (p *Parser) WriteUsage(w io.Writer) {
 	var positionals, options []*spec
-	for _, spec := range specs {
+	for _, spec := range p.spec {
 		if spec.positional {
 			positionals = append(positionals, spec)
 		} else {
@@ -47,7 +27,7 @@ func writeUsage(w io.Writer, cmd string, specs []*spec) {
 		}
 	}
 
-	fmt.Fprint(w, "usage: %s ", cmd)
+	fmt.Fprintf(w, "usage: %s ", filepath.Base(os.Args[0]))
 
 	// write the option component of the one-line usage message
 	for _, spec := range options {
