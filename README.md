@@ -1,5 +1,9 @@
 ## Structured argument parsing for Go
 
+```shell
+go get github.com/alexflint/go-arg
+```
+
 ```go
 var args struct {
 	Foo string
@@ -12,12 +16,6 @@ fmt.Println(args.Foo, args.Bar)
 ```shell
 $ ./example --foo=hello --bar
 hello true
-```
-
-### Installation
-
-```shell
-go get github.com/alexflint/go-arg
 ```
 
 ### Default values
