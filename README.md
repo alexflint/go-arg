@@ -1,9 +1,5 @@
 ## Structured argument parsing for Go
 
-```shell
-go get github.com/alexflint/go-arg
-```
-
 ```go
 var args struct {
 	Foo string
@@ -29,7 +25,7 @@ args.Foo = "default value"
 arg.MustParse(&args)
 ```
 
-### Marking options as required
+### Required options
 
 ```go
 var args struct {
@@ -98,6 +94,12 @@ fmt.Printf("Fetching the following IDs from %s: %q", args.Database, args.IDs)
 ```shell
 ./example -database foo -ids 1 2 3
 Fetching the following IDs from foo: [1 2 3]
+```
+
+### Installation
+
+```shell
+go get github.com/alexflint/go-arg
 ```
 
 ### Rationale
