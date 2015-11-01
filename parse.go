@@ -38,7 +38,7 @@ func Parse(dest ...interface{}) error {
 func ParseFrom(args []string, dest ...interface{}) error {
 	// Add the help option if one is not already defined
 	var internal struct {
-		Help bool `arg:"-h"`
+		Help bool `arg:"-h,help:print this help message"`
 	}
 
 	// Parse the spec

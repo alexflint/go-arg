@@ -1,6 +1,8 @@
-Argument parsing for Go.
+# Argument parsing for Go
 
 ```golang
+import "github.com/alexflint/go-arg"
+
 var args struct {
 	Foo  string
 	Bar  bool
@@ -16,7 +18,7 @@ hello
 True
 ```
 
-Setting defaults values:
+### Default values
 
 ```golang
 var args struct {
@@ -27,7 +29,7 @@ args.Foo = "default value"
 arg.MustParse(&args)
 ```
 
-Marking options as required
+### Marking options as required
 
 ```golang
 var args struct {
@@ -37,7 +39,7 @@ var args struct {
 arg.MustParse(&args)
 ```
 
-Positional argument:
+### Positional argument
 
 ```golang
 var args struct {
@@ -56,7 +58,7 @@ Input: src.txt
 Output: [x.out y.out z.out]
 ```
 
-Usage strings:
+### Usage strings
 ```bash
 $ ./example -h
 usage: [--verbose] [--dataset DATASET] [--optimize OPTIMIZE] [--help] INPUT [OUTPUT [OUTPUT ...]] 
@@ -73,7 +75,7 @@ options:
 --help, -h               print this help message
 ```
 
-Options with multiple values:
+### Options with multiple values
 ```
 var args struct {
 	Database string

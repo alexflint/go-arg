@@ -4,11 +4,11 @@ import "github.com/alexflint/go-arg"
 
 func main() {
 	var args struct {
-		Input            string  `arg:"positional"`
-		Output           string  `arg:"positional"`
-		Foo              string  `arg:"help:this argument is foo"`
-		VeryLongArgument int     `arg:"help:this argument is very long"`
-		Bar              float64 `arg:"-b"`
+		Input    string   `arg:"positional"`
+		Output   []string `arg:"positional"`
+		Verbose  bool     `arg:"-v,help:verbosity level"`
+		Dataset  string   `arg:"help:dataset to use"`
+		Optimize int      `arg:"-O,help:optimization level"`
 	}
 	arg.MustParse(&args)
 }

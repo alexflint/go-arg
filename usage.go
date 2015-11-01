@@ -72,7 +72,7 @@ func writeUsage(w io.Writer, specs []*spec) {
 	for _, spec := range positionals {
 		up := strings.ToUpper(spec.long)
 		if spec.multiple {
-			fmt.Fprintf(w, "[%s [%s ...]]", up)
+			fmt.Fprintf(w, "[%s [%s ...]]", up, up)
 		} else {
 			fmt.Fprint(w, up)
 		}
