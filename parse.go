@@ -10,11 +10,11 @@
 //
 // defines two command line arguments, which can be set using any of
 //
-//	./example --iter=1 --bar    // bar is a boolean flag so its value is set to true
-//	./example -iter 1           // bar will default to its zero value
-//	./example --bar=true        // foo will default to its zero value
+//	./example --iter=1 --debug  // debug is a boolean flag so its value is set to true
+//	./example -iter 1           // debug defaults to its zero value (false)
+//	./example --debug=true      // iter defaults to its zero value (zero)
 //
-// The fastest way to learn how to use go-arg is to read the examples below.
+// The fastest way to see how to use go-arg is to read the examples below.
 //
 // Fields can be bool, string, any float type, or any signed or unsigned integer type.
 // They can also be slices of any of the above, or slices of pointers to any of the above.
