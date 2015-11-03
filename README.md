@@ -121,7 +121,7 @@ https://godoc.org/github.com/alexflint/go-arg
 
 There are many command line argument parsing libraries for Go, including one in the standard library, so why build another?
 
-The shortcomings of the `flag` library that ships in the standard library are well known. Positional arguments must preceed options, so `./prog x --foo=1` does what you expect but `./prog --foo=1 x` does not. Boolean arguments must have explicit values, so `./prog -debug=1` sets debug to true but `./myprog -debug` does not.
+The shortcomings of the `flag` library that ships in the standard library are well known. Positional arguments must preceed options, so `./prog x --foo=1` does what you expect but `./prog --foo=1 x` does not. Arguments cannot have both long (`--foo`) and short (`-f`) forms.
 
 Many third-party argument parsing libraries are geared for writing sophisticated command line interfaces. The excellent `codegangsta/cli` is perfect for working with multiple sub-commands and nested flags, but is probably overkill for a simple script with a handful of flags.
 
