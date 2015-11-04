@@ -333,10 +333,10 @@ func setSlice(dest reflect.Value, values []string) error {
 		if err := setScalar(v.Elem(), s); err != nil {
 			return err
 		}
-		if ptr {
-			v = v.Addr()
+		if !ptr {
+			v = v.Elem()
 		}
-		dest.Set(reflect.Append(dest, v.Elem()))
+		dest.Set(reflect.Append(dest, v))
 	}
 	return nil
 }
