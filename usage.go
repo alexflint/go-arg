@@ -84,7 +84,7 @@ func (p *Parser) WriteHelp(w io.Writer) {
 			if spec.short != "" {
 				left += ", " + synopsis(spec, "-"+spec.short)
 			}
-			fmt.Print(left)
+			fmt.Fprint(w, left)
 			if spec.help != "" {
 				if len(left)+2 < colWidth {
 					fmt.Fprint(w, strings.Repeat(" ", colWidth-len(left)))
