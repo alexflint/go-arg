@@ -10,9 +10,9 @@ import (
 )
 
 func TestWriteUsage(t *testing.T) {
-	expectedUsage := "usage: example [--verbose] [--dataset DATASET] [--optimize OPTIMIZE] INPUT [OUTPUT [OUTPUT ...]] \n"
+	expectedUsage := "usage: example [--verbose] [--dataset DATASET] [--optimize OPTIMIZE] INPUT [OUTPUT [OUTPUT ...]]\n"
 
-	expectedHelp := `usage: example [--verbose] [--dataset DATASET] [--optimize OPTIMIZE] INPUT [OUTPUT [OUTPUT ...]] 
+	expectedHelp := `usage: example [--verbose] [--dataset DATASET] [--optimize OPTIMIZE] INPUT [OUTPUT [OUTPUT ...]]
 
 positional arguments:
   input
