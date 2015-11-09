@@ -9,9 +9,9 @@ import (
 	"strings"
 )
 
-// Fail prints usage information to stdout and exits with non-zero status
+// Fail prints usage information to stderr and exits with non-zero status
 func (p *Parser) Fail(msg string) {
-	p.WriteUsage(os.Stdout)
+	p.WriteUsage(os.Stderr)
 	fmt.Println("error:", msg)
 	os.Exit(-1)
 }
