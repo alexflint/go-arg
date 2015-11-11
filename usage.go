@@ -103,7 +103,6 @@ func (p *Parser) WriteHelp(w io.Writer) {
 func synopsis(spec *spec, form string) string {
 	if spec.dest.Kind() == reflect.Bool {
 		return form
-	} else {
-		return form + " " + strings.ToUpper(spec.long)
 	}
+	return form + " " + strings.ToUpper(spec.long)
 }
