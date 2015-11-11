@@ -54,6 +54,7 @@ type spec struct {
 	positional bool
 	help       string
 	wasPresent bool
+	isBool     bool
 }
 
 // ErrHelp indicates that -h or --help were provided
@@ -133,6 +134,11 @@ func NewParser(dests ...interface{}) (*Parser, error) {
 				reflect.Map, reflect.Ptr, reflect.Struct,
 				reflect.Complex64, reflect.Complex128:
 				return nil, fmt.Errorf("%s.%s: %s fields are not supported", t.Name(), field.Name, scalarType.Kind())
+			}
+
+			// Specify that it is a bool for usage
+			if scalarType.Kind() == reflect.Bool {
+				spec.isBool = true
 			}
 
 			// Look at the tag

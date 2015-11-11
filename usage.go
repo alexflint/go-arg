@@ -5,7 +5,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"reflect"
 	"strings"
 )
 
@@ -78,30 +77,35 @@ func (p *Parser) WriteHelp(w io.Writer) {
 	}
 
 	// write the list of options
-	if len(options) > 0 {
-		fmt.Fprint(w, "\noptions:\n")
-		const colWidth = 25
-		for _, spec := range options {
-			left := "  " + synopsis(spec, "--"+spec.long)
-			if spec.short != "" {
-				left += ", " + synopsis(spec, "-"+spec.short)
-			}
-			fmt.Fprint(w, left)
-			if spec.help != "" {
-				if len(left)+2 < colWidth {
-					fmt.Fprint(w, strings.Repeat(" ", colWidth-len(left)))
-				} else {
-					fmt.Fprint(w, "\n"+strings.Repeat(" ", colWidth))
-				}
-				fmt.Fprint(w, spec.help)
-			}
-			fmt.Fprint(w, "\n")
-		}
+	fmt.Fprint(w, "\noptions:\n")
+	for _, spec := range options {
+		printOption(w, spec)
 	}
+
+	// write the list of built in options
+	printOption(w, &spec{isBool: true, long: "help", short: "h", help: "display this help and exit"})
+}
+
+func printOption(w io.Writer, spec *spec) {
+	const colWidth = 25
+	left := "  " + synopsis(spec, "--"+spec.long)
+	if spec.short != "" {
+		left += ", " + synopsis(spec, "-"+spec.short)
+	}
+	fmt.Fprint(w, left)
+	if spec.help != "" {
+		if len(left)+2 < colWidth {
+			fmt.Fprint(w, strings.Repeat(" ", colWidth-len(left)))
+		} else {
+			fmt.Fprint(w, "\n"+strings.Repeat(" ", colWidth))
+		}
+		fmt.Fprint(w, spec.help)
+	}
+	fmt.Fprint(w, "\n")
 }
 
 func synopsis(spec *spec, form string) string {
-	if spec.dest.Kind() == reflect.Bool {
+	if spec.isBool {
 		return form
 	}
 	return form + " " + strings.ToUpper(spec.long)
