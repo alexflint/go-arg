@@ -12,7 +12,7 @@ import (
 // Fail prints usage information to stderr and exits with non-zero status
 func (p *Parser) Fail(msg string) {
 	p.WriteUsage(os.Stderr)
-	fmt.Println("error:", msg)
+	fmt.Fprintln(os.Stderr, "error:", msg)
 	os.Exit(-1)
 }
 
