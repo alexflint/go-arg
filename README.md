@@ -108,6 +108,13 @@ fmt.Printf("Fetching the following IDs from %s: %q", args.Database, args.IDs)
 Fetching the following IDs from foo: [1 2 3]
 ```
 
+### Built in flags
+
+There is two built in flags, help `-h, --help` and version `--version`.
+Help outputs the usage.
+Version outputs the version set with `SetVersion` if it is set, otherwise it's 
+an unrecognized flag.
+
 ### Installation
 
 ```shell

@@ -114,6 +114,11 @@ func printOption(w io.Writer, spec *spec) {
 	fmt.Fprint(w, "\n")
 }
 
+// WriteVersion outputs the version information
+func (p *Parser) WriteVersion(w io.Writer) {
+	fmt.Fprintf(w, "%s %s\n", filepath.Base(os.Args[0]), Version)
+}
+
 func synopsis(spec *spec, form string) string {
 	if spec.isBool {
 		return form

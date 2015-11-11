@@ -25,6 +25,17 @@ type spec struct {
 // ErrHelp indicates that -h or --help were provided
 var ErrHelp = errors.New("help requested by user")
 
+// ErrVersion indicates that --version were provided
+var ErrVersion = errors.New("version requested by user")
+
+// Version set by the application, shown with the --version flag
+var Version = ""
+
+// SetVersion sets the version available for --version flag
+func SetVersion(version string) {
+	Version = version
+}
+
 // MustParse processes command line arguments and exits upon failure
 func MustParse(dest ...interface{}) {
 	p, err := NewParser(dest...)
@@ -35,6 +46,10 @@ func MustParse(dest ...interface{}) {
 	err = p.Parse(os.Args[1:])
 	if err == ErrHelp {
 		p.WriteHelp(os.Stdout)
+		os.Exit(0)
+	}
+	if err == ErrVersion {
+		p.WriteVersion(os.Stdout)
 		os.Exit(0)
 	}
 	if err != nil {
@@ -147,6 +162,9 @@ func (p *Parser) Parse(args []string) error {
 	for _, arg := range args {
 		if arg == "-h" || arg == "--help" {
 			return ErrHelp
+		}
+		if Version != "" && arg == "--version" {
+			return ErrVersion
 		}
 		if arg == "--" {
 			break
