@@ -329,6 +329,21 @@ func TestUnknownTag(t *testing.T) {
 	assert.Error(t, err)
 }
 
+func TestDefaultTag(t *testing.T) {
+	var args struct {
+		Foo  int    `arg:"default:42"`
+		Bar  bool   `arg:"default:true"`
+		Baz  string `arg:"default:Foo Bar"`
+		List []int  `arg:"default:1 2 3 4"`
+	}
+	err := Parse(&args)
+	require.NoError(t, err)
+	assert.Equal(t, 42, args.Foo)
+	assert.Equal(t, true, args.Bar)
+	assert.Equal(t, "Foo Bar", args.Baz)
+	assert.Equal(t, []int{1, 2, 3, 4}, args.List)
+}
+
 func TestParse(t *testing.T) {
 	var args struct {
 		Foo string

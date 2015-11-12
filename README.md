@@ -93,6 +93,16 @@ args.Foo = "default value"
 arg.MustParse(&args)
 ```
 
+Or if you want the default value printed in usage
+
+```go
+var args struct {
+	Foo string `arg:"default:Foo Bar"`
+	Bar bool
+}
+arg.MustParse(&args)
+```
+
 ### Arguments with multiple values
 ```go
 var args struct {

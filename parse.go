@@ -46,14 +46,15 @@ import (
 
 // spec represents a command line option
 type spec struct {
-	dest       reflect.Value
-	long       string
-	short      string
-	multiple   bool
-	required   bool
-	positional bool
-	help       string
-	wasPresent bool
+	dest         reflect.Value
+	long         string
+	short        string
+	multiple     bool
+	required     bool
+	positional   bool
+	help         string
+	wasPresent   bool
+	defaultValue string
 }
 
 // ErrHelp indicates that -h or --help were provided
@@ -158,6 +159,8 @@ func NewParser(dests ...interface{}) (*Parser, error) {
 						spec.positional = true
 					case key == "help":
 						spec.help = value
+					case key == "default":
+						spec.defaultValue = value
 					default:
 						return nil, fmt.Errorf("unrecognized tag '%s' on field %s", key, tag)
 					}
@@ -206,6 +209,16 @@ func process(specs []*spec, args []string) error {
 		}
 		if spec.short != "" {
 			optionMap[spec.short] = spec
+		}
+
+		// handle default value
+		if spec.defaultValue != "" {
+			if spec.multiple {
+				values := strings.Split(spec.defaultValue, " ")
+				setSlice(spec.dest, values)
+			} else {
+				setScalar(spec.dest, spec.defaultValue)
+			}
 		}
 	}
 

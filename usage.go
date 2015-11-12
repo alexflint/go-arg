@@ -95,6 +95,10 @@ func (p *Parser) WriteHelp(w io.Writer) {
 				}
 				fmt.Fprint(w, spec.help)
 			}
+			if spec.defaultValue != "" {
+				fmt.Fprintf(w, strings.Repeat(" ", 8))
+				fmt.Fprintf(w, "Default=%s", spec.defaultValue)
+			}
 			fmt.Fprint(w, "\n")
 		}
 	}
