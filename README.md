@@ -108,6 +108,20 @@ fmt.Printf("Fetching the following IDs from %s: %q", args.Database, args.IDs)
 Fetching the following IDs from foo: [1 2 3]
 ```
 
+### Validating file arguments
+```go
+var args struct {
+    InputFile string
+    OutputDir string
+}
+arg.MustParse(&args)
+if !arg.FileExists(args.InputFile) {
+    fmt.Fprintf(os.Stderr, "File %s does not exist\n", args.InputFile)
+    os.Exit(1)
+}
+arg.DirExistsOrCreate(args.OutputDir)
+```
+
 ### Installation
 
 ```shell
