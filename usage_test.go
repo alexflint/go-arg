@@ -23,6 +23,7 @@ options:
   --dataset DATASET      dataset to use
   --optimize OPTIMIZE, -O OPTIMIZE
                          optimization level
+  --help, -h             display this help and exit
 `
 	var args struct {
 		Input    string   `arg:"positional"`
