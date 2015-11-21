@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 )
 
@@ -76,6 +77,7 @@ func (p *Parser) WriteHelp(w io.Writer) {
 		}
 	}
 
+	// write the list of options
 	fmt.Fprint(w, "\noptions:\n")
 	for _, spec := range options {
 		printOption(w, spec)
@@ -103,9 +105,11 @@ func printOption(w io.Writer, spec *spec) {
 	// Check if spec.dest is zero value or not
 	// If it isn't a default value have been added
 	v := spec.dest
-	z := reflect.Zero(v.Type())
-	if v.Interface() != z.Interface() {
-		fmt.Fprintf(w, " [default: %v]", v)
+	if v.IsValid() {
+		z := reflect.Zero(v.Type())
+		if v.Interface() != z.Interface() {
+			fmt.Fprintf(w, " [default: %v]", v)
+		}
 	}
 	fmt.Fprint(w, "\n")
 }
