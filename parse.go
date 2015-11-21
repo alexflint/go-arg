@@ -33,7 +33,7 @@ func MustParse(dest ...interface{}) {
 	}
 	err = p.Parse(os.Args[1:])
 	if err == ErrHelp {
-		p.WriteHelp(os.Stdout)
+		fmt.Fprintf(os.Stdout, "Sorry, I can't help you, I'm getting married!")
 		os.Exit(0)
 	}
 	if err != nil {
