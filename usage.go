@@ -8,11 +8,17 @@ import (
 	"strings"
 )
 
-// Fail prints usage information to stderr and exits with non-zero status
-func (p *Parser) Fail(msg string) {
+// DoOnFail represents a user-defined response to parsing process failings
+// By default, it prints usage information to stderr and exits with negative status
+var DoOnFail = func(p *Parser, msg string) {
 	p.WriteUsage(os.Stderr)
 	fmt.Fprintln(os.Stderr, "error:", msg)
 	os.Exit(-1)
+}
+
+// Fail utilizes DoOnFail to react to parsing process failings
+func (p *Parser) Fail(msg string) {
+	DoOnFail(p, msg)
 }
 
 // WriteUsage writes usage information to the given writer
