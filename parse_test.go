@@ -19,29 +19,35 @@ func parse(cmdline string, dest interface{}) error {
 
 func TestStringSingle(t *testing.T) {
 	var args struct {
-		Foo string
+		Foo            string
+		Foo_Bar        string
+		Foo__Bar_Buz__ string
 	}
-	err := parse("--foo bar", &args)
+	err := parse("--foo one --foo-bar two --foo-bar-buz three", &args)
 	require.NoError(t, err)
-	assert.Equal(t, "bar", args.Foo)
+	assert.Equal(t, "one", args.Foo)
+	assert.Equal(t, "two", args.Foo_Bar)
+	assert.Equal(t, "three", args.Foo__Bar_Buz__)
 }
 
 func TestMixed(t *testing.T) {
 	var args struct {
-		Foo  string `arg:"-f"`
-		Bar  int
-		Baz  uint `arg:"positional"`
-		Ham  bool
-		Spam float32
+		Foo      string `arg:"-f"`
+		Bar      int
+		Baz      uint `arg:"positional"`
+		Ham      bool
+		Spam     float32
+		Jazz_Sum float64
 	}
 	args.Bar = 3
-	err := parse("123 -spam=1.2 -ham -f xyz", &args)
+	err := parse("123 -spam=1.2 -ham -f xyz --jazz-sum=100.01", &args)
 	require.NoError(t, err)
 	assert.Equal(t, "xyz", args.Foo)
 	assert.Equal(t, 3, args.Bar)
 	assert.Equal(t, uint(123), args.Baz)
 	assert.Equal(t, true, args.Ham)
 	assert.EqualValues(t, 1.2, args.Spam)
+	assert.EqualValues(t, 100.01, args.Jazz_Sum)
 }
 
 func TestRequired(t *testing.T) {
@@ -80,7 +86,8 @@ func TestInvalidShortFlag(t *testing.T) {
 
 func TestLongFlag(t *testing.T) {
 	var args struct {
-		Foo string `arg:"--abc"`
+		Foo      string `arg:"--abc"`
+		Foo_Bar string `arg:"--foobar"`
 	}
 
 	err := parse("-abc xyz", &args)
@@ -90,6 +97,14 @@ func TestLongFlag(t *testing.T) {
 	err = parse("--abc xyz", &args)
 	require.NoError(t, err)
 	assert.Equal(t, "xyz", args.Foo)
+
+	err = parse("-foobar xyz", &args)
+	require.NoError(t, err)
+	assert.Equal(t, "xyz", args.Foo_Bar)
+
+	err = parse("--foobar xyz", &args)
+	require.NoError(t, err)
+	assert.Equal(t, "xyz", args.Foo_Bar)
 }
 
 func TestCaseSensitive(t *testing.T) {

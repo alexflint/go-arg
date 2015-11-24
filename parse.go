@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -79,7 +80,7 @@ func NewParser(dests ...interface{}) (*Parser, error) {
 			}
 
 			spec := spec{
-				long: strings.ToLower(field.Name),
+				long: strings.ToLower(regexp.MustCompile(`_+`).ReplaceAllLiteralString(strings.TrimRight(field.Name, "_"), "-")),
 				dest: v.Field(i),
 			}
 

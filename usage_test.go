@@ -10,9 +10,9 @@ import (
 )
 
 func TestWriteUsage(t *testing.T) {
-	expectedUsage := "usage: example [--verbose] [--dataset DATASET] [--optimize OPTIMIZE] INPUT [OUTPUT [OUTPUT ...]]\n"
+	expectedUsage := "usage: example [--verbose] [--dataset DATASET] [--optimize OPTIMIZE] [--show-stats] INPUT [OUTPUT [OUTPUT ...]]\n"
 
-	expectedHelp := `usage: example [--verbose] [--dataset DATASET] [--optimize OPTIMIZE] INPUT [OUTPUT [OUTPUT ...]]
+	expectedHelp := `usage: example [--verbose] [--dataset DATASET] [--optimize OPTIMIZE] [--show-stats] INPUT [OUTPUT [OUTPUT ...]]
 
 positional arguments:
   input
@@ -23,14 +23,16 @@ options:
   --dataset DATASET      dataset to use
   --optimize OPTIMIZE, -O OPTIMIZE
                          optimization level
+  --show-stats           show statistics
   --help, -h             display this help and exit
 `
 	var args struct {
-		Input    string   `arg:"positional"`
-		Output   []string `arg:"positional"`
-		Verbose  bool     `arg:"-v,help:verbosity level"`
-		Dataset  string   `arg:"help:dataset to use"`
-		Optimize int      `arg:"-O,help:optimization level"`
+		Input       string   `arg:"positional"`
+		Output      []string `arg:"positional"`
+		Verbose     bool     `arg:"-v,help:verbosity level"`
+		Dataset     string   `arg:"help:dataset to use"`
+		Optimize    int      `arg:"-O,help:optimization level"`
+		Show_Stats  bool     `arg:"help:show statistics"`
 	}
 	p, err := NewParser(&args)
 	require.NoError(t, err)
