@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 )
 
@@ -100,6 +101,15 @@ func printOption(w io.Writer, spec *spec) {
 			fmt.Fprint(w, "\n"+strings.Repeat(" ", colWidth))
 		}
 		fmt.Fprint(w, spec.help)
+	}
+	// Check if spec.dest is zero value or not
+	// If it isn't a default value have been added
+	v := spec.dest
+	if v.IsValid() {
+		z := reflect.Zero(v.Type())
+		if v.Interface() != z.Interface() {
+			fmt.Fprintf(w, " [default: %v]", v)
+		}
 	}
 	fmt.Fprint(w, "\n")
 }
