@@ -107,7 +107,7 @@ func printOption(w io.Writer, spec *spec) {
 	v := spec.dest
 	if v.IsValid() {
 		z := reflect.Zero(v.Type())
-		if v.Interface() != z.Interface() {
+		if v.Type().Comparable() && z.Type().Comparable() && v.Interface() != z.Interface() {
 			fmt.Fprintf(w, " [default: %v]", v)
 		}
 	}
