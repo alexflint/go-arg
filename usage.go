@@ -85,6 +85,9 @@ func (p *Parser) WriteHelp(w io.Writer) {
 
 	// write the list of built in options
 	printOption(w, &spec{isBool: true, long: "help", short: "h", help: "display this help and exit"})
+	if p.Version != "" {
+		printOption(w, &spec{isBool: true, long: "version", help: "output version information and exit"})
+	}
 }
 
 func printOption(w io.Writer, spec *spec) {
@@ -112,6 +115,11 @@ func printOption(w io.Writer, spec *spec) {
 		}
 	}
 	fmt.Fprint(w, "\n")
+}
+
+// WriteVersion outputs the version information
+func (p *Parser) WriteVersion(w io.Writer) {
+	fmt.Fprintf(w, "%s %s\n", filepath.Base(os.Args[0]), p.Version)
 }
 
 func synopsis(spec *spec, form string) string {

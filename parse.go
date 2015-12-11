@@ -25,6 +25,21 @@ type spec struct {
 // ErrHelp indicates that -h or --help were provided
 var ErrHelp = errors.New("help requested by user")
 
+// ErrVersion indicates that --version were provided
+var ErrVersion = errors.New("version requested by user")
+
+// Default parser used by high level functions
+var defaultParser *Parser
+
+// SetVersion sets the version available for --version flag
+func SetVersion(version string) {
+	if defaultParser == nil {
+		defaultParser = &Parser{Version: version}
+	} else {
+		defaultParser.SetVersion(version)
+	}
+}
+
 // MustParse processes command line arguments and exits upon failure
 func MustParse(dest ...interface{}) {
 	p, err := NewParser(dest...)
@@ -35,6 +50,10 @@ func MustParse(dest ...interface{}) {
 	err = p.Parse(os.Args[1:])
 	if err == ErrHelp {
 		p.WriteHelp(os.Stdout)
+		os.Exit(0)
+	}
+	if err == ErrVersion {
+		p.WriteVersion(os.Stdout)
 		os.Exit(0)
 	}
 	if err != nil {
@@ -53,11 +72,58 @@ func Parse(dest ...interface{}) error {
 
 // Parser represents a set of command line options with destination values
 type Parser struct {
-	spec []*spec
+	spec    []*spec
+	Version string
 }
 
 // NewParser constructs a parser from a list of destination structs
 func NewParser(dests ...interface{}) (*Parser, error) {
+	var p *Parser
+	if defaultParser == nil {
+		p = &Parser{}
+	} else {
+		p = defaultParser
+	}
+	err := p.setSpecs(dests...)
+	if err != nil {
+		return nil, err
+	}
+	return p, nil
+}
+
+// Parse processes the given command line option, storing the results in the field
+// of the structs from which NewParser was constructed
+func (p *Parser) Parse(args []string) error {
+	// If -h or --help were specified then print usage
+	for _, arg := range args {
+		if arg == "-h" || arg == "--help" {
+			return ErrHelp
+		}
+		if p.Version != "" && arg == "--version" {
+			return ErrVersion
+		}
+		if arg == "--" {
+			break
+		}
+	}
+
+	// Process all command line arguments
+	err := process(p.spec, args)
+	if err != nil {
+		return err
+	}
+
+	// Validate
+	return validate(p.spec)
+}
+
+// SetVersion sets the version outputted with --version
+func (p *Parser) SetVersion(version string) {
+	p.Version = version
+}
+
+// setSpecs defines the specs from a list of destination structs
+func (p *Parser) setSpecs(dests ...interface{}) error {
 	var specs []*spec
 	for _, dest := range dests {
 		v := reflect.ValueOf(dest)
@@ -98,7 +164,7 @@ func NewParser(dests ...interface{}) (*Parser, error) {
 			case reflect.Array, reflect.Chan, reflect.Func, reflect.Interface,
 				reflect.Map, reflect.Ptr, reflect.Struct,
 				reflect.Complex64, reflect.Complex128:
-				return nil, fmt.Errorf("%s.%s: %s fields are not supported", t.Name(), field.Name, scalarType.Kind())
+				return fmt.Errorf("%s.%s: %s fields are not supported", t.Name(), field.Name, scalarType.Kind())
 			}
 
 			// Specify that it is a bool for usage
@@ -120,7 +186,7 @@ func NewParser(dests ...interface{}) (*Parser, error) {
 						spec.long = key[2:]
 					case strings.HasPrefix(key, "-"):
 						if len(key) != 2 {
-							return nil, fmt.Errorf("%s.%s: short arguments must be one character only", t.Name(), field.Name)
+							return fmt.Errorf("%s.%s: short arguments must be one character only", t.Name(), field.Name)
 						}
 						spec.short = key[1:]
 					case key == "required":
@@ -130,37 +196,15 @@ func NewParser(dests ...interface{}) (*Parser, error) {
 					case key == "help":
 						spec.help = value
 					default:
-						return nil, fmt.Errorf("unrecognized tag '%s' on field %s", key, tag)
+						return fmt.Errorf("unrecognized tag '%s' on field %s", key, tag)
 					}
 				}
 			}
 			specs = append(specs, &spec)
 		}
 	}
-	return &Parser{spec: specs}, nil
-}
-
-// Parse processes the given command line option, storing the results in the field
-// of the structs from which NewParser was constructed
-func (p *Parser) Parse(args []string) error {
-	// If -h or --help were specified then print usage
-	for _, arg := range args {
-		if arg == "-h" || arg == "--help" {
-			return ErrHelp
-		}
-		if arg == "--" {
-			break
-		}
-	}
-
-	// Process all command line arguments
-	err := process(p.spec, args)
-	if err != nil {
-		return err
-	}
-
-	// Validate
-	return validate(p.spec)
+	p.spec = specs
+	return nil
 }
 
 // process goes through arguments one-by-one, parses them, and assigns the result to
