@@ -108,6 +108,18 @@ fmt.Printf("Fetching the following IDs from %s: %q", args.Database, args.IDs)
 Fetching the following IDs from foo: [1 2 3]
 ```
 
+### Custom validation
+```
+var args struct {
+	Foo string
+	Bar string
+}
+p := arg.MustParse(&args)
+if args.Foo == "" && args.Bar == "" {
+	p.Fail("you must provide one of --foo and --bar)
+}
+```
+
 ### Installation
 
 ```shell
