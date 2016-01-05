@@ -109,15 +109,21 @@ Fetching the following IDs from foo: [1 2 3]
 ```
 
 ### Custom validation
-```
+```go
 var args struct {
 	Foo string
 	Bar string
 }
 p := arg.MustParse(&args)
 if args.Foo == "" && args.Bar == "" {
-	p.Fail("you must provide one of --foo and --bar)
+	p.Fail("you must provide one of --foo and --bar")
 }
+```
+
+```shell
+./example
+usage: samples [--foo FOO] [--bar BAR]
+error: you must provide one of --foo and --bar
 ```
 
 ### Installation
