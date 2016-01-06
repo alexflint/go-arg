@@ -26,7 +26,7 @@ type spec struct {
 var ErrHelp = errors.New("help requested by user")
 
 // MustParse processes command line arguments and exits upon failure
-func MustParse(dest ...interface{}) {
+func MustParse(dest ...interface{}) *Parser {
 	p, err := NewParser(dest...)
 	if err != nil {
 		fmt.Println(err)
@@ -40,6 +40,7 @@ func MustParse(dest ...interface{}) {
 	if err != nil {
 		p.Fail(err.Error())
 	}
+	return p
 }
 
 // Parse processes command line arguments and stores them in dest
