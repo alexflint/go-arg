@@ -16,7 +16,7 @@ func TestWriteUsage(t *testing.T) {
 
 positional arguments:
   input
-  output
+  output                 list of outputs
 
 options:
   --name NAME            name to use [default: Foo Bar]
@@ -30,7 +30,7 @@ options:
 `
 	var args struct {
 		Input    string   `arg:"positional"`
-		Output   []string `arg:"positional"`
+		Output   []string `arg:"positional,help:list of outputs"`
 		Name     string   `arg:"help:name to use"`
 		Value    int      `arg:"help:secret value"`
 		Verbose  bool     `arg:"-v,help:verbosity level"`
@@ -49,6 +49,29 @@ options:
 	p.WriteUsage(&usage)
 	assert.Equal(t, expectedUsage, usage.String())
 
+	var help bytes.Buffer
+	p.WriteHelp(&help)
+	assert.Equal(t, expectedHelp, help.String())
+}
+
+func TestUsageLongPositionalWithHelp(t *testing.T) {
+	expectedHelp := `usage: example VERYLONGPOSITIONALWITHHELP
+
+positional arguments:
+  verylongpositionalwithhelp
+                         this positional argument is very long
+
+options:
+  --help, -h             display this help and exit
+`
+	var args struct {
+		VeryLongPositionalWithHelp string `arg:"positional,help:this positional argument is very long"`
+	}
+
+	p, err := NewParser(&args)
+	require.NoError(t, err)
+
+	os.Args[0] = "example"
 	var help bytes.Buffer
 	p.WriteHelp(&help)
 	assert.Equal(t, expectedHelp, help.String())
