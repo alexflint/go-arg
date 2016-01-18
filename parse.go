@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strconv"
 	"strings"
@@ -27,7 +28,7 @@ var ErrHelp = errors.New("help requested by user")
 
 // MustParse processes command line arguments and exits upon failure
 func MustParse(dest ...interface{}) *Parser {
-	p, err := NewParser(dest...)
+	p, err := NewParser(Config{}, dest...)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(-1)
@@ -45,20 +46,26 @@ func MustParse(dest ...interface{}) *Parser {
 
 // Parse processes command line arguments and stores them in dest
 func Parse(dest ...interface{}) error {
-	p, err := NewParser(dest...)
+	p, err := NewParser(Config{}, dest...)
 	if err != nil {
 		return err
 	}
 	return p.Parse(os.Args[1:])
 }
 
+// Config represents configuration options for an argument parser
+type Config struct {
+	Program string // Program is the name of the program used in the help text
+}
+
 // Parser represents a set of command line options with destination values
 type Parser struct {
-	spec []*spec
+	spec   []*spec
+	config Config
 }
 
 // NewParser constructs a parser from a list of destination structs
-func NewParser(dests ...interface{}) (*Parser, error) {
+func NewParser(config Config, dests ...interface{}) (*Parser, error) {
 	var specs []*spec
 	for _, dest := range dests {
 		v := reflect.ValueOf(dest)
@@ -138,7 +145,16 @@ func NewParser(dests ...interface{}) (*Parser, error) {
 			specs = append(specs, &spec)
 		}
 	}
-	return &Parser{spec: specs}, nil
+	if config.Program == "" {
+		config.Program = "program"
+		if len(os.Args) > 0 {
+			config.Program = filepath.Base(os.Args[0])
+		}
+	}
+	return &Parser{
+		spec:   specs,
+		config: config,
+	}, nil
 }
 
 // Parse processes the given command line option, storing the results in the field

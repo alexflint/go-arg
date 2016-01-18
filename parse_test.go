@@ -10,7 +10,7 @@ import (
 )
 
 func parse(cmdline string, dest interface{}) error {
-	p, err := NewParser(dest)
+	p, err := NewParser(Config{}, dest)
 	if err != nil {
 		return err
 	}

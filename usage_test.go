@@ -40,7 +40,7 @@ options:
 	}
 	args.Name = "Foo Bar"
 	args.Value = 42
-	p, err := NewParser(&args)
+	p, err := NewParser(Config{}, &args)
 	require.NoError(t, err)
 
 	os.Args[0] = "example"
@@ -68,7 +68,25 @@ options:
 		VeryLongPositionalWithHelp string `arg:"positional,help:this positional argument is very long"`
 	}
 
-	p, err := NewParser(&args)
+	p, err := NewParser(Config{}, &args)
+	require.NoError(t, err)
+
+	os.Args[0] = "example"
+	var help bytes.Buffer
+	p.WriteHelp(&help)
+	assert.Equal(t, expectedHelp, help.String())
+}
+
+func TestUsageWithProgramName(t *testing.T) {
+	expectedHelp := `usage: myprogram
+
+options:
+  --help, -h             display this help and exit
+`
+	config := Config{
+		Program: "myprogram",
+	}
+	p, err := NewParser(config, &struct{}{})
 	require.NoError(t, err)
 
 	os.Args[0] = "example"
