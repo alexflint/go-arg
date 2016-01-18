@@ -18,6 +18,7 @@ type spec struct {
 	required   bool
 	positional bool
 	help       string
+	env        string
 	wasPresent bool
 	isBool     bool
 }
@@ -130,6 +131,13 @@ func NewParser(dests ...interface{}) (*Parser, error) {
 						spec.positional = true
 					case key == "help":
 						spec.help = value
+					case key == "env":
+						// Use override name if provided
+						if value != "" {
+							spec.env = value
+						} else {
+							spec.env = strings.ToUpper(field.Name)
+						}
 					default:
 						return nil, fmt.Errorf("unrecognized tag '%s' on field %s", key, tag)
 					}
@@ -178,6 +186,15 @@ func process(specs []*spec, args []string) error {
 		}
 		if spec.short != "" {
 			optionMap[spec.short] = spec
+		}
+		if spec.env != "" {
+			if value, found := os.LookupEnv(spec.env); found {
+				err := setScalar(spec.dest, value)
+				if err != nil {
+					return fmt.Errorf("error processing environment variable %s: %v", spec.env, err)
+				}
+				spec.wasPresent = true
+			}
 		}
 	}
 
