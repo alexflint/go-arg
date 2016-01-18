@@ -54,6 +54,41 @@ Input: src.txt
 Output: [x.out y.out z.out]
 ```
 
+### Environment variables
+
+```go
+var args struct {
+	Workers int `arg:"env"`
+}
+arg.MustParse(&args)
+fmt.Println("Workers:", args.Workers)
+```
+
+```
+$ WORKERS=4 ./example
+Workers: 4
+```
+
+```
+$ WORKERS=4 ./example --workers=6
+Workers: 6
+```
+
+You can also override the name of the environment variable:
+
+```go
+var args struct {
+	Workers int `arg:"env:NUM_WORKERS"`
+}
+arg.MustParse(&args)
+fmt.Println("Workers:", args.Workers)
+```
+
+```
+$ NUM_WORKERS=4 ./example
+Workers: 4
+```
+
 ### Usage strings
 ```go
 var args struct {

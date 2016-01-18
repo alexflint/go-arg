@@ -357,3 +357,53 @@ func TestMustParse(t *testing.T) {
 	assert.Equal(t, "bar", args.Foo)
 	assert.NotNil(t, parser)
 }
+
+func TestEnvironmentVariable(t *testing.T) {
+	var args struct {
+		Foo string `arg:"env"`
+	}
+	os.Setenv("FOO", "bar")
+	os.Args = []string{"example"}
+	MustParse(&args)
+	assert.Equal(t, "bar", args.Foo)
+}
+
+func TestEnvironmentVariableOverrideName(t *testing.T) {
+	var args struct {
+		Foo string `arg:"env:BAZ"`
+	}
+	os.Setenv("BAZ", "bar")
+	os.Args = []string{"example"}
+	MustParse(&args)
+	assert.Equal(t, "bar", args.Foo)
+}
+
+func TestEnvironmentVariableOverrideArgument(t *testing.T) {
+	var args struct {
+		Foo string `arg:"env"`
+	}
+	os.Setenv("FOO", "bar")
+	os.Args = []string{"example", "--foo", "baz"}
+	MustParse(&args)
+	assert.Equal(t, "baz", args.Foo)
+}
+
+func TestEnvironmentVariableError(t *testing.T) {
+	var args struct {
+		Foo int `arg:"env"`
+	}
+	os.Setenv("FOO", "bar")
+	os.Args = []string{"example"}
+	err := Parse(&args)
+	assert.Error(t, err)
+}
+
+func TestEnvironmentVariableRequired(t *testing.T) {
+	var args struct {
+		Foo string `arg:"env,required"`
+	}
+	os.Setenv("FOO", "bar")
+	os.Args = []string{"example"}
+	MustParse(&args)
+	assert.Equal(t, "bar", args.Foo)
+}
