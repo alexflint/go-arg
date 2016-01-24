@@ -4,6 +4,10 @@
 
 ## Structured argument parsing for Go
 
+```shell
+go get github.com/alexflint/go-arg
+```
+
 Declare the command line arguments your program accepts by defining a struct.
 
 ```go
@@ -24,16 +28,16 @@ hello true
 
 ```go
 var args struct {
-	Foo string `arg:"required"`
-	Bar bool
+	ID      int `arg:"required"`
+	Timeout time.Duration
 }
 arg.MustParse(&args)
 ```
 
 ```shell
 $ ./example
-usage: example --foo FOO [--bar] 
-error: --foo is required
+usage: example --id ID [--timeout TIMEOUT]
+error: --id is required
 ```
 
 ### Positional arguments
@@ -161,10 +165,51 @@ usage: samples [--foo FOO] [--bar BAR]
 error: you must provide one of --foo and --bar
 ```
 
-### Installation
+### Custom parsing
 
+You can implement your own argument parser by implementing `encoding.TextUnmarshaler`:
+
+```go
+package main
+
+import (
+	"fmt"
+	"strings"
+
+	"github.com/alexflint/go-arg"
+)
+
+// Accepts command line arguments of the form "head.tail"
+type NameDotName struct {
+	Head, Tail string
+}
+
+func (n *NameDotName) UnmarshalText(b []byte) error {
+	s := string(b)
+	pos := strings.Index(s, ".")
+	if pos == -1 {
+		return fmt.Errorf("missing period in %s", s)
+	}
+	n.Head = s[:pos]
+	n.Tail = s[pos+1:]
+	return nil
+}
+
+func main() {
+	var args struct {
+		Name *NameDotName
+	}
+	arg.MustParse(&args)
+	fmt.Printf("%#v\n", args.Name)
+}
+```
 ```shell
-go get github.com/alexflint/go-arg
+$ ./example --name=foo.bar
+&main.NameDotName{Head:"foo", Tail:"bar"}
+
+$ ./example --name=oops
+usage: example [--name NAME]
+error: error processing --name: missing period in "oops"
 ```
 
 ### Documentation
