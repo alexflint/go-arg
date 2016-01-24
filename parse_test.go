@@ -1,6 +1,7 @@
 package arg
 
 import (
+	"net"
 	"os"
 	"strings"
 	"testing"
@@ -540,4 +541,41 @@ func TestSliceUnmarhsaler(t *testing.T) {
 	require.Len(t, *args.Foo, 1)
 	assert.EqualValues(t, 5, (*args.Foo)[0])
 	assert.Equal(t, "xyz", args.Bar)
+}
+
+func TestIP(t *testing.T) {
+	var args struct {
+		Host net.IP
+	}
+	err := parse("--host 192.168.0.1", &args)
+	require.NoError(t, err)
+	assert.Equal(t, "192.168.0.1", args.Host.String())
+}
+
+func TestPtrToIP(t *testing.T) {
+	var args struct {
+		Host *net.IP
+	}
+	err := parse("--host 192.168.0.1", &args)
+	require.NoError(t, err)
+	assert.Equal(t, "192.168.0.1", args.Host.String())
+}
+
+func TestIPSlice(t *testing.T) {
+	var args struct {
+		Host []net.IP
+	}
+	err := parse("--host 192.168.0.1 127.0.0.1", &args)
+	require.NoError(t, err)
+	require.Len(t, args.Host, 2)
+	assert.Equal(t, "192.168.0.1", args.Host[0].String())
+	assert.Equal(t, "127.0.0.1", args.Host[1].String())
+}
+
+func TestInvalidIPAddress(t *testing.T) {
+	var args struct {
+		Host net.IP
+	}
+	err := parse("--host xxx", &args)
+	assert.Error(t, err)
 }

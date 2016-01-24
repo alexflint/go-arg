@@ -93,18 +93,21 @@ func setScalar(v reflect.Value, s string) error {
 			return err
 		}
 		v.Set(reflect.ValueOf(*addr))
+		return nil
 	case net.IP:
 		ip := net.ParseIP(s)
 		if ip == nil {
 			return fmt.Errorf(`invalid IP address: "%s"`, s)
 		}
 		v.Set(reflect.ValueOf(ip))
+		return nil
 	case net.HardwareAddr:
 		ip, err := net.ParseMAC(s)
 		if err != nil {
 			return err
 		}
 		v.Set(reflect.ValueOf(ip))
+		return nil
 	}
 
 	// Switch on kind so that we can handle derived types
