@@ -63,6 +63,14 @@ func TestDuration(t *testing.T) {
 	assert.Equal(t, 3*time.Millisecond, args.Foo)
 }
 
+func TestInvalidDuration(t *testing.T) {
+	var args struct {
+		Foo time.Duration
+	}
+	err := parse("--foo xxx", &args)
+	require.Error(t, err)
+}
+
 func TestMixed(t *testing.T) {
 	var args struct {
 		Foo  string `arg:"-f"`
