@@ -1,7 +1,6 @@
 package arg
 
 import (
-	"encoding"
 	"errors"
 	"fmt"
 	"os"
@@ -20,15 +19,12 @@ type spec struct {
 	help       string
 	env        string
 	wasPresent bool
-	isBool     bool
+	boolean    bool
 	fieldName  string // for generating helpful errors
 }
 
 // ErrHelp indicates that -h or --help were provided
 var ErrHelp = errors.New("help requested by user")
-
-// The TextUnmarshaler type in reflection form
-var textUnsmarshalerType = reflect.TypeOf([]encoding.TextUnmarshaler{}).Elem()
 
 // MustParse processes command line arguments and exits upon failure
 func MustParse(dest ...interface{}) *Parser {
@@ -94,33 +90,10 @@ func NewParser(dests ...interface{}) (*Parser, error) {
 			// wait until setScalar because it means that a program with invalid argument
 			// fields will always fail regardless of whether the arguments it recieved happend
 			// to exercise those fields.
-			if !field.Type.Implements(textUnsmarshalerType) {
-				scalarType := field.Type
-				// Look inside pointer types
-				if scalarType.Kind() == reflect.Ptr {
-					scalarType = scalarType.Elem()
-				}
-				// Check for bool
-				if scalarType.Kind() == reflect.Bool {
-					spec.isBool = true
-				}
-				// Look inside slice types
-				if scalarType.Kind() == reflect.Slice {
-					spec.multiple = true
-					scalarType = scalarType.Elem()
-				}
-				// Look inside pointer types (again, in case of []*Type)
-				if scalarType.Kind() == reflect.Ptr {
-					scalarType = scalarType.Elem()
-				}
-
-				// Check for unsupported types
-				switch scalarType.Kind() {
-				case reflect.Array, reflect.Chan, reflect.Func, reflect.Interface,
-					reflect.Map, reflect.Ptr, reflect.Struct,
-					reflect.Complex64, reflect.Complex128:
-					return nil, fmt.Errorf("%s.%s: %s fields are not supported", t.Name(), field.Name, scalarType.Kind())
-				}
+			var parseable bool
+			parseable, spec.boolean, spec.multiple = canParse(field.Type)
+			if !parseable {
+				return nil, fmt.Errorf("%s.%s: %s fields are not supported", t.Name(), field.Name, field.Type.String())
 			}
 
 			// Look at the tag
@@ -264,8 +237,8 @@ func process(specs []*spec, args []string) error {
 		}
 
 		// if it's a flag and it has no value then set the value to true
-		// use isBool because this takes account of TextUnmarshaler
-		if spec.isBool && value == "" {
+		// use boolean because this takes account of TextUnmarshaler
+		if spec.boolean && value == "" {
 			value = "true"
 		}
 
@@ -344,4 +317,39 @@ func setSlice(dest reflect.Value, values []string) error {
 		dest.Set(reflect.Append(dest, v))
 	}
 	return nil
+}
+
+// canParse returns true if the type can be parsed from a string
+func canParse(t reflect.Type) (parseable, boolean, multiple bool) {
+	parseable, boolean = isScalar(t)
+	if parseable {
+		return
+	}
+
+	// Look inside pointer types
+	if t.Kind() == reflect.Ptr {
+		t = t.Elem()
+	}
+	// Look inside slice types
+	if t.Kind() == reflect.Slice {
+		multiple = true
+		t = t.Elem()
+	}
+
+	parseable, boolean = isScalar(t)
+	if parseable {
+		return
+	}
+
+	// Look inside pointer types (again, in case of []*Type)
+	if t.Kind() == reflect.Ptr {
+		t = t.Elem()
+	}
+
+	parseable, boolean = isScalar(t)
+	if parseable {
+		return
+	}
+
+	return false, false, false
 }
