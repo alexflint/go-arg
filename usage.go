@@ -97,7 +97,7 @@ func (p *Parser) WriteHelp(w io.Writer) {
 	}
 
 	// write the list of built in options
-	printOption(w, &spec{isBool: true, long: "help", short: "h", help: "display this help and exit"})
+	printOption(w, &spec{boolean: true, long: "help", short: "h", help: "display this help and exit"})
 }
 
 func printOption(w io.Writer, spec *spec) {
@@ -127,7 +127,7 @@ func printOption(w io.Writer, spec *spec) {
 }
 
 func synopsis(spec *spec, form string) string {
-	if spec.isBool {
+	if spec.boolean {
 		return form
 	}
 	return form + " " + strings.ToUpper(spec.long)
