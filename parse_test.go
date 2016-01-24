@@ -15,7 +15,11 @@ func parse(cmdline string, dest interface{}) error {
 	if err != nil {
 		return err
 	}
-	return p.Parse(strings.Split(cmdline, " "))
+	var parts []string
+	if len(cmdline) > 0 {
+		parts = strings.Split(cmdline, " ")
+	}
+	return p.Parse(parts)
 }
 
 func TestString(t *testing.T) {
@@ -69,6 +73,25 @@ func TestInvalidDuration(t *testing.T) {
 	}
 	err := parse("--foo xxx", &args)
 	require.Error(t, err)
+}
+
+func TestIntPtr(t *testing.T) {
+	var args struct {
+		Foo *int
+	}
+	err := parse("--foo 123", &args)
+	require.NoError(t, err)
+	require.NotNil(t, args.Foo)
+	assert.Equal(t, 123, *args.Foo)
+}
+
+func TestIntPtrNotPresent(t *testing.T) {
+	var args struct {
+		Foo *int
+	}
+	err := parse("", &args)
+	require.NoError(t, err)
+	assert.Nil(t, args.Foo)
 }
 
 func TestMixed(t *testing.T) {
@@ -362,6 +385,14 @@ func TestUnsupportedSliceElement(t *testing.T) {
 	var args struct {
 		Foo []interface{}
 	}
+	err := parse("--foo 3", &args)
+	assert.Error(t, err)
+}
+
+func TestUnsupportedSliceElementMissingValue(t *testing.T) {
+	var args struct {
+		Foo []interface{}
+	}
 	err := parse("--foo", &args)
 	assert.Error(t, err)
 }
@@ -451,4 +482,62 @@ func TestEnvironmentVariableRequired(t *testing.T) {
 	os.Args = []string{"example"}
 	MustParse(&args)
 	assert.Equal(t, "bar", args.Foo)
+}
+
+type textUnmarshaler struct {
+	val int
+}
+
+func (f *textUnmarshaler) UnmarshalText(b []byte) error {
+	f.val = len(b)
+	return nil
+}
+
+func TestTextUnmarshaler(t *testing.T) {
+	// fields that implement TextUnmarshaler should be parsed using that interface
+	var args struct {
+		Foo *textUnmarshaler
+	}
+	err := parse("--foo abc", &args)
+	require.NoError(t, err)
+	assert.Equal(t, 3, args.Foo.val)
+}
+
+type boolUnmarshaler bool
+
+func (p *boolUnmarshaler) UnmarshalText(b []byte) error {
+	*p = len(b)%2 == 0
+	return nil
+}
+
+func TestBoolUnmarhsaler(t *testing.T) {
+	// test that a bool type that implements TextUnmarshaler is
+	// handled as a TextUnmarshaler not as a bool
+	var args struct {
+		Foo *boolUnmarshaler
+	}
+	err := parse("--foo ab", &args)
+	require.NoError(t, err)
+	assert.EqualValues(t, true, *args.Foo)
+}
+
+type sliceUnmarshaler []int
+
+func (p *sliceUnmarshaler) UnmarshalText(b []byte) error {
+	*p = sliceUnmarshaler{len(b)}
+	return nil
+}
+
+func TestSliceUnmarhsaler(t *testing.T) {
+	// test that a slice type that implements TextUnmarshaler is
+	// handled as a TextUnmarshaler not as a slice
+	var args struct {
+		Foo *sliceUnmarshaler
+		Bar string `arg:"positional"`
+	}
+	err := parse("--foo abcde xyz", &args)
+	require.NoError(t, err)
+	require.Len(t, *args.Foo, 1)
+	assert.EqualValues(t, 5, (*args.Foo)[0])
+	assert.Equal(t, "xyz", args.Bar)
 }
