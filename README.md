@@ -4,6 +4,10 @@
 
 ## Structured argument parsing for Go
 
+```shell
+go get github.com/alexflint/go-arg
+```
+
 Declare the command line arguments your program accepts by defining a struct.
 
 ```go
@@ -206,12 +210,6 @@ $ ./example --name=foo.bar
 $ ./example --name=oops
 usage: example [--name NAME]
 error: error processing --name: missing period in "oops"
-```
-
-### Installation
-
-```shell
-go get github.com/alexflint/go-arg
 ```
 
 ### Documentation
