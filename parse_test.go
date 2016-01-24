@@ -2,6 +2,7 @@ package arg
 
 import (
 	"net"
+	"net/mail"
 	"os"
 	"strings"
 	"testing"
@@ -577,5 +578,39 @@ func TestInvalidIPAddress(t *testing.T) {
 		Host net.IP
 	}
 	err := parse("--host xxx", &args)
+	assert.Error(t, err)
+}
+
+func TestMAC(t *testing.T) {
+	var args struct {
+		Host net.HardwareAddr
+	}
+	err := parse("--host 0123.4567.89ab", &args)
+	require.NoError(t, err)
+	assert.Equal(t, "01:23:45:67:89:ab", args.Host.String())
+}
+
+func TestInvalidMac(t *testing.T) {
+	var args struct {
+		Host net.HardwareAddr
+	}
+	err := parse("--host xxx", &args)
+	assert.Error(t, err)
+}
+
+func TestMailAddr(t *testing.T) {
+	var args struct {
+		Recipient mail.Address
+	}
+	err := parse("--recipient foo@example.com", &args)
+	require.NoError(t, err)
+	assert.Equal(t, "<foo@example.com>", args.Recipient.String())
+}
+
+func TestInvalidMailAddr(t *testing.T) {
+	var args struct {
+		Recipient mail.Address
+	}
+	err := parse("--recipient xxx", &args)
 	assert.Error(t, err)
 }
