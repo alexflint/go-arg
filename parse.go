@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"reflect"
-	"strconv"
 	"strings"
 )
 
@@ -326,45 +325,6 @@ func setSlice(dest reflect.Value, values []string) error {
 			v = v.Elem()
 		}
 		dest.Set(reflect.Append(dest, v))
-	}
-	return nil
-}
-
-// set a value from a string
-func setScalar(v reflect.Value, s string) error {
-	if !v.CanSet() {
-		return fmt.Errorf("field is not exported")
-	}
-
-	switch v.Kind() {
-	case reflect.String:
-		v.Set(reflect.ValueOf(s))
-	case reflect.Bool:
-		x, err := strconv.ParseBool(s)
-		if err != nil {
-			return err
-		}
-		v.Set(reflect.ValueOf(x))
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		x, err := strconv.ParseInt(s, 10, v.Type().Bits())
-		if err != nil {
-			return err
-		}
-		v.Set(reflect.ValueOf(x).Convert(v.Type()))
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		x, err := strconv.ParseUint(s, 10, v.Type().Bits())
-		if err != nil {
-			return err
-		}
-		v.Set(reflect.ValueOf(x).Convert(v.Type()))
-	case reflect.Float32, reflect.Float64:
-		x, err := strconv.ParseFloat(s, v.Type().Bits())
-		if err != nil {
-			return err
-		}
-		v.Set(reflect.ValueOf(x).Convert(v.Type()))
-	default:
-		return fmt.Errorf("not a scalar type: %s", v.Kind())
 	}
 	return nil
 }
