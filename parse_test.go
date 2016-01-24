@@ -4,6 +4,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -17,13 +18,49 @@ func parse(cmdline string, dest interface{}) error {
 	return p.Parse(strings.Split(cmdline, " "))
 }
 
-func TestStringSingle(t *testing.T) {
+func TestString(t *testing.T) {
 	var args struct {
 		Foo string
 	}
 	err := parse("--foo bar", &args)
 	require.NoError(t, err)
 	assert.Equal(t, "bar", args.Foo)
+}
+
+func TestInt(t *testing.T) {
+	var args struct {
+		Foo int
+	}
+	err := parse("--foo 7", &args)
+	require.NoError(t, err)
+	assert.EqualValues(t, 7, args.Foo)
+}
+
+func TestUint(t *testing.T) {
+	var args struct {
+		Foo uint
+	}
+	err := parse("--foo 7", &args)
+	require.NoError(t, err)
+	assert.EqualValues(t, 7, args.Foo)
+}
+
+func TestFloat(t *testing.T) {
+	var args struct {
+		Foo float32
+	}
+	err := parse("--foo 3.4", &args)
+	require.NoError(t, err)
+	assert.EqualValues(t, 3.4, args.Foo)
+}
+
+func TestDuration(t *testing.T) {
+	var args struct {
+		Foo time.Duration
+	}
+	err := parse("--foo 3ms", &args)
+	require.NoError(t, err)
+	assert.Equal(t, 3*time.Millisecond, args.Foo)
 }
 
 func TestMixed(t *testing.T) {
