@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 	"reflect"
 	"strings"
 )
@@ -30,7 +29,7 @@ func (p *Parser) WriteUsage(w io.Writer) {
 		}
 	}
 
-	fmt.Fprintf(w, "usage: %s", filepath.Base(os.Args[0]))
+	fmt.Fprintf(w, "usage: %s", p.config.Program)
 
 	// write the option component of the usage message
 	for _, spec := range options {
@@ -114,8 +113,7 @@ func printOption(w io.Writer, spec *spec) {
 		}
 		fmt.Fprint(w, spec.help)
 	}
-	// Check if spec.dest is zero value or not
-	// If it isn't a default value have been added
+	// If spec.dest is not the zero value then a default value has been added.
 	v := spec.dest
 	if v.IsValid() {
 		z := reflect.Zero(v.Type())
