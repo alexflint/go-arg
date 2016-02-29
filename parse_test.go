@@ -250,6 +250,19 @@ func TestMultipleWithEq(t *testing.T) {
 	assert.Equal(t, []string{"x"}, args.Bar)
 }
 
+func TestMultipleWithDefault(t *testing.T) {
+	var args struct {
+		Foo []int
+		Bar []string
+	}
+	args.Foo = []int{42}
+	args.Bar = []string{"foo"}
+	err := parse("--foo 1 2 3 --bar x y z", &args)
+	require.NoError(t, err)
+	assert.Equal(t, []int{1, 2, 3}, args.Foo)
+	assert.Equal(t, []string{"x", "y", "z"}, args.Bar)
+}
+
 func TestExemptField(t *testing.T) {
 	var args struct {
 		Foo string
