@@ -322,6 +322,11 @@ func setSlice(dest reflect.Value, values []string) error {
 		elem = elem.Elem()
 	}
 
+	// Truncate the dest slice in case default values exist
+	if !dest.IsNil() {
+		dest.SetLen(0)
+	}
+
 	for _, s := range values {
 		v := reflect.New(elem)
 		if err := setScalar(v.Elem(), s); err != nil {
