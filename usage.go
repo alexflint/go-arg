@@ -117,7 +117,7 @@ func printOption(w io.Writer, spec *spec) {
 	v := spec.dest
 	if v.IsValid() {
 		z := reflect.Zero(v.Type())
-		if v.Type().Comparable() && z.Type().Comparable() && v.Interface() != z.Interface() {
+		if (v.Type().Comparable() && z.Type().Comparable() && v.Interface() != z.Interface()) || v.Kind() == reflect.Slice && !v.IsNil() {
 			fmt.Fprintf(w, " [default: %v]", v)
 		}
 	}

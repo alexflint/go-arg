@@ -10,9 +10,9 @@ import (
 )
 
 func TestWriteUsage(t *testing.T) {
-	expectedUsage := "usage: example [--name NAME] [--value VALUE] [--verbose] [--dataset DATASET] [--optimize OPTIMIZE] [--ids IDS] [--workers WORKERS] INPUT [OUTPUT [OUTPUT ...]]\n"
+	expectedUsage := "usage: example [--name NAME] [--value VALUE] [--verbose] [--dataset DATASET] [--optimize OPTIMIZE] [--ids IDS] [--values VALUES] [--workers WORKERS] INPUT [OUTPUT [OUTPUT ...]]\n"
 
-	expectedHelp := `usage: example [--name NAME] [--value VALUE] [--verbose] [--dataset DATASET] [--optimize OPTIMIZE] [--ids IDS] [--workers WORKERS] INPUT [OUTPUT [OUTPUT ...]]
+	expectedHelp := `usage: example [--name NAME] [--value VALUE] [--verbose] [--dataset DATASET] [--optimize OPTIMIZE] [--ids IDS] [--values VALUES] [--workers WORKERS] INPUT [OUTPUT [OUTPUT ...]]
 
 positional arguments:
   input
@@ -26,23 +26,26 @@ options:
   --optimize OPTIMIZE, -O OPTIMIZE
                          optimization level
   --ids IDS              Ids
+  --values VALUES        Values [default: [3.14 42 256]]
   --workers WORKERS, -w WORKERS
                          number of workers to start
   --help, -h             display this help and exit
 `
 	var args struct {
-		Input    string   `arg:"positional"`
-		Output   []string `arg:"positional,help:list of outputs"`
-		Name     string   `arg:"help:name to use"`
-		Value    int      `arg:"help:secret value"`
-		Verbose  bool     `arg:"-v,help:verbosity level"`
-		Dataset  string   `arg:"help:dataset to use"`
-		Optimize int      `arg:"-O,help:optimization level"`
-		Ids      []int64  `arg:"help:Ids"`
-		Workers  int      `arg:"-w,env:WORKERS,help:number of workers to start"`
+		Input    string    `arg:"positional"`
+		Output   []string  `arg:"positional,help:list of outputs"`
+		Name     string    `arg:"help:name to use"`
+		Value    int       `arg:"help:secret value"`
+		Verbose  bool      `arg:"-v,help:verbosity level"`
+		Dataset  string    `arg:"help:dataset to use"`
+		Optimize int       `arg:"-O,help:optimization level"`
+		Ids      []int64   `arg:"help:Ids"`
+		Values   []float64 `arg:"help:Values"`
+		Workers  int       `arg:"-w,env:WORKERS,help:number of workers to start"`
 	}
 	args.Name = "Foo Bar"
 	args.Value = 42
+	args.Values = []float64{3.14, 42, 256}
 	p, err := NewParser(Config{}, &args)
 	require.NoError(t, err)
 
