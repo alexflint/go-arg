@@ -95,8 +95,8 @@ func NewParser(config Config, dests ...interface{}) (*Parser, error) {
 
 			// Check whether this field is supported. It's good to do this here rather than
 			// wait until setScalar because it means that a program with invalid argument
-			// fields will always fail regardless of whether the arguments it recieved happend
-			// to exercise those fields.
+			// fields will always fail regardless of whether the arguments it received
+			// exercised those fields.
 			var parseable bool
 			parseable, spec.boolean, spec.multiple = canParse(field.Type)
 			if !parseable {
@@ -309,7 +309,7 @@ func validate(spec []*spec) error {
 	return nil
 }
 
-// parse a value as the apropriate type and store it in the struct
+// parse a value as the appropriate type and store it in the struct
 func setSlice(dest reflect.Value, values []string) error {
 	if !dest.CanSet() {
 		return fmt.Errorf("field is not writable")

@@ -12,6 +12,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func setenv(t *testing.T, name, val string) {
+	if err := os.Setenv(name, val); err != nil {
+		t.Error(err)
+	}
+}
+
 func parse(cmdline string, dest interface{}) error {
 	p, err := NewParser(Config{}, dest)
 	if err != nil {
@@ -453,7 +459,7 @@ func TestEnvironmentVariable(t *testing.T) {
 	var args struct {
 		Foo string `arg:"env"`
 	}
-	os.Setenv("FOO", "bar")
+	setenv(t, "FOO", "bar")
 	os.Args = []string{"example"}
 	MustParse(&args)
 	assert.Equal(t, "bar", args.Foo)
@@ -463,7 +469,7 @@ func TestEnvironmentVariableOverrideName(t *testing.T) {
 	var args struct {
 		Foo string `arg:"env:BAZ"`
 	}
-	os.Setenv("BAZ", "bar")
+	setenv(t, "BAZ", "bar")
 	os.Args = []string{"example"}
 	MustParse(&args)
 	assert.Equal(t, "bar", args.Foo)
@@ -473,7 +479,7 @@ func TestEnvironmentVariableOverrideArgument(t *testing.T) {
 	var args struct {
 		Foo string `arg:"env"`
 	}
-	os.Setenv("FOO", "bar")
+	setenv(t, "FOO", "bar")
 	os.Args = []string{"example", "--foo", "baz"}
 	MustParse(&args)
 	assert.Equal(t, "baz", args.Foo)
@@ -483,7 +489,7 @@ func TestEnvironmentVariableError(t *testing.T) {
 	var args struct {
 		Foo int `arg:"env"`
 	}
-	os.Setenv("FOO", "bar")
+	setenv(t, "FOO", "bar")
 	os.Args = []string{"example"}
 	err := Parse(&args)
 	assert.Error(t, err)
@@ -493,7 +499,7 @@ func TestEnvironmentVariableRequired(t *testing.T) {
 	var args struct {
 		Foo string `arg:"env,required"`
 	}
-	os.Setenv("FOO", "bar")
+	setenv(t, "FOO", "bar")
 	os.Args = []string{"example"}
 	MustParse(&args)
 	assert.Equal(t, "bar", args.Foo)
