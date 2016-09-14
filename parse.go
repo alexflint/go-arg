@@ -27,6 +27,9 @@ type spec struct {
 // ErrHelp indicates that -h or --help were provided
 var ErrHelp = errors.New("help requested by user")
 
+// ErrVersion indicates that --version was provided
+var ErrVersion = errors.New("version requested by user")
+
 // MustParse processes command line arguments and exits upon failure
 func MustParse(dest ...interface{}) *Parser {
 	p, err := NewParser(Config{}, dest...)
@@ -37,6 +40,10 @@ func MustParse(dest ...interface{}) *Parser {
 	err = p.Parse(os.Args[1:])
 	if err == ErrHelp {
 		p.WriteHelp(os.Stdout)
+		os.Exit(0)
+	}
+	if err == ErrVersion {
+		fmt.Println(p.version)
 		os.Exit(0)
 	}
 	if err != nil {
@@ -61,14 +68,28 @@ type Config struct {
 
 // Parser represents a set of command line options with destination values
 type Parser struct {
-	spec   []*spec
-	config Config
+	spec    []*spec
+	config  Config
+	version string
+}
+
+// Versioned is the interface that the destination struct should implement to
+// make a version string appear at the top of the help message.
+type Versioned interface {
+	// Version returns the version string that will be printed on a line by itself
+	// at the top of the help message.
+	Version() string
 }
 
 // NewParser constructs a parser from a list of destination structs
 func NewParser(config Config, dests ...interface{}) (*Parser, error) {
-	var specs []*spec
+	p := Parser{
+		config: config,
+	}
 	for _, dest := range dests {
+		if dest, ok := dest.(Versioned); ok {
+			p.version = dest.Version()
+		}
 		v := reflect.ValueOf(dest)
 		if v.Kind() != reflect.Ptr {
 			panic(fmt.Sprintf("%s is not a pointer (did you forget an ampersand?)", v.Type()))
@@ -138,19 +159,16 @@ func NewParser(config Config, dests ...interface{}) (*Parser, error) {
 					}
 				}
 			}
-			specs = append(specs, &spec)
+			p.spec = append(p.spec, &spec)
 		}
 	}
-	if config.Program == "" {
-		config.Program = "program"
+	if p.config.Program == "" {
+		p.config.Program = "program"
 		if len(os.Args) > 0 {
-			config.Program = filepath.Base(os.Args[0])
+			p.config.Program = filepath.Base(os.Args[0])
 		}
 	}
-	return &Parser{
-		spec:   specs,
-		config: config,
-	}, nil
+	return &p, nil
 }
 
 // Parse processes the given command line option, storing the results in the field
@@ -160,6 +178,9 @@ func (p *Parser) Parse(args []string) error {
 	for _, arg := range args {
 		if arg == "-h" || arg == "--help" {
 			return ErrHelp
+		}
+		if arg == "--version" {
+			return ErrVersion
 		}
 		if arg == "--" {
 			break

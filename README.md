@@ -166,6 +166,28 @@ usage: samples [--foo FOO] [--bar BAR]
 error: you must provide one of --foo and --bar
 ```
 
+### Version strings
+
+```go
+type args struct {
+	...
+}
+
+func (args) Version() string {
+	return "someprogram 4.3.0"
+}
+
+func main() {
+	var args args
+	arg.MustParse(&args)
+}
+```
+
+```shell
+$ ./example --version
+someprogram 4.3.0
+```
+
 ### Custom parsing
 
 You can implement your own argument parser by implementing `encoding.TextUnmarshaler`:

@@ -29,6 +29,10 @@ func (p *Parser) WriteUsage(w io.Writer) {
 		}
 	}
 
+	if p.version != "" {
+		fmt.Fprintln(w, p.version)
+	}
+
 	fmt.Fprintf(w, "usage: %s", p.config.Program)
 
 	// write the option component of the usage message
@@ -97,6 +101,9 @@ func (p *Parser) WriteHelp(w io.Writer) {
 
 	// write the list of built in options
 	printOption(w, &spec{boolean: true, long: "help", short: "h", help: "display this help and exit"})
+	if p.version != "" {
+		printOption(w, &spec{boolean: true, long: "version", help: "display version and exit"})
+	}
 }
 
 func printOption(w io.Writer, spec *spec) {

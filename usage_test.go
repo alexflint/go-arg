@@ -100,3 +100,32 @@ options:
 	p.WriteHelp(&help)
 	assert.Equal(t, expectedHelp, help.String())
 }
+
+type versioned struct{}
+
+// Version returns the version for this program
+func (versioned) Version() string {
+	return "example 3.2.1"
+}
+
+func TestUsageWithVersion(t *testing.T) {
+	expectedHelp := `example 3.2.1
+usage: example
+
+options:
+  --help, -h             display this help and exit
+  --version              display version and exit
+`
+	os.Args[0] = "example"
+	p, err := NewParser(Config{}, &versioned{})
+	require.NoError(t, err)
+
+	var help bytes.Buffer
+	p.WriteHelp(&help)
+	actual := help.String()
+	t.Logf("Expected:\n%s", expectedHelp)
+	t.Logf("Actual:\n%s", actual)
+	if expectedHelp != actual {
+		t.Fail()
+	}
+}
