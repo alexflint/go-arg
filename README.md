@@ -188,6 +188,34 @@ $ ./example --version
 someprogram 4.3.0
 ```
 
+### Embedded structs
+
+The fields of embedded structs are treated just like regular fields:
+
+```go
+
+type DatabaseOptions struct {
+	Host     string
+	Username string
+	Password string
+}
+
+type LogOptions struct {
+	LogFile string
+	Verbose bool
+}
+
+func main() {
+	var args struct {
+		DatabaseOptions
+		LogOptions
+	}
+	arg.MustParse(&args)
+}
+```
+
+As usual, any field tagged with `arg:"-"` is ignored.
+
 ### Custom parsing
 
 You can implement your own argument parser by implementing `encoding.TextUnmarshaler`:
