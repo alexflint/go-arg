@@ -633,3 +633,24 @@ func TestInvalidMailAddr(t *testing.T) {
 	err := parse("--recipient xxx", &args)
 	assert.Error(t, err)
 }
+
+type A struct {
+	X string
+}
+
+type B struct {
+	Y int
+}
+
+func TestEmbedded(t *testing.T) {
+	var args struct {
+		A
+		B
+		Z bool
+	}
+	err := parse("--x=hello --y=321 --z", &args)
+	require.NoError(t, err)
+	assert.Equal(t, "hello", args.X)
+	assert.Equal(t, 321, args.Y)
+	assert.Equal(t, true, args.Z)
+}
