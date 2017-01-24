@@ -263,6 +263,33 @@ usage: example [--name NAME]
 error: error processing --name: missing period in "oops"
 ```
 
+### Description strings
+
+```go
+type args struct {
+	Foo string
+}
+
+func (args) Description() string {
+	return "this program does this and that"
+}
+
+func main() {
+	var args args
+	arg.MustParse(&args)
+}
+```
+
+```shell
+$ ./example -h
+this program does this and that
+usage: example [--foo FOO]
+
+options:
+  --foo FOO
+  --help, -h             display this help and exit
+```
+
 ### Documentation
 
 https://godoc.org/github.com/alexflint/go-arg

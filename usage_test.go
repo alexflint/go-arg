@@ -129,3 +129,31 @@ options:
 		t.Fail()
 	}
 }
+
+type described struct{}
+
+// Described returns the description for this program
+func (described) Description() string {
+	return "this program does this and that"
+}
+
+func TestUsageWithDescription(t *testing.T) {
+	expectedHelp := `this program does this and that
+usage: example
+
+options:
+  --help, -h             display this help and exit
+`
+	os.Args[0] = "example"
+	p, err := NewParser(Config{}, &described{})
+	require.NoError(t, err)
+
+	var help bytes.Buffer
+	p.WriteHelp(&help)
+	actual := help.String()
+	t.Logf("Expected:\n%s", expectedHelp)
+	t.Logf("Actual:\n%s", actual)
+	if expectedHelp != actual {
+		t.Fail()
+	}
+}

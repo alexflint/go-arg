@@ -29,6 +29,9 @@ func (p *Parser) WriteUsage(w io.Writer) {
 		}
 	}
 
+	if p.description != "" {
+		fmt.Fprintln(w, p.description)
+	}
 	if p.version != "" {
 		fmt.Fprintln(w, p.version)
 	}
