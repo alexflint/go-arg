@@ -67,9 +67,10 @@ type Config struct {
 
 // Parser represents a set of command line options with destination values
 type Parser struct {
-	spec    []*spec
-	config  Config
-	version string
+	spec        []*spec
+	config      Config
+	version     string
+	description string
 }
 
 // Versioned is the interface that the destination struct should implement to
@@ -78,6 +79,14 @@ type Versioned interface {
 	// Version returns the version string that will be printed on a line by itself
 	// at the top of the help message.
 	Version() string
+}
+
+// Described is the interface that the destination struct should implement to
+// make a description string appear at the top of the help message.
+type Described interface {
+	// Description returns the string that will be printed on a line by itself
+	// at the top of the help message.
+	Description() string
 }
 
 // walkFields calls a function for each field of a struct, recursively expanding struct fields.
@@ -101,6 +110,9 @@ func NewParser(config Config, dests ...interface{}) (*Parser, error) {
 	for _, dest := range dests {
 		if dest, ok := dest.(Versioned); ok {
 			p.version = dest.Version()
+		}
+		if dest, ok := dest.(Described); ok {
+			p.description = dest.Description()
 		}
 		v := reflect.ValueOf(dest)
 		if v.Kind() != reflect.Ptr {
