@@ -138,8 +138,8 @@ func (described) Description() string {
 }
 
 func TestUsageWithDescription(t *testing.T) {
-	expectedHelp := `this program does this and that
-usage: example
+	expectedHelp := `usage: example
+this program does this and that
 
 options:
   --help, -h             display this help and exit

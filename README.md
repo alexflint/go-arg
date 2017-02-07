@@ -282,8 +282,8 @@ func main() {
 
 ```shell
 $ ./example -h
-this program does this and that
 usage: example [--foo FOO]
+this program does this and that
 
 options:
   --foo FOO
