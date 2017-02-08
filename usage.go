@@ -29,9 +29,6 @@ func (p *Parser) WriteUsage(w io.Writer) {
 		}
 	}
 
-	if p.description != "" {
-		fmt.Fprintln(w, p.description)
-	}
 	if p.version != "" {
 		fmt.Fprintln(w, p.version)
 	}
@@ -76,6 +73,9 @@ func (p *Parser) WriteHelp(w io.Writer) {
 		}
 	}
 
+	if p.description != "" {
+		fmt.Fprintln(w, p.description)
+	}
 	p.WriteUsage(w)
 
 	// write the list of positionals
