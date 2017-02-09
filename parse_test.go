@@ -654,3 +654,17 @@ func TestEmbedded(t *testing.T) {
 	assert.Equal(t, 321, args.Y)
 	assert.Equal(t, true, args.Z)
 }
+
+func TestEmptyArgs(t *testing.T) {
+	origArgs := os.Args
+
+	// test what happens if somehow os.Args is empty
+	os.Args = nil
+	var args struct {
+		Foo string
+	}
+	MustParse(&args)
+
+	// put the original arguments back
+	os.Args = origArgs
+}

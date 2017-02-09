@@ -36,7 +36,7 @@ func MustParse(dest ...interface{}) *Parser {
 		fmt.Println(err)
 		os.Exit(-1)
 	}
-	err = p.Parse(os.Args[1:])
+	err = p.Parse(flags())
 	if err == ErrHelp {
 		p.WriteHelp(os.Stdout)
 		os.Exit(0)
@@ -57,7 +57,15 @@ func Parse(dest ...interface{}) error {
 	if err != nil {
 		return err
 	}
-	return p.Parse(os.Args[1:])
+	return p.Parse(flags())
+}
+
+// flags gets all command line arguments other than the first (program name)
+func flags() []string {
+	if len(os.Args) == 0 { // os.Args could be empty
+		return nil
+	}
+	return os.Args[1:]
 }
 
 // Config represents configuration options for an argument parser
