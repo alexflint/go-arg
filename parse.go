@@ -36,6 +36,9 @@ func MustParse(dest ...interface{}) *Parser {
 		fmt.Println(err)
 		os.Exit(-1)
 	}
+	if len(os.Args) <= 1 {
+		return p
+	}
 	err = p.Parse(os.Args[1:])
 	if err == ErrHelp {
 		p.WriteHelp(os.Stdout)
@@ -56,6 +59,9 @@ func Parse(dest ...interface{}) error {
 	p, err := NewParser(Config{}, dest...)
 	if err != nil {
 		return err
+	}
+	if len(os.Args) <= 1 {
+		return nil
 	}
 	return p.Parse(os.Args[1:])
 }
