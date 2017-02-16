@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
+
+	scalar "github.com/alexflint/go-scalar"
 )
 
 // spec represents a command line option
@@ -62,7 +64,7 @@ func Parse(dest ...interface{}) error {
 
 // flags gets all command line arguments other than the first (program name)
 func flags() []string {
-	if len(os.Args) == 0 { // os.Args could be empty
+	if len(os.Args) == 0 {
 		return nil
 	}
 	return os.Args[1:]
@@ -441,4 +443,14 @@ func canParse(t reflect.Type) (parseable, boolean, multiple bool) {
 	}
 
 	return false, false, false
+}
+
+// isScalar returns true if the type can be parsed from a single string
+func isScalar(t reflect.Type) (bool, bool) {
+	return scalar.CanParse(t), t.Kind() == reflect.Bool
+}
+
+// set a value from a string
+func setScalar(v reflect.Value, s string) error {
+	return scalar.ParseValue(v, s)
 }
