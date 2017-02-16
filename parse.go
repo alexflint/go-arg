@@ -64,7 +64,7 @@ func Parse(dest ...interface{}) error {
 
 // flags gets all command line arguments other than the first (program name)
 func flags() []string {
-	if len(os.Args) == 0 {
+	if len(os.Args) == 0 { // os.Args could be empty
 		return nil
 	}
 	return os.Args[1:]
