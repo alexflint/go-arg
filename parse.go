@@ -1,6 +1,7 @@
 package arg
 
 import (
+	"encoding"
 	"errors"
 	"fmt"
 	"os"
@@ -445,9 +446,21 @@ func canParse(t reflect.Type) (parseable, boolean, multiple bool) {
 	return false, false, false
 }
 
+var textUnmarshalerType = reflect.TypeOf([]encoding.TextUnmarshaler{}).Elem()
+
 // isScalar returns true if the type can be parsed from a single string
-func isScalar(t reflect.Type) (bool, bool) {
-	return scalar.CanParse(t), t.Kind() == reflect.Bool
+func isScalar(t reflect.Type) (parseable, boolean bool) {
+	parseable = scalar.CanParse(t)
+	switch {
+	case t.Implements(textUnmarshalerType):
+		return parseable, false
+	case t.Kind() == reflect.Bool:
+		return parseable, true
+	case t.Kind() == reflect.Ptr && t.Elem().Kind() == reflect.Bool:
+		return parseable, true
+	default:
+		return parseable, false
+	}
 }
 
 // set a value from a string
