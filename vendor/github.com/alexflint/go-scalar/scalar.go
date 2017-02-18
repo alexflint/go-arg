@@ -1,7 +1,10 @@
-package arg
+// Package scalar parses strings into values of scalar type.
+
+package scalar
 
 import (
 	"encoding"
+	"errors"
 	"fmt"
 	"net"
 	"net/mail"
@@ -19,57 +22,29 @@ var (
 	macType             = reflect.TypeOf(net.HardwareAddr{})
 )
 
-// isScalar returns true if the type can be parsed from a single string
-func isScalar(t reflect.Type) (scalar, boolean bool) {
-	// If it implements encoding.TextUnmarshaler then use that
-	if t.Implements(textUnmarshalerType) {
-		// scalar=YES, boolean=NO
-		return true, false
-	}
+var (
+	errNotSettable    = errors.New("value is not settable")
+	errPtrNotSettable = errors.New("value is a nil pointer and is not settable")
+)
 
-	// If we have a pointer then dereference it
-	if t.Kind() == reflect.Ptr {
-		t = t.Elem()
-	}
-
-	// Check for other special types
-	switch t {
-	case durationType, mailAddressType, ipType, macType:
-		// scalar=YES, boolean=NO
-		return true, false
-	}
-
-	// Fall back to checking the kind
-	switch t.Kind() {
-	case reflect.Bool:
-		// scalar=YES, boolean=YES
-		return true, true
-	case reflect.String, reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
-		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
-		reflect.Float32, reflect.Float64:
-		// scalar=YES, boolean=NO
-		return true, false
-	}
-	// scalar=NO, boolean=NO
-	return false, false
+// Parse assigns a value to v by parsing s.
+func Parse(dest interface{}, s string) error {
+	return ParseValue(reflect.ValueOf(dest), s)
 }
 
-// set a value from a string
-func setScalar(v reflect.Value, s string) error {
-	if !v.CanSet() {
-		return fmt.Errorf("field is not exported")
-	}
-
+// ParseValue assigns a value to v by parsing s.
+func ParseValue(v reflect.Value, s string) error {
 	// If we have a nil pointer then allocate a new object
 	if v.Kind() == reflect.Ptr && v.IsNil() {
+		if !v.CanSet() {
+			return errPtrNotSettable
+		}
+
 		v.Set(reflect.New(v.Type().Elem()))
 	}
 
-	// Get the object as an interface
-	scalar := v.Interface()
-
 	// If it implements encoding.TextUnmarshaler then use that
-	if scalar, ok := scalar.(encoding.TextUnmarshaler); ok {
+	if scalar, ok := v.Interface().(encoding.TextUnmarshaler); ok {
 		return scalar.UnmarshalText([]byte(s))
 	}
 
@@ -78,8 +53,12 @@ func setScalar(v reflect.Value, s string) error {
 		v = v.Elem()
 	}
 
+	if !v.CanSet() {
+		return errNotSettable
+	}
+
 	// Switch on concrete type
-	switch scalar.(type) {
+	switch scalar := v.Interface(); scalar.(type) {
 	case time.Duration:
 		duration, err := time.ParseDuration(s)
 		if err != nil {
@@ -126,7 +105,7 @@ func setScalar(v reflect.Value, s string) error {
 			return err
 		}
 		v.SetInt(x)
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 		x, err := strconv.ParseUint(s, 10, v.Type().Bits())
 		if err != nil {
 			return err
@@ -139,7 +118,37 @@ func setScalar(v reflect.Value, s string) error {
 		}
 		v.SetFloat(x)
 	default:
-		return fmt.Errorf("cannot parse argument into %s", v.Type().String())
+		return fmt.Errorf("cannot parse into %v", v.Type())
 	}
 	return nil
+}
+
+// CanParse returns true if the type can be parsed from a string.
+func CanParse(t reflect.Type) bool {
+	// If it implements encoding.TextUnmarshaler then use that
+	if t.Implements(textUnmarshalerType) {
+		return true
+	}
+
+	// If we have a pointer then dereference it
+	if t.Kind() == reflect.Ptr {
+		t = t.Elem()
+	}
+
+	// Check for other special types
+	switch t {
+	case durationType, mailAddressType, ipType, macType:
+		return true
+	}
+
+	// Fall back to checking the kind
+	switch t.Kind() {
+	case reflect.Bool:
+		return true
+	case reflect.String, reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr,
+		reflect.Float32, reflect.Float64:
+		return true
+	}
+	return false
 }
