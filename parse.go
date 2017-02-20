@@ -320,7 +320,7 @@ func process(specs []*spec, args []string) error {
 
 		// if we have something like "--foo" then the value is the next argument
 		if value == "" {
-			if i+1 == len(args) || strings.HasPrefix(args[i+1], "-") {
+			if i+1 == len(args) || (strings.HasPrefix(args[i+1], "-") && len(args[i+1]) > 1) {
 				return fmt.Errorf("missing value for %s", arg)
 			}
 			value = args[i+1]

@@ -39,6 +39,15 @@ func TestString(t *testing.T) {
 	assert.Equal(t, "bar", args.Foo)
 }
 
+func TestDashAsValue(t *testing.T) {
+	var args struct {
+		Foo string
+	}
+	err := parse("--foo -", &args)
+	require.NoError(t, err)
+	assert.Equal(t, "-", args.Foo)
+}
+
 func TestInt(t *testing.T) {
 	var args struct {
 		Foo int
