@@ -174,6 +174,8 @@ func NewParser(config Config, dests ...interface{}) (*Parser, error) {
 					}
 
 					switch {
+					case strings.HasPrefix(key, "---"):
+						errs = append(errs, fmt.Sprintf("%s.%s: too many hyphens", t.Name(), field.Name))
 					case strings.HasPrefix(key, "--"):
 						spec.long = key[2:]
 					case strings.HasPrefix(key, "-"):
@@ -285,7 +287,7 @@ func process(specs []*spec, args []string) error {
 			continue
 		}
 
-		if !strings.HasPrefix(arg, "-") || allpositional {
+		if !isFlag(arg) || allpositional {
 			positionals = append(positionals, arg)
 			continue
 		}
@@ -309,7 +311,7 @@ func process(specs []*spec, args []string) error {
 		if spec.multiple {
 			var values []string
 			if value == "" {
-				for i+1 < len(args) && !strings.HasPrefix(args[i+1], "-") {
+				for i+1 < len(args) && !isFlag(args[i+1]) {
 					values = append(values, args[i+1])
 					i++
 				}
@@ -331,7 +333,7 @@ func process(specs []*spec, args []string) error {
 
 		// if we have something like "--foo" then the value is the next argument
 		if value == "" {
-			if i+1 == len(args) || strings.HasPrefix(args[i+1], "-") {
+			if i+1 == len(args) || isFlag(args[i+1]) {
 				return fmt.Errorf("missing value for %s", arg)
 			}
 			value = args[i+1]
@@ -368,6 +370,11 @@ func process(specs []*spec, args []string) error {
 		return fmt.Errorf("too many positional arguments at '%s'", positionals[0])
 	}
 	return nil
+}
+
+// isFlag returns true if a token is a flag such as "-v" or "--user" but not "-" or "--"
+func isFlag(s string) bool {
+	return strings.HasPrefix(s, "-") && strings.TrimLeft(s, "-") != ""
 }
 
 // validate an argument spec after arguments have been parse
