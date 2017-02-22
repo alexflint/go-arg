@@ -693,3 +693,49 @@ func TestEmptyArgs(t *testing.T) {
 	// put the original arguments back
 	os.Args = origArgs
 }
+
+func TestTooManyHyphens(t *testing.T) {
+	var args struct {
+		TooManyHyphens string `arg:"---x"`
+	}
+	err := parse("--foo -", &args)
+	assert.Error(t, err)
+}
+
+func TestHyphenAsOption(t *testing.T) {
+	var args struct {
+		Foo string
+	}
+	err := parse("--foo -", &args)
+	require.NoError(t, err)
+	assert.Equal(t, "-", args.Foo)
+}
+
+func TestHyphenAsPositional(t *testing.T) {
+	var args struct {
+		Foo string `arg:"positional"`
+	}
+	err := parse("-", &args)
+	require.NoError(t, err)
+	assert.Equal(t, "-", args.Foo)
+}
+
+func TestHyphenInMultiOption(t *testing.T) {
+	var args struct {
+		Foo []string
+		Bar int
+	}
+	err := parse("--foo --- x - y --bar 3", &args)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"---", "x", "-", "y"}, args.Foo)
+	assert.Equal(t, 3, args.Bar)
+}
+
+func TestHyphenInMultiPositional(t *testing.T) {
+	var args struct {
+		Foo []string `arg:"positional"`
+	}
+	err := parse("--- x - y", &args)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"---", "x", "-", "y"}, args.Foo)
+}
