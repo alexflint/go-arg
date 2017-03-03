@@ -99,39 +99,78 @@ func (p *Parser) WriteHelp(w io.Writer) {
 	// write the list of options
 	fmt.Fprint(w, "\noptions:\n")
 	for _, spec := range options {
-		printOption(w, spec)
+		fmt.Fprintln(w, spec)
 	}
 
-	// write the list of built in options
-	printOption(w, &spec{boolean: true, long: "help", short: "h", help: "display this help and exit"})
+	fmt.Fprintln(w, &spec{boolean: true, long: "help", short: "h", help: "display this help and exit"})
 	if p.version != "" {
-		printOption(w, &spec{boolean: true, long: "version", help: "display version and exit"})
+		fmt.Fprintln(w, &spec{boolean: true, long: "version", help: "display version and exit"})
 	}
 }
 
-func printOption(w io.Writer, spec *spec) {
-	left := "  " + synopsis(spec, "--"+spec.long)
-	if spec.short != "" {
-		left += ", " + synopsis(spec, "-"+spec.short)
-	}
-	fmt.Fprint(w, left)
-	if spec.help != "" {
-		if len(left)+2 < colWidth {
-			fmt.Fprint(w, strings.Repeat(" ", colWidth-len(left)))
-		} else {
-			fmt.Fprint(w, "\n"+strings.Repeat(" ", colWidth))
-		}
-		fmt.Fprint(w, spec.help)
-	}
-	// If spec.dest is not the zero value then a default value has been added.
-	v := spec.dest
+func (s *spec) getValueDefault() string {
+	v := s.dest
 	if v.IsValid() {
 		z := reflect.Zero(v.Type())
 		if (v.Type().Comparable() && z.Type().Comparable() && v.Interface() != z.Interface()) || v.Kind() == reflect.Slice && !v.IsNil() {
-			fmt.Fprintf(w, " [default: %v]", v)
+			return fmt.Sprintf("%v", v)
 		}
 	}
-	fmt.Fprint(w, "\n")
+	return ""
+}
+
+func (s *spec) fmtValueType() string {
+	if s.dest.IsValid() {
+		t := s.dest.Type().String()
+
+		var valType string
+		switch {
+		case strings.Contains(t, "string"):
+			valType = "s"
+		case strings.Contains(t, "int"):
+			valType = "n"
+		case strings.Contains(t, "float"):
+			valType = "f"
+		case strings.Contains(t, "time"):
+			valType = "t"
+		}
+
+		if t[0:2] == "[]" {
+			return fmt.Sprintf("[%s]", valType)
+		}
+		if valType != "" {
+			return fmt.Sprintf("<%s>", valType)
+		}
+	}
+	return ""
+}
+
+func (s *spec) String() string {
+	short := s.short
+	if short != "" {
+		short = fmt.Sprintf("-%s,", s.short)
+	}
+
+	val := s.fmtValueType()
+	def := s.getValueDefault()
+
+	if def != "" {
+		val = def
+		def = fmt.Sprintf("[default: %s]", def)
+	}
+
+	if val != "" {
+		val = "=" + val
+	}
+
+	long := s.long
+	if long != "" {
+		long = fmt.Sprintf("--%-20s", s.long+val)
+	} else {
+		short = short + val
+	}
+
+	return fmt.Sprintf("%5s %s %s %s", short, long, s.help, def)
 }
 
 func synopsis(spec *spec, form string) string {

@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"regexp"
 	"strings"
 
 	scalar "github.com/alexflint/go-scalar"
@@ -148,8 +149,20 @@ func NewParser(config Config, dests ...interface{}) (*Parser, error) {
 			}
 
 			spec := spec{
-				long: strings.ToLower(field.Name),
 				dest: val,
+			}
+
+			if len(field.Name) == 1 {
+				spec.short = field.Name
+			} else {
+				//put dash before capital letters
+				spec.long = regexp.MustCompile("([A-Z])").ReplaceAllString(field.Name, "-$1")
+				//after replace in left remains dash at first symbol, remove it
+				spec.long = spec.long[1:]
+				//replace underscore to dash
+				spec.long = strings.Replace(spec.long, "_", "-", -1)
+				//to lower
+				spec.long = strings.ToLower(spec.long)
 			}
 
 			// Check whether this field is supported. It's good to do this here rather than
