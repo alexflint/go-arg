@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"regexp"
 	"strings"
 
 	scalar "github.com/alexflint/go-scalar"
@@ -148,8 +149,27 @@ func NewParser(config Config, dests ...interface{}) (*Parser, error) {
 			}
 
 			spec := spec{
-				long: strings.ToLower(field.Name),
 				dest: val,
+			}
+
+			if len(field.Name) == 1 {
+				spec.short = strings.ToLower(field.Name)
+			} else {
+
+				if ok, _ := regexp.MatchString("^[A-Z]+$", field.Name); ok {
+					spec.long = field.Name
+				} else {
+					//put dash before capital letters
+					spec.long = regexp.MustCompile("([A-Z])").ReplaceAllString(field.Name, "-$1")
+
+					//after replace in left remains dash at first symbol, remove it
+					spec.long = spec.long[1:]
+				}
+
+				//replace underscore to dash
+				spec.long = strings.Replace(spec.long, "_", "-", -1)
+				//to lower
+				spec.long = strings.ToLower(spec.long)
 			}
 
 			// Check whether this field is supported. It's good to do this here rather than
@@ -220,7 +240,17 @@ func NewParser(config Config, dests ...interface{}) (*Parser, error) {
 			p.config.Program = filepath.Base(os.Args[0])
 		}
 	}
+
+	p.addSpecHelp()
+
 	return &p, nil
+}
+
+func (p *Parser) addSpecHelp() {
+	p.spec = append(p.spec, &spec{boolean: true, long: "help", short: "h", help: "display this help and exit"})
+	if p.version != "" {
+		p.spec = append(p.spec, &spec{boolean: true, long: "version", help: "display version and exit"})
+	}
 }
 
 // Parse processes the given command line option, storing the results in the field
@@ -292,19 +322,46 @@ func process(specs []*spec, args []string) error {
 			continue
 		}
 
-		// check for an equals sign, as in "--foo=bar"
-		var value string
-		opt := strings.TrimLeft(arg, "-")
-		if pos := strings.Index(opt, "="); pos != -1 {
-			value = opt[pos+1:]
-			opt = opt[:pos]
+		// check list of one symbol boolean args, ex: "-abcd"
+		if regexp.MustCompile("^-[a-z]+").MatchString(arg) {
+			args := strings.Split(arg[1:], "")
+
+			valid := true
+			//check each characters
+			for _, a := range args {
+				var s *spec
+				var ok bool
+				if s, ok = optionMap[a]; !ok {
+					return fmt.Errorf("unknown argument %s", arg)
+				}
+
+				if !s.boolean {
+					valid = false
+					break
+				}
+			}
+
+			if valid {
+				//if valid set true for each arg
+				for _, a := range args {
+					optionMap[a].wasPresent = true
+					setScalar(optionMap[a].dest, "true")
+				}
+				continue
+			}
 		}
 
-		// lookup the spec for this option
-		spec, ok := optionMap[opt]
+		//check and split incoming argument on name[opt] and value
+		name, value, ok := splitArg(arg)
+		if !ok {
+			return fmt.Errorf("invalid argument %s", arg)
+		}
+
+		spec, ok := optionMap[name]
 		if !ok {
 			return fmt.Errorf("unknown argument %s", arg)
 		}
+
 		spec.wasPresent = true
 
 		// deal with the case of multiple values
@@ -370,6 +427,25 @@ func process(specs []*spec, args []string) error {
 		return fmt.Errorf("too many positional arguments at '%s'", positionals[0])
 	}
 	return nil
+}
+
+func splitArg(arg string) (name, value string, ok bool) {
+	tArg := strings.TrimLeft(arg, "-")
+	splitted := regexp.MustCompile("[ =]").Split(tArg, 2)
+
+	if len(splitted) > 0 {
+		ok = true
+		name = splitted[0]
+	}
+
+	if len(splitted) > 1 {
+		value = splitted[1]
+	}
+	if regok, _ := regexp.MatchString("^-[a-zA-Z]+", arg); regok && len(name) != 1 {
+		ok = false
+	}
+
+	return
 }
 
 // isFlag returns true if a token is a flag such as "-v" or "--user" but not "-" or "--"

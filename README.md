@@ -37,7 +37,7 @@ arg.MustParse(&args)
 
 ```shell
 $ ./example
-usage: example --id ID [--timeout TIMEOUT]
+usage: example --id [--timeout] 
 error: --id is required
 ```
 
@@ -108,18 +108,17 @@ arg.MustParse(&args)
 
 ```shell
 $ ./example -h
-usage: [--verbose] [--dataset DATASET] [--optimize OPTIMIZE] [--help] INPUT [OUTPUT [OUTPUT ...]] 
+usage: example [-v] [--dataset] [-O] INPUT [OUTPUT [OUTPUT ...]] 
 
 positional arguments:
-  input
-  output
+  input                      
+  output                     
 
 options:
-  --verbose, -v            verbosity level
-  --dataset DATASET        dataset to use
-  --optimize OPTIMIZE, -O OPTIMIZE
-                           optimization level
-  --help, -h               print this help message
+  -v, --verbose              verbosity level
+      --dataset=<s>          dataset to use
+  -O, --optimize=<n>         optimization level
+  -h, --help                 display this help and exit
 ```
 
 ### Default values
@@ -131,6 +130,28 @@ var args struct {
 }
 args.Foo = "default value"
 arg.MustParse(&args)
+```
+
+### Short boolean values
+
+```go
+var args struct {
+	A   bool
+	B   bool
+	Foo bool `arg:"-f"`
+}
+arg.MustParse(&args)
+```
+
+```shell
+$ ./example -h
+usage: example [-abf] 
+
+options:
+  -a  
+  -b  
+  -f, --foo                  
+  -h, --help                 display this help and exit
 ```
 
 ### Arguments with multiple values
@@ -259,7 +280,7 @@ $ ./example --name=foo.bar
 &main.NameDotName{Head:"foo", Tail:"bar"}
 
 $ ./example --name=oops
-usage: example [--name NAME]
+usage: example [--name]
 error: error processing --name: missing period in "oops"
 ```
 
@@ -283,11 +304,11 @@ func main() {
 ```shell
 $ ./example -h
 this program does this and that
-usage: example [--foo FOO]
+usage: example [--foo] 
 
 options:
-  --foo FOO
-  --help, -h             display this help and exit
+      --foo=<s>              
+  -h, --help                 display this help and exit
 ```
 
 ### Documentation

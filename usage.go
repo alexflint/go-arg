@@ -8,9 +8,6 @@ import (
 	"strings"
 )
 
-// the width of the left column
-const colWidth = 25
-
 // Fail prints usage information to stderr and exits with non-zero status
 func (p *Parser) Fail(msg string) {
 	p.WriteUsage(os.Stderr)
@@ -20,123 +17,189 @@ func (p *Parser) Fail(msg string) {
 
 // WriteUsage writes usage information to the given writer
 func (p *Parser) WriteUsage(w io.Writer) {
-	var positionals, options []*spec
-	for _, spec := range p.spec {
-		if spec.positional {
-			positionals = append(positionals, spec)
-		} else {
-			options = append(options, spec)
-		}
-	}
-
 	if p.version != "" {
 		fmt.Fprintln(w, p.version)
 	}
 
-	fmt.Fprintf(w, "usage: %s", p.config.Program)
+	fmt.Fprintf(w, "usage: %s ", p.config.Program)
+
+	var booleans string
+	for _, s := range p.spec {
+		if s.long == "help" || s.long == "version" {
+			continue
+		}
+		if !s.positional && s.boolean && s.short != "" {
+			booleans += s.short
+		}
+	}
+	if booleans != "" {
+		fmt.Fprintf(w, "[-%s] ", booleans)
+	}
 
 	// write the option component of the usage message
-	for _, spec := range options {
-		// prefix with a space
-		fmt.Fprint(w, " ")
-		if !spec.required {
-			fmt.Fprint(w, "[")
-		}
-		fmt.Fprint(w, synopsis(spec, "--"+spec.long))
-		if !spec.required {
-			fmt.Fprint(w, "]")
+	for _, s := range p.spec {
+		if !s.positional && (!s.boolean || s.short == "") {
+			s.WriteUsage(w)
 		}
 	}
 
 	// write the positional component of the usage message
-	for _, spec := range positionals {
-		// prefix with a space
-		fmt.Fprint(w, " ")
-		up := strings.ToUpper(spec.long)
-		if spec.multiple {
-			fmt.Fprintf(w, "[%s [%s ...]]", up, up)
-		} else {
-			fmt.Fprint(w, up)
+	for _, s := range p.spec {
+		if s.positional {
+			s.WriteUsagePositional(w)
 		}
 	}
-	fmt.Fprint(w, "\n")
+
+	fmt.Fprintln(w, "")
 }
 
 // WriteHelp writes the usage string followed by the full help string for each option
 func (p *Parser) WriteHelp(w io.Writer) {
-	var positionals, options []*spec
-	for _, spec := range p.spec {
-		if spec.positional {
-			positionals = append(positionals, spec)
-		} else {
-			options = append(options, spec)
-		}
-	}
-
+	//write description
 	if p.description != "" {
 		fmt.Fprintln(w, p.description)
 	}
+
+	//write usage
 	p.WriteUsage(w)
 
-	// write the list of positionals
-	if len(positionals) > 0 {
-		fmt.Fprint(w, "\npositional arguments:\n")
-		for _, spec := range positionals {
-			left := "  " + spec.long
-			fmt.Fprint(w, left)
-			if spec.help != "" {
-				if len(left)+2 < colWidth {
-					fmt.Fprint(w, strings.Repeat(" ", colWidth-len(left)))
-				} else {
-					fmt.Fprint(w, "\n"+strings.Repeat(" ", colWidth))
-				}
-				fmt.Fprint(w, spec.help)
+	//write positional
+	var positionalHeader bool
+	for _, s := range p.spec {
+		if s.positional {
+			if !positionalHeader {
+				fmt.Fprintln(w, "\npositional arguments:")
+				positionalHeader = true
 			}
-			fmt.Fprint(w, "\n")
+			s.WritePositional(w)
 		}
 	}
 
-	// write the list of options
-	fmt.Fprint(w, "\noptions:\n")
-	for _, spec := range options {
-		printOption(w, spec)
-	}
-
-	// write the list of built in options
-	printOption(w, &spec{boolean: true, long: "help", short: "h", help: "display this help and exit"})
-	if p.version != "" {
-		printOption(w, &spec{boolean: true, long: "version", help: "display version and exit"})
+	//write options
+	fmt.Fprintln(w, "\noptions:")
+	for _, s := range p.spec {
+		if !s.positional {
+			s.WriteOption(w)
+		}
 	}
 }
 
-func printOption(w io.Writer, spec *spec) {
-	left := "  " + synopsis(spec, "--"+spec.long)
-	if spec.short != "" {
-		left += ", " + synopsis(spec, "-"+spec.short)
+func (s *spec) WriteUsage(w io.Writer) {
+	if s.long == "help" || s.long == "version" {
+		return
 	}
-	fmt.Fprint(w, left)
-	if spec.help != "" {
-		if len(left)+2 < colWidth {
-			fmt.Fprint(w, strings.Repeat(" ", colWidth-len(left)))
-		} else {
-			fmt.Fprint(w, "\n"+strings.Repeat(" ", colWidth))
+
+	var name string
+	if s.short != "" {
+		name = fmt.Sprintf("-%s", s.short)
+	} else {
+		name = fmt.Sprintf("--%s", s.long)
+	}
+
+	if s.required {
+		fmt.Fprintf(w, "%s ", name)
+	} else {
+		fmt.Fprintf(w, "[%s] ", name)
+	}
+}
+
+func (s *spec) WriteUsagePositional(w io.Writer) {
+	name := s.long
+	if name == "" {
+		name = s.short
+	}
+	name = strings.ToUpper(name)
+	if s.multiple {
+		fmt.Fprintf(w, "[%s [%s ...]] ", name, name)
+	} else {
+		fmt.Fprintf(w, "%s ", name)
+	}
+}
+
+func (s *spec) WritePositional(w io.Writer) {
+	name := s.long
+	if name == "" {
+		name = s.short
+	}
+
+	if len(name) > 24 && s.help != "" {
+		name = fmt.Sprintf("%s\n%28s", name, "")
+	}
+
+	fmt.Fprintf(w, "  %-26s %s\n", name, s.help)
+}
+
+func (s *spec) WriteOption(w io.Writer) {
+	var left string
+
+	val := s.fmtValueType()
+	def := s.getValueDefault()
+
+	if def != "" {
+		val = def
+		def = fmt.Sprintf("[default: %s]", def)
+	}
+
+	if s.short == "" {
+		left += fmt.Sprintf("  %4s", "")
+	} else {
+		left += fmt.Sprintf("  -%s", s.short)
+	}
+
+	if s.long == "" {
+		if val != "" {
+			left += fmt.Sprintf("=%s", val)
 		}
-		fmt.Fprint(w, spec.help)
+	} else {
+		if s.short != "" {
+			left += fmt.Sprint(", ")
+		}
+		left += fmt.Sprintf("--%s", s.long)
+		if val != "" {
+			left += fmt.Sprintf("=%s", val)
+		}
 	}
-	// If spec.dest is not the zero value then a default value has been added.
-	v := spec.dest
+
+	help := s.help
+	if def != "" {
+		help += " " + def
+	}
+	fmt.Fprintf(w, "%-28s %s\n", left, help)
+}
+
+func (s *spec) getValueDefault() string {
+	v := s.dest
 	if v.IsValid() {
 		z := reflect.Zero(v.Type())
 		if (v.Type().Comparable() && z.Type().Comparable() && v.Interface() != z.Interface()) || v.Kind() == reflect.Slice && !v.IsNil() {
-			fmt.Fprintf(w, " [default: %v]", v)
+			return fmt.Sprintf("%v", v)
 		}
 	}
-	fmt.Fprint(w, "\n")
+	return ""
 }
 
-func synopsis(spec *spec, form string) string {
-	if spec.boolean {
-		return form
+func (s *spec) fmtValueType() string {
+	if s.dest.IsValid() {
+		t := s.dest.Type().String()
+
+		var valType string
+		switch {
+		case strings.Contains(t, "string"):
+			valType = "s"
+		case strings.Contains(t, "int"):
+			valType = "n"
+		case strings.Contains(t, "float"):
+			valType = "f"
+		case strings.Contains(t, "time"):
+			valType = "t"
+		}
+
+		if t[0:2] == "[]" {
+			return fmt.Sprintf("[%s]", valType)
+		}
+		if valType != "" {
+			return fmt.Sprintf("<%s>", valType)
+		}
 	}
-	return form + " " + strings.ToUpper(spec.long)
+	return ""
 }

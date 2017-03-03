@@ -136,7 +136,7 @@ func TestMixed(t *testing.T) {
 		Spam float32
 	}
 	args.Bar = 3
-	err := parse("123 -spam=1.2 -ham -f xyz", &args)
+	err := parse("123 --spam=1.2 --ham -f xyz", &args)
 	require.NoError(t, err)
 	assert.Equal(t, "xyz", args.Foo)
 	assert.Equal(t, 3, args.Bar)
@@ -163,12 +163,32 @@ func TestShortFlag(t *testing.T) {
 	assert.Equal(t, "xyz", args.Foo)
 
 	err = parse("-foo xyz", &args)
-	require.NoError(t, err)
-	assert.Equal(t, "xyz", args.Foo)
+	require.Error(t, err)
 
 	err = parse("--foo xyz", &args)
 	require.NoError(t, err)
 	assert.Equal(t, "xyz", args.Foo)
+}
+
+func TestShortBooleanFlags(t *testing.T) {
+	var args struct {
+		A   bool
+		B   bool
+		Foo bool `arg:"-f"`
+	}
+
+	err := parse("-f", &args)
+	require.NoError(t, err)
+	assert.Equal(t, false, args.A)
+	assert.Equal(t, false, args.B)
+	assert.Equal(t, true, args.Foo)
+
+	err = parse("-abf", &args)
+	require.NoError(t, err)
+	assert.Equal(t, true, args.A)
+	assert.Equal(t, true, args.B)
+	assert.Equal(t, true, args.Foo)
+
 }
 
 func TestInvalidShortFlag(t *testing.T) {
@@ -185,8 +205,8 @@ func TestLongFlag(t *testing.T) {
 	}
 
 	err := parse("-abc xyz", &args)
-	require.NoError(t, err)
-	assert.Equal(t, "xyz", args.Foo)
+	require.Error(t, err)
+	// assert.Equal(t, "xyz", args.Foo)
 
 	err = parse("--abc xyz", &args)
 	require.NoError(t, err)
