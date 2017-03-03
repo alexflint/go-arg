@@ -108,7 +108,7 @@ arg.MustParse(&args)
 
 ```shell
 $ ./example -h
-usage: [--verbose] [--dataset DATASET] [--optimize OPTIMIZE] [--help] INPUT [OUTPUT [OUTPUT ...]] 
+usage: [--verbose] [--dataset DATASET] [--optimize OPTIMIZE] [--help] INPUT [OUTPUT [OUTPUT ...]]
 
 positional arguments:
   input
@@ -146,6 +146,22 @@ fmt.Printf("Fetching the following IDs from %s: %q", args.Database, args.IDs)
 ```shell
 ./example -database foo -ids 1 2 3
 Fetching the following IDs from foo: [1 2 3]
+```
+
+### Arguments that can be specified multiple times, mixed with positionals
+```go
+var args struct {
+    Commands  []string `arg:"-c,separate"`
+    Files     []string `arg:"-f,separate"`
+    Databases []string `arg:"positional"`
+}
+```
+
+```shell
+./example -c cmd1 db1 -f file1 db2 -c cmd2 -f file2 -f file3 db3 -c cmd3
+Commands: [cmd1 cmd2 cmd3]
+Files [file1 file2 file3]
+Databases [db1 db2 db3]
 ```
 
 ### Custom validation
