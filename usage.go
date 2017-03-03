@@ -8,9 +8,6 @@ import (
 	"strings"
 )
 
-// the width of the left column
-const colWidth = 25
-
 // Fail prints usage information to stderr and exits with non-zero status
 func (p *Parser) Fail(msg string) {
 	p.WriteUsage(os.Stderr)
