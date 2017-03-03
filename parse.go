@@ -233,7 +233,17 @@ func NewParser(config Config, dests ...interface{}) (*Parser, error) {
 			p.config.Program = filepath.Base(os.Args[0])
 		}
 	}
+
+	p.addSpecHelp()
+
 	return &p, nil
+}
+
+func (p *Parser) addSpecHelp() {
+	p.spec = append(p.spec, &spec{boolean: true, long: "help", short: "h", help: "display this help and exit"})
+	if p.version != "" {
+		p.spec = append(p.spec, &spec{boolean: true, long: "version", help: "display version and exit"})
+	}
 }
 
 // Parse processes the given command line option, storing the results in the field

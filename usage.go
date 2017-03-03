@@ -20,15 +20,6 @@ func (p *Parser) Fail(msg string) {
 
 // WriteUsage writes usage information to the given writer
 func (p *Parser) WriteUsage(w io.Writer) {
-	var positionals, options []*spec
-	for _, spec := range p.spec {
-		if spec.positional {
-			positionals = append(positionals, spec)
-		} else {
-			options = append(options, spec)
-		}
-	}
-
 	if p.version != "" {
 		fmt.Fprintln(w, p.version)
 	}
@@ -36,27 +27,27 @@ func (p *Parser) WriteUsage(w io.Writer) {
 	fmt.Fprintf(w, "usage: %s", p.config.Program)
 
 	// write the option component of the usage message
-	for _, spec := range options {
+	for _, s := range p.spec {
+		if !s.positional {
+			s.WriteUsage(w)
+		}
+
 		// prefix with a space
-		fmt.Fprint(w, " ")
-		if !spec.required {
-			fmt.Fprint(w, "[")
-		}
-		fmt.Fprint(w, synopsis(spec, "--"+spec.long))
-		if !spec.required {
-			fmt.Fprint(w, "]")
-		}
+		// fmt.Fprint(w, " ")
+		// if !spec.required {
+		// 	fmt.Fprint(w, "[")
+		// }
+		// fmt.Fprint(w, synopsis(spec, "--"+spec.long))
+		// if !spec.required {
+		// 	fmt.Fprint(w, "]")
+		// }
 	}
 
 	// write the positional component of the usage message
-	for _, spec := range positionals {
-		// prefix with a space
-		fmt.Fprint(w, " ")
-		up := strings.ToUpper(spec.long)
-		if spec.multiple {
-			fmt.Fprintf(w, "[%s [%s ...]]", up, up)
-		} else {
-			fmt.Fprint(w, up)
+	for _, s := range p.spec {
+		if s.positional {
+			// prefix with a space
+			s.WriteUsagePositional(w)
 		}
 	}
 	fmt.Fprint(w, "\n")
@@ -64,42 +55,91 @@ func (p *Parser) WriteUsage(w io.Writer) {
 
 // WriteHelp writes the usage string followed by the full help string for each option
 func (p *Parser) WriteHelp(w io.Writer) {
-	var positionals, options []*spec
-	for _, spec := range p.spec {
-		if spec.positional {
-			positionals = append(positionals, spec)
-		} else {
-			options = append(options, spec)
-		}
-	}
-
+	//write description
 	if p.description != "" {
 		fmt.Fprintln(w, p.description)
 	}
+
+	//write usage
 	p.WriteUsage(w)
 
-	// write the list of positionals
-	if len(positionals) > 0 {
-		fmt.Fprint(w, "\npositional arguments:\n")
-		for _, spec := range positionals {
-			name := spec.long
-			if name == "" {
-				name = spec.short
-			}
-			fmt.Fprintf(w, "  %-26s %s\n", name, spec.help)
+	//write positional
+	for _, s := range p.spec {
+		if s.positional {
+			s.WritePositional(w)
 		}
 	}
 
-	// write the list of options
-	fmt.Fprint(w, "\noptions:\n")
-	for _, spec := range options {
-		fmt.Fprintln(w, spec)
+	//write options
+	for _, s := range p.spec {
+		if !s.positional {
+			s.WriteOption(w)
+		}
+	}
+}
+
+func (s *spec) WriteUsage(w io.Writer) {
+	var name string
+	if s.short != "" {
+		name = fmt.Sprintf("-%s", s.short)
+	} else {
+		name = fmt.Sprintf("--%s", s.long)
 	}
 
-	fmt.Fprintln(w, &spec{boolean: true, long: "help", short: "h", help: "display this help and exit"})
-	if p.version != "" {
-		fmt.Fprintln(w, &spec{boolean: true, long: "version", help: "display version and exit"})
+	if s.required {
+		fmt.Fprintf(w, "%s ", name)
+	} else {
+		fmt.Fprintf(w, "[%s] ", name)
 	}
+}
+
+func (s *spec) WriteUsagePositional(w io.Writer) {
+	name := s.long
+	if name == "" {
+		name = s.short
+	}
+	name = strings.ToUpper(name)
+	if s.multiple {
+		fmt.Fprintf(w, "[%s [%s ...]] ", name, name)
+	} else {
+		fmt.Fprintf(w, "%s ", name)
+	}
+}
+
+func (s *spec) WritePositional(w io.Writer) {
+	name := s.long
+	if name == "" {
+		name = s.short
+	}
+	fmt.Fprintf(w, "  %-26s %s\n", name, s.help)
+}
+
+func (s *spec) WriteOption(w io.Writer) {
+	short := s.short
+	if short != "" {
+		short = fmt.Sprintf("-%s,", s.short)
+	}
+
+	val := s.fmtValueType()
+	def := s.getValueDefault()
+
+	if def != "" {
+		val = def
+		def = fmt.Sprintf("[default: %s]", def)
+	}
+
+	if val != "" {
+		val = "=" + val
+	}
+
+	long := s.long
+	if long != "" {
+		long = fmt.Sprintf("--%-20s", s.long+val)
+	} else {
+		short = short + val
+	}
+
+	fmt.Fprintf(w, "%5s %s %s %s\n", short, long, s.help, def)
 }
 
 func (s *spec) getValueDefault() string {
@@ -137,34 +177,6 @@ func (s *spec) fmtValueType() string {
 		}
 	}
 	return ""
-}
-
-func (s *spec) String() string {
-	short := s.short
-	if short != "" {
-		short = fmt.Sprintf("-%s,", s.short)
-	}
-
-	val := s.fmtValueType()
-	def := s.getValueDefault()
-
-	if def != "" {
-		val = def
-		def = fmt.Sprintf("[default: %s]", def)
-	}
-
-	if val != "" {
-		val = "=" + val
-	}
-
-	long := s.long
-	if long != "" {
-		long = fmt.Sprintf("--%-20s", s.long+val)
-	} else {
-		short = short + val
-	}
-
-	return fmt.Sprintf("%5s %s %s %s", short, long, s.help, def)
 }
 
 func synopsis(spec *spec, form string) string {
