@@ -166,7 +166,7 @@ func (s *spec) WriteOption(w io.Writer) {
 		help += " " + def
 	}
 
-	fmt.Fprintf(w, "%5s %s %s\n", short, long, help)
+	fmt.Fprintf(w, "  %s %s %s\n", short, long, help)
 }
 
 func (s *spec) getValueDefault() string {
