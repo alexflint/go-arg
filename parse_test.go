@@ -170,6 +170,27 @@ func TestShortFlag(t *testing.T) {
 	assert.Equal(t, "xyz", args.Foo)
 }
 
+func TestShortBooleanFlags(t *testing.T) {
+	var args struct {
+		A   bool
+		B   bool
+		Foo bool `arg:"-f"`
+	}
+
+	err := parse("-f", &args)
+	require.NoError(t, err)
+	assert.Equal(t, false, args.A)
+	assert.Equal(t, false, args.B)
+	assert.Equal(t, true, args.Foo)
+
+	err = parse("-abf", &args)
+	require.NoError(t, err)
+	assert.Equal(t, true, args.A)
+	assert.Equal(t, true, args.B)
+	assert.Equal(t, true, args.Foo)
+
+}
+
 func TestInvalidShortFlag(t *testing.T) {
 	var args struct {
 		Foo string `arg:"-foo"`

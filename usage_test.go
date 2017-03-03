@@ -21,13 +21,13 @@ positional arguments:
 options:
       --name=Foo Bar         name to use [default: Foo Bar]
       --value=42             secret value [default: 42]
-  -v, --verbose              verbosity level 
-      --dataset=<s>          dataset to use 
-  -O, --optimize=<n>         optimization level 
-      --ids=[n]              Ids 
+  -v, --verbose              verbosity level
+      --dataset=<s>          dataset to use
+  -O, --optimize=<n>         optimization level
+      --ids=[n]              Ids
       --values=[3.14 42 256] Values [default: [3.14 42 256]]
-  -w, --workers=<n>          number of workers to start 
-  -h, --help                 display this help and exit 
+  -w, --workers=<n>          number of workers to start
+  -h, --help                 display this help and exit
 `
 	var args struct {
 		Input    string    `arg:"positional"`
@@ -66,7 +66,7 @@ positional arguments:
                              this positional argument is very long
 
 options:
-  -h, --help                 display this help and exit 
+  -h, --help                 display this help and exit
 `
 	var args struct {
 		VeryLongPositionalWithHelp string `arg:"positional,help:this positional argument is very long"`
@@ -85,7 +85,7 @@ func TestUsageWithProgramName(t *testing.T) {
 	expectedHelp := `usage: myprogram 
 
 options:
-  -h, --help                 display this help and exit 
+  -h, --help                 display this help and exit
 `
 	config := Config{
 		Program: "myprogram",
@@ -111,8 +111,8 @@ func TestUsageWithVersion(t *testing.T) {
 usage: example 
 
 options:
-  -h, --help                 display this help and exit 
-      --version              display version and exit 
+  -h, --help                 display this help and exit
+      --version              display version and exit
 `
 	os.Args[0] = "example"
 	p, err := NewParser(Config{}, &versioned{})
@@ -140,7 +140,7 @@ func TestUsageWithDescription(t *testing.T) {
 usage: example 
 
 options:
-  -h, --help                 display this help and exit 
+  -h, --help                 display this help and exit
 `
 	os.Args[0] = "example"
 	p, err := NewParser(Config{}, &described{})

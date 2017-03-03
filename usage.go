@@ -161,7 +161,12 @@ func (s *spec) WriteOption(w io.Writer) {
 		long = fmt.Sprintf("%s\n%28s", long, "")
 	}
 
-	fmt.Fprintf(w, "%5s %s %s %s\n", short, long, s.help, def)
+	help := s.help
+	if def != "" {
+		help += " " + def
+	}
+
+	fmt.Fprintf(w, "%5s %s %s\n", short, long, help)
 }
 
 func (s *spec) getValueDefault() string {
