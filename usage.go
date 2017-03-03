@@ -82,17 +82,11 @@ func (p *Parser) WriteHelp(w io.Writer) {
 	if len(positionals) > 0 {
 		fmt.Fprint(w, "\npositional arguments:\n")
 		for _, spec := range positionals {
-			left := "  " + spec.long
-			fmt.Fprint(w, left)
-			if spec.help != "" {
-				if len(left)+2 < colWidth {
-					fmt.Fprint(w, strings.Repeat(" ", colWidth-len(left)))
-				} else {
-					fmt.Fprint(w, "\n"+strings.Repeat(" ", colWidth))
-				}
-				fmt.Fprint(w, spec.help)
+			name := spec.long
+			if name == "" {
+				name = spec.short
 			}
-			fmt.Fprint(w, "\n")
+			fmt.Fprintf(w, "  %-26s %s\n", name, spec.help)
 		}
 	}
 
