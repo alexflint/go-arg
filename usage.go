@@ -23,9 +23,22 @@ func (p *Parser) WriteUsage(w io.Writer) {
 
 	fmt.Fprintf(w, "usage: %s ", p.config.Program)
 
+	var booleans string
+	for _, s := range p.spec {
+		if s.long == "help" || s.long == "version" {
+			continue
+		}
+		if !s.positional && s.boolean && s.short != "" {
+			booleans += s.short
+		}
+	}
+	if booleans != "" {
+		fmt.Fprintf(w, "[-%s] ", booleans)
+	}
+
 	// write the option component of the usage message
 	for _, s := range p.spec {
-		if !s.positional {
+		if !s.positional && (!s.boolean || s.short == "") {
 			s.WriteUsage(w)
 		}
 	}
@@ -119,7 +132,10 @@ func (s *spec) WritePositional(w io.Writer) {
 func (s *spec) WriteOption(w io.Writer) {
 	short := s.short
 	if short != "" {
-		short = fmt.Sprintf("-%s,", s.short)
+		short = fmt.Sprintf("-%s", s.short)
+		if s.long != "" {
+			short += ","
+		}
 	}
 
 	val := s.fmtValueType()
@@ -183,11 +199,4 @@ func (s *spec) fmtValueType() string {
 		}
 	}
 	return ""
-}
-
-func synopsis(spec *spec, form string) string {
-	if spec.boolean {
-		return form
-	}
-	return form + " " + strings.ToUpper(spec.long)
 }
