@@ -10,26 +10,24 @@ import (
 )
 
 func TestWriteUsage(t *testing.T) {
-	expectedUsage := "usage: example [--name NAME] [--value VALUE] [--verbose] [--dataset DATASET] [--optimize OPTIMIZE] [--ids IDS] [--values VALUES] [--workers WORKERS] INPUT [OUTPUT [OUTPUT ...]]\n"
+	expectedUsage := "usage: example [--name] [--value] [-v] [--dataset] [-O] [--ids] [--values] [-w] INPUT [OUTPUT [OUTPUT ...]] \n"
 
-	expectedHelp := `usage: example [--name NAME] [--value VALUE] [--verbose] [--dataset DATASET] [--optimize OPTIMIZE] [--ids IDS] [--values VALUES] [--workers WORKERS] INPUT [OUTPUT [OUTPUT ...]]
+	expectedHelp := `usage: example [--name] [--value] [-v] [--dataset] [-O] [--ids] [--values] [-w] INPUT [OUTPUT [OUTPUT ...]] 
 
 positional arguments:
-  input
-  output                 list of outputs
+  input                      
+  output                     list of outputs
 
 options:
-  --name NAME            name to use [default: Foo Bar]
-  --value VALUE          secret value [default: 42]
-  --verbose, -v          verbosity level
-  --dataset DATASET      dataset to use
-  --optimize OPTIMIZE, -O OPTIMIZE
-                         optimization level
-  --ids IDS              Ids
-  --values VALUES        Values [default: [3.14 42 256]]
-  --workers WORKERS, -w WORKERS
-                         number of workers to start
-  --help, -h             display this help and exit
+      --name=Foo Bar         name to use [default: Foo Bar]
+      --value=42             secret value [default: 42]
+  -v, --verbose              verbosity level 
+      --dataset=<s>          dataset to use 
+  -O, --optimize=<n>         optimization level 
+      --ids=[n]              Ids 
+      --values=[3.14 42 256] Values [default: [3.14 42 256]]
+  -w, --workers=<n>          number of workers to start 
+  -h, --help                 display this help and exit 
 `
 	var args struct {
 		Input    string    `arg:"positional"`
@@ -61,14 +59,14 @@ options:
 }
 
 func TestUsageLongPositionalWithHelp(t *testing.T) {
-	expectedHelp := `usage: example VERYLONGPOSITIONALWITHHELP
+	expectedHelp := `usage: example VERY-LONG-POSITIONAL-WITH-HELP 
 
 positional arguments:
-  verylongpositionalwithhelp
-                         this positional argument is very long
+  very-long-positional-with-help
+                             this positional argument is very long
 
 options:
-  --help, -h             display this help and exit
+  -h, --help                 display this help and exit 
 `
 	var args struct {
 		VeryLongPositionalWithHelp string `arg:"positional,help:this positional argument is very long"`
@@ -84,10 +82,10 @@ options:
 }
 
 func TestUsageWithProgramName(t *testing.T) {
-	expectedHelp := `usage: myprogram
+	expectedHelp := `usage: myprogram 
 
 options:
-  --help, -h             display this help and exit
+  -h, --help                 display this help and exit 
 `
 	config := Config{
 		Program: "myprogram",
@@ -110,11 +108,11 @@ func (versioned) Version() string {
 
 func TestUsageWithVersion(t *testing.T) {
 	expectedHelp := `example 3.2.1
-usage: example
+usage: example 
 
 options:
-  --help, -h             display this help and exit
-  --version              display version and exit
+  -h, --help                 display this help and exit 
+      --version              display version and exit 
 `
 	os.Args[0] = "example"
 	p, err := NewParser(Config{}, &versioned{})
@@ -139,10 +137,10 @@ func (described) Description() string {
 
 func TestUsageWithDescription(t *testing.T) {
 	expectedHelp := `this program does this and that
-usage: example
+usage: example 
 
 options:
-  --help, -h             display this help and exit
+  -h, --help                 display this help and exit 
 `
 	os.Args[0] = "example"
 	p, err := NewParser(Config{}, &described{})

@@ -24,7 +24,7 @@ func (p *Parser) WriteUsage(w io.Writer) {
 		fmt.Fprintln(w, p.version)
 	}
 
-	fmt.Fprintf(w, "usage: %s", p.config.Program)
+	fmt.Fprintf(w, "usage: %s ", p.config.Program)
 
 	// write the option component of the usage message
 	for _, s := range p.spec {
@@ -40,7 +40,7 @@ func (p *Parser) WriteUsage(w io.Writer) {
 		}
 	}
 
-	fmt.Fprint(w, "\n")
+	fmt.Fprintln(w, "")
 }
 
 // WriteHelp writes the usage string followed by the full help string for each option
@@ -75,6 +75,10 @@ func (p *Parser) WriteHelp(w io.Writer) {
 }
 
 func (s *spec) WriteUsage(w io.Writer) {
+	if s.long == "help" || s.long == "version" {
+		return
+	}
+
 	var name string
 	if s.short != "" {
 		name = fmt.Sprintf("-%s", s.short)
@@ -107,6 +111,11 @@ func (s *spec) WritePositional(w io.Writer) {
 	if name == "" {
 		name = s.short
 	}
+
+	if len(name) > 24 && s.help != "" {
+		name = fmt.Sprintf("%s\n%28s", name, "")
+	}
+
 	fmt.Fprintf(w, "  %-26s %s\n", name, s.help)
 }
 
@@ -133,6 +142,10 @@ func (s *spec) WriteOption(w io.Writer) {
 		long = fmt.Sprintf("--%-20s", s.long+val)
 	} else {
 		short = short + val
+	}
+
+	if len(long) > 24 && s.help != "" {
+		long = fmt.Sprintf("%s\n%28s", long, "")
 	}
 
 	fmt.Fprintf(w, "%5s %s %s %s\n", short, long, s.help, def)

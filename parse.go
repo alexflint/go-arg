@@ -153,7 +153,7 @@ func NewParser(config Config, dests ...interface{}) (*Parser, error) {
 			}
 
 			if len(field.Name) == 1 {
-				spec.short = field.Name
+				spec.short = strings.ToLower(field.Name)
 			} else {
 				//put dash before capital letters
 				spec.long = regexp.MustCompile("([A-Z])").ReplaceAllString(field.Name, "-$1")
