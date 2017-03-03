@@ -130,13 +130,7 @@ func (s *spec) WritePositional(w io.Writer) {
 }
 
 func (s *spec) WriteOption(w io.Writer) {
-	short := s.short
-	if short != "" {
-		short = fmt.Sprintf("-%s", s.short)
-		if s.long != "" {
-			short += ","
-		}
-	}
+	var left string
 
 	val := s.fmtValueType()
 	def := s.getValueDefault()
@@ -146,27 +140,31 @@ func (s *spec) WriteOption(w io.Writer) {
 		def = fmt.Sprintf("[default: %s]", def)
 	}
 
-	if val != "" {
-		val = "=" + val
-	}
-
-	long := s.long
-	if long != "" {
-		long = fmt.Sprintf("--%-20s", s.long+val)
+	if s.short == "" {
+		left += fmt.Sprintf("  %4s", "")
 	} else {
-		short = short + val
+		left += fmt.Sprintf("  -%s", s.short)
 	}
 
-	if len(long) > 24 && s.help != "" {
-		long = fmt.Sprintf("%s\n%28s", long, "")
+	if s.long == "" {
+		if val != "" {
+			left += fmt.Sprintf("=%s", val)
+		}
+	} else {
+		if s.short != "" {
+			left += fmt.Sprint(", ")
+		}
+		left += fmt.Sprintf("--%s", s.long)
+		if val != "" {
+			left += fmt.Sprintf("=%s", val)
+		}
 	}
 
 	help := s.help
 	if def != "" {
 		help += " " + def
 	}
-
-	fmt.Fprintf(w, "  %s %s %s\n", short, long, help)
+	fmt.Fprintf(w, "%-28s %s\n", left, help)
 }
 
 func (s *spec) getValueDefault() string {
