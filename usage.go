@@ -31,25 +31,15 @@ func (p *Parser) WriteUsage(w io.Writer) {
 		if !s.positional {
 			s.WriteUsage(w)
 		}
-
-		// prefix with a space
-		// fmt.Fprint(w, " ")
-		// if !spec.required {
-		// 	fmt.Fprint(w, "[")
-		// }
-		// fmt.Fprint(w, synopsis(spec, "--"+spec.long))
-		// if !spec.required {
-		// 	fmt.Fprint(w, "]")
-		// }
 	}
 
 	// write the positional component of the usage message
 	for _, s := range p.spec {
 		if s.positional {
-			// prefix with a space
 			s.WriteUsagePositional(w)
 		}
 	}
+
 	fmt.Fprint(w, "\n")
 }
 
@@ -64,13 +54,19 @@ func (p *Parser) WriteHelp(w io.Writer) {
 	p.WriteUsage(w)
 
 	//write positional
+	var positionalHeader bool
 	for _, s := range p.spec {
 		if s.positional {
+			if !positionalHeader {
+				fmt.Fprintln(w, "\npositional arguments:")
+				positionalHeader = true
+			}
 			s.WritePositional(w)
 		}
 	}
 
 	//write options
+	fmt.Fprintln(w, "\noptions:")
 	for _, s := range p.spec {
 		if !s.positional {
 			s.WriteOption(w)
