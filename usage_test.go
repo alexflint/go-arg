@@ -10,15 +10,15 @@ import (
 )
 
 func TestWriteUsage(t *testing.T) {
-	expectedUsage := "usage: example [--name NAME] [--value VALUE] [--verbose] [--dataset DATASET] [--optimize OPTIMIZE] [--ids IDS] [--values VALUES] [--workers WORKERS] INPUT [OUTPUT [OUTPUT ...]]\n"
+	expectedUsage := "Usage: example [--name NAME] [--value VALUE] [--verbose] [--dataset DATASET] [--optimize OPTIMIZE] [--ids IDS] [--values VALUES] [--workers WORKERS] INPUT [OUTPUT [OUTPUT ...]]\n"
 
-	expectedHelp := `usage: example [--name NAME] [--value VALUE] [--verbose] [--dataset DATASET] [--optimize OPTIMIZE] [--ids IDS] [--values VALUES] [--workers WORKERS] INPUT [OUTPUT [OUTPUT ...]]
+	expectedHelp := `Usage: example [--name NAME] [--value VALUE] [--verbose] [--dataset DATASET] [--optimize OPTIMIZE] [--ids IDS] [--values VALUES] [--workers WORKERS] INPUT [OUTPUT [OUTPUT ...]]
 
-positional arguments:
-  input
-  output                 list of outputs
+Positional arguments:
+  INPUT
+  OUTPUT                 list of outputs
 
-options:
+Options:
   --name NAME            name to use [default: Foo Bar]
   --value VALUE          secret value [default: 42]
   --verbose, -v          verbosity level
@@ -61,13 +61,13 @@ options:
 }
 
 func TestUsageLongPositionalWithHelp(t *testing.T) {
-	expectedHelp := `usage: example VERYLONGPOSITIONALWITHHELP
+	expectedHelp := `Usage: example VERYLONGPOSITIONALWITHHELP
 
-positional arguments:
-  verylongpositionalwithhelp
+Positional arguments:
+  VERYLONGPOSITIONALWITHHELP
                          this positional argument is very long
 
-options:
+Options:
   --help, -h             display this help and exit
 `
 	var args struct {
@@ -84,9 +84,9 @@ options:
 }
 
 func TestUsageWithProgramName(t *testing.T) {
-	expectedHelp := `usage: myprogram
+	expectedHelp := `Usage: myprogram
 
-options:
+Options:
   --help, -h             display this help and exit
 `
 	config := Config{
@@ -110,9 +110,9 @@ func (versioned) Version() string {
 
 func TestUsageWithVersion(t *testing.T) {
 	expectedHelp := `example 3.2.1
-usage: example
+Usage: example
 
-options:
+Options:
   --help, -h             display this help and exit
   --version              display version and exit
 `
@@ -139,9 +139,9 @@ func (described) Description() string {
 
 func TestUsageWithDescription(t *testing.T) {
 	expectedHelp := `this program does this and that
-usage: example
+Usage: example
 
-options:
+Options:
   --help, -h             display this help and exit
 `
 	os.Args[0] = "example"

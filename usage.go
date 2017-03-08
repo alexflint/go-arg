@@ -33,7 +33,7 @@ func (p *Parser) WriteUsage(w io.Writer) {
 		fmt.Fprintln(w, p.version)
 	}
 
-	fmt.Fprintf(w, "usage: %s", p.config.Program)
+	fmt.Fprintf(w, "Usage: %s", p.config.Program)
 
 	// write the option component of the usage message
 	for _, spec := range options {
@@ -80,9 +80,9 @@ func (p *Parser) WriteHelp(w io.Writer) {
 
 	// write the list of positionals
 	if len(positionals) > 0 {
-		fmt.Fprint(w, "\npositional arguments:\n")
+		fmt.Fprint(w, "\nPositional arguments:\n")
 		for _, spec := range positionals {
-			left := "  " + spec.long
+			left := "  " + strings.ToUpper(spec.long)
 			fmt.Fprint(w, left)
 			if spec.help != "" {
 				if len(left)+2 < colWidth {
@@ -97,7 +97,7 @@ func (p *Parser) WriteHelp(w io.Writer) {
 	}
 
 	// write the list of options
-	fmt.Fprint(w, "\noptions:\n")
+	fmt.Fprint(w, "\nOptions:\n")
 	for _, spec := range options {
 		printOption(w, spec)
 	}
