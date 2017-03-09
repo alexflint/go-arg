@@ -77,6 +77,9 @@ func (p *Parser) WriteHelp(w io.Writer) {
 		fmt.Fprintln(w, p.description)
 	}
 	p.WriteUsage(w)
+	if p.description != "" {
+		fmt.Fprintln(w, p.description)
+	}
 
 	// write the list of positionals
 	if len(positionals) > 0 {

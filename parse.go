@@ -94,10 +94,10 @@ type Versioned interface {
 }
 
 // Described is the interface that the destination struct should implement to
-// make a description string appear at the top of the help message.
+// make a description string appear below the usage message.
 type Described interface {
 	// Description returns the string that will be printed on a line by itself
-	// at the top of the help message.
+	// below the usage message.
 	Description() string
 }
 
