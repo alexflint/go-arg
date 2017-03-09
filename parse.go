@@ -20,6 +20,7 @@ type spec struct {
 	multiple   bool
 	required   bool
 	positional bool
+	separate   bool
 	help       string
 	env        string
 	wasPresent bool
@@ -189,6 +190,8 @@ func NewParser(config Config, dests ...interface{}) (*Parser, error) {
 						spec.required = true
 					case key == "positional":
 						spec.positional = true
+					case key == "separate":
+						spec.separate = true
 					case key == "help":
 						spec.help = value
 					case key == "env":
@@ -314,11 +317,14 @@ func process(specs []*spec, args []string) error {
 				for i+1 < len(args) && !isFlag(args[i+1]) {
 					values = append(values, args[i+1])
 					i++
+					if spec.separate {
+						break
+					}
 				}
 			} else {
 				values = append(values, value)
 			}
-			err := setSlice(spec.dest, values)
+			err := setSlice(spec.dest, values, !spec.separate)
 			if err != nil {
 				return fmt.Errorf("error processing %s: %v", arg, err)
 			}
@@ -350,7 +356,7 @@ func process(specs []*spec, args []string) error {
 	for _, spec := range specs {
 		if spec.positional {
 			if spec.multiple {
-				err := setSlice(spec.dest, positionals)
+				err := setSlice(spec.dest, positionals, true)
 				if err != nil {
 					return fmt.Errorf("error processing %s: %v", spec.long, err)
 				}
@@ -388,7 +394,7 @@ func validate(spec []*spec) error {
 }
 
 // parse a value as the appropriate type and store it in the struct
-func setSlice(dest reflect.Value, values []string) error {
+func setSlice(dest reflect.Value, values []string, trunc bool) error {
 	if !dest.CanSet() {
 		return fmt.Errorf("field is not writable")
 	}
@@ -401,7 +407,7 @@ func setSlice(dest reflect.Value, values []string) error {
 	}
 
 	// Truncate the dest slice in case default values exist
-	if !dest.IsNil() {
+	if trunc && !dest.IsNil() {
 		dest.SetLen(0)
 	}
 

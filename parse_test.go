@@ -739,3 +739,57 @@ func TestHyphenInMultiPositional(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, []string{"---", "x", "-", "y"}, args.Foo)
 }
+
+func TestSeparate(t *testing.T) {
+	for _, val := range []string{"-f one", "-f=one", "--foo one", "--foo=one"} {
+		var args struct {
+			Foo []string `arg:"--foo,-f,separate"`
+		}
+
+		err := parse(val, &args)
+		require.NoError(t, err)
+		assert.Equal(t, []string{"one"}, args.Foo)
+	}
+}
+
+func TestSeparateWithDefault(t *testing.T) {
+	args := struct {
+		Foo []string `arg:"--foo,-f,separate"`
+	}{
+		Foo: []string{"default"},
+	}
+
+	err := parse("-f one -f=two", &args)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"default", "one", "two"}, args.Foo)
+}
+
+func TestSeparateWithPositional(t *testing.T) {
+	var args struct {
+		Foo []string `arg:"--foo,-f,separate"`
+		Bar string   `arg:"positional"`
+		Moo string   `arg:"positional"`
+	}
+
+	err := parse("zzz --foo one -f=two --foo=three -f four aaa", &args)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"one", "two", "three", "four"}, args.Foo)
+	assert.Equal(t, "zzz", args.Bar)
+	assert.Equal(t, "aaa", args.Moo)
+}
+
+func TestSeparatePositionalInterweaved(t *testing.T) {
+	var args struct {
+		Foo  []string `arg:"--foo,-f,separate"`
+		Bar  []string `arg:"--bar,-b,separate"`
+		Pre  string   `arg:"positional"`
+		Post []string `arg:"positional"`
+	}
+
+	err := parse("zzz -f foo1 -b=bar1 --foo=foo2 -b bar2 post1 -b bar3 post2 post3", &args)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"foo1", "foo2"}, args.Foo)
+	assert.Equal(t, []string{"bar1", "bar2", "bar3"}, args.Bar)
+	assert.Equal(t, "zzz", args.Pre)
+	assert.Equal(t, []string{"post1", "post2", "post3"}, args.Post)
+}
