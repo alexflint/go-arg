@@ -37,7 +37,7 @@ arg.MustParse(&args)
 
 ```shell
 $ ./example
-usage: example --id ID [--timeout TIMEOUT]
+Usage: example --id ID [--timeout TIMEOUT]
 error: --id is required
 ```
 
@@ -108,13 +108,13 @@ arg.MustParse(&args)
 
 ```shell
 $ ./example -h
-usage: [--verbose] [--dataset DATASET] [--optimize OPTIMIZE] [--help] INPUT [OUTPUT [OUTPUT ...]]
+Usage: [--verbose] [--dataset DATASET] [--optimize OPTIMIZE] [--help] INPUT [OUTPUT [OUTPUT ...]] 
 
-positional arguments:
-  input
-  output
+Positional arguments:
+  INPUT 
+  OUTPUT
 
-options:
+Options:
   --verbose, -v            verbosity level
   --dataset DATASET        dataset to use
   --optimize OPTIMIZE, -O OPTIMIZE
@@ -178,7 +178,7 @@ if args.Foo == "" && args.Bar == "" {
 
 ```shell
 ./example
-usage: samples [--foo FOO] [--bar BAR]
+Usage: samples [--foo FOO] [--bar BAR]
 error: you must provide one of --foo and --bar
 ```
 
@@ -275,7 +275,7 @@ $ ./example --name=foo.bar
 &main.NameDotName{Head:"foo", Tail:"bar"}
 
 $ ./example --name=oops
-usage: example [--name NAME]
+Usage: example [--name NAME]
 error: error processing --name: missing period in "oops"
 ```
 
@@ -299,9 +299,9 @@ func main() {
 ```shell
 $ ./example -h
 this program does this and that
-usage: example [--foo FOO]
+Usage: example [--foo FOO]
 
-options:
+Options:
   --foo FOO
   --help, -h             display this help and exit
 ```
