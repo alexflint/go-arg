@@ -250,6 +250,15 @@ func TestRequiredPositional(t *testing.T) {
 	assert.Error(t, err)
 }
 
+func TestRequiredPositionalMultiple(t *testing.T) {
+	var args struct {
+		Input    string   `arg:"positional"`
+		Multiple []string `arg:"positional,required"`
+	}
+	err := parse("foo", &args)
+	assert.Error(t, err)
+}
+
 func TestTooManyPositional(t *testing.T) {
 	var args struct {
 		Input  string `arg:"positional"`
@@ -268,6 +277,17 @@ func TestMultiple(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, []int{1, 2, 3}, args.Foo)
 	assert.Equal(t, []string{"x", "y", "z"}, args.Bar)
+}
+
+func TestMultiplePositionals(t *testing.T) {
+	var args struct {
+		Input    string   `arg:"positional"`
+		Multiple []string `arg:"positional,required"`
+	}
+	err := parse("foo a b c", &args)
+	assert.NoError(t, err)
+	assert.Equal(t, "foo", args.Input)
+	assert.Equal(t, []string{"a", "b", "c"}, args.Multiple)
 }
 
 func TestMultipleWithEq(t *testing.T) {
@@ -316,6 +336,14 @@ func TestMissingRequired(t *testing.T) {
 	var args struct {
 		Foo string   `arg:"required"`
 		X   []string `arg:"positional"`
+	}
+	err := parse("x", &args)
+	assert.Error(t, err)
+}
+
+func TestMissingRequiredMultiplePositional(t *testing.T) {
+	var args struct {
+		X []string `arg:"positional, required"`
 	}
 	err := parse("x", &args)
 	assert.Error(t, err)

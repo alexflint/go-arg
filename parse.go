@@ -356,6 +356,9 @@ func process(specs []*spec, args []string) error {
 	for _, spec := range specs {
 		if spec.positional {
 			if spec.multiple {
+				if spec.required && len(positionals) == 0 {
+					return fmt.Errorf("%s is required", spec.long)
+				}
 				err := setSlice(spec.dest, positionals, true)
 				if err != nil {
 					return fmt.Errorf("error processing %s: %v", spec.long, err)

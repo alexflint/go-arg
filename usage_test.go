@@ -157,3 +157,25 @@ Options:
 		t.Fail()
 	}
 }
+
+func TestRequiredMultiplePositionals(t *testing.T) {
+	expectedHelp := `Usage: example REQUIREDMULTIPLE [REQUIREDMULTIPLE ...]
+
+Positional arguments:
+  REQUIREDMULTIPLE       required multiple positional
+
+Options:
+  --help, -h             display this help and exit
+`
+	var args struct {
+		RequiredMultiple []string `arg:"positional,required,help:required multiple positional"`
+	}
+
+	p, err := NewParser(Config{}, &args)
+	require.NoError(t, err)
+
+	os.Args[0] = "example"
+	var help bytes.Buffer
+	p.WriteHelp(&help)
+	assert.Equal(t, expectedHelp, help.String())
+}
