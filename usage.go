@@ -54,7 +54,13 @@ func (p *Parser) WriteUsage(w io.Writer) {
 		fmt.Fprint(w, " ")
 		up := strings.ToUpper(spec.long)
 		if spec.multiple {
-			fmt.Fprintf(w, "[%s [%s ...]]", up, up)
+			if !spec.required {
+				fmt.Fprint(w, "[")
+			}
+			fmt.Fprintf(w, "%s [%s ...]", up, up)
+			if !spec.required {
+				fmt.Fprint(w, "]")
+			}
 		} else {
 			fmt.Fprint(w, up)
 		}
