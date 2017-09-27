@@ -168,6 +168,7 @@ func NewParser(config Config, dests ...interface{}) (*Parser, error) {
 			// Look at the tag
 			if tag != "" {
 				for _, key := range strings.Split(tag, ",") {
+					key = strings.TrimLeft(key, " ")
 					var value string
 					if pos := strings.Index(key, ":"); pos != -1 {
 						value = key[pos+1:]

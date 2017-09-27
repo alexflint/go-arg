@@ -131,7 +131,7 @@ func TestMixed(t *testing.T) {
 	var args struct {
 		Foo  string `arg:"-f"`
 		Bar  int
-		Baz  uint `arg:"positional"`
+		Baz  uint   `arg:"positional"`
 		Ham  bool
 		Spam float32
 	}
@@ -341,9 +341,9 @@ func TestMissingRequired(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestMissingRequiredMultiplePositional(t *testing.T) {
+func TestNonsenseKey(t *testing.T) {
 	var args struct {
-		X []string `arg:"positional, required"`
+		X []string `arg:"positional, nonsense"`
 	}
 	err := parse("x", &args)
 	assert.Error(t, err)
@@ -820,4 +820,14 @@ func TestSeparatePositionalInterweaved(t *testing.T) {
 	assert.Equal(t, []string{"bar1", "bar2", "bar3"}, args.Bar)
 	assert.Equal(t, "zzz", args.Pre)
 	assert.Equal(t, []string{"post1", "post2", "post3"}, args.Post)
+}
+
+func TestSpacesAllowedInTags(t *testing.T) {
+	var args struct {
+		Foo []string `arg:"--foo, -f, separate, required, help:quite nice really"`
+	}
+
+	err := parse("--foo one -f=two --foo=three -f four", &args)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"one", "two", "three", "four"}, args.Foo)
 }
