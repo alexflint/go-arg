@@ -65,13 +65,13 @@ func TestUsageLongPositionalWithHelp_legacyForm(t *testing.T) {
 
 Positional arguments:
   VERYLONGPOSITIONALWITHHELP
-                         this positional argument is very long
+                         this positional argument is very long but cannot include commas
 
 Options:
   --help, -h             display this help and exit
 `
 	var args struct {
-		VeryLongPositionalWithHelp string `arg:"positional,help:this positional argument is very long"`
+		VeryLongPositionalWithHelp string `arg:"positional,help:this positional argument is very long but cannot include commas"`
 	}
 
 	p, err := NewParser(Config{}, &args)
@@ -88,13 +88,13 @@ func TestUsageLongPositionalWithHelp_newForm(t *testing.T) {
 
 Positional arguments:
   VERYLONGPOSITIONALWITHHELP
-                         this positional argument is very long
+                         this positional argument is very long, and includes: commas, colons etc
 
 Options:
   --help, -h             display this help and exit
 `
 	var args struct {
-		VeryLongPositionalWithHelp string `arg:"positional" help:"this positional argument is very long"`
+		VeryLongPositionalWithHelp string `arg:"positional" help:"this positional argument is very long, and includes: commas, colons etc"`
 	}
 
 	p, err := NewParser(Config{}, &args)

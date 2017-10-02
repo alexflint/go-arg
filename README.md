@@ -122,6 +122,9 @@ Options:
   --help, -h               print this help message
 ```
 
+As the example above shows, the `help` tag can be used in conjunction with `arg`, or instead. When used
+together, they can appear in either order.
+
 ### Default values
 
 ```go
@@ -322,4 +325,4 @@ The main idea behind `go-arg` is that Go already has an excellent way to describ
 
 ### Backward Compatibility Notes
 
-The tags have changed recently. Earlier versions required the help text to be part of the `arg` tag. This is still supported but is now deprecated. Instead, you should use a separate `help` tag, described above, which removes most of the limits on the text you can write.
+The tags have changed recently. Earlier versions required the help text to be part of the `arg` tag. This is still supported but is now deprecated. Instead, you should use a separate `help` tag, described above, which removes most of the limits on the text you can write. In particular, you will need to use the new `help` tag if your help text includes any commas.
