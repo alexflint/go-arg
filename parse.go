@@ -153,6 +153,11 @@ func NewParser(config Config, dests ...interface{}) (*Parser, error) {
 				dest: val,
 			}
 
+			help, exists := field.Tag.Lookup("help")
+			if exists {
+				spec.help = help
+			}
+
 			// Check whether this field is supported. It's good to do this here rather than
 			// wait until setScalar because it means that a program with invalid argument
 			// fields will always fail regardless of whether the arguments it received
@@ -193,7 +198,7 @@ func NewParser(config Config, dests ...interface{}) (*Parser, error) {
 						spec.positional = true
 					case key == "separate":
 						spec.separate = true
-					case key == "help":
+					case key == "help": // deprecated
 						spec.help = value
 					case key == "env":
 						// Use override name if provided
