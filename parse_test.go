@@ -131,7 +131,7 @@ func TestMixed(t *testing.T) {
 	var args struct {
 		Foo  string `arg:"-f"`
 		Bar  int
-		Baz  uint   `arg:"positional"`
+		Baz  uint `arg:"positional"`
 		Ham  bool
 		Spam float32
 	}

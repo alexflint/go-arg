@@ -33,15 +33,15 @@ Options:
 `
 	var args struct {
 		Input    string    `arg:"positional"`
-		Output   []string  `arg:"positional,help:list of outputs"`
-		Name     string    `arg:"help:name to use"`
-		Value    int       `arg:"help:secret value"`
-		Verbose  bool      `arg:"-v,help:verbosity level"`
-		Dataset  string    `arg:"help:dataset to use"`
-		Optimize int       `arg:"-O,help:optimization level"`
-		Ids      []int64   `arg:"help:Ids"`
-		Values   []float64 `arg:"help:Values"`
-		Workers  int       `arg:"-w,env:WORKERS,help:number of workers to start"`
+		Output   []string  `arg:"positional" help:"list of outputs"`
+		Name     string    `help:"name to use"`
+		Value    int       `help:"secret value"`
+		Verbose  bool      `arg:"-v" help:"verbosity level"`
+		Dataset  string    `help:"dataset to use"`
+		Optimize int       `arg:"-O" help:"optimization level"`
+		Ids      []int64   `help:"Ids"`
+		Values   []float64 `help:"Values"`
+		Workers  int       `arg:"-w,env:WORKERS" help:"number of workers to start"`
 	}
 	args.Name = "Foo Bar"
 	args.Value = 42
@@ -60,18 +60,41 @@ Options:
 	assert.Equal(t, expectedHelp, help.String())
 }
 
-func TestUsageLongPositionalWithHelp(t *testing.T) {
+func TestUsageLongPositionalWithHelp_legacyForm(t *testing.T) {
 	expectedHelp := `Usage: example VERYLONGPOSITIONALWITHHELP
 
 Positional arguments:
   VERYLONGPOSITIONALWITHHELP
-                         this positional argument is very long
+                         this positional argument is very long but cannot include commas
 
 Options:
   --help, -h             display this help and exit
 `
 	var args struct {
-		VeryLongPositionalWithHelp string `arg:"positional,help:this positional argument is very long"`
+		VeryLongPositionalWithHelp string `arg:"positional,help:this positional argument is very long but cannot include commas"`
+	}
+
+	p, err := NewParser(Config{}, &args)
+	require.NoError(t, err)
+
+	os.Args[0] = "example"
+	var help bytes.Buffer
+	p.WriteHelp(&help)
+	assert.Equal(t, expectedHelp, help.String())
+}
+
+func TestUsageLongPositionalWithHelp_newForm(t *testing.T) {
+	expectedHelp := `Usage: example VERYLONGPOSITIONALWITHHELP
+
+Positional arguments:
+  VERYLONGPOSITIONALWITHHELP
+                         this positional argument is very long, and includes: commas, colons etc
+
+Options:
+  --help, -h             display this help and exit
+`
+	var args struct {
+		VeryLongPositionalWithHelp string `arg:"positional" help:"this positional argument is very long, and includes: commas, colons etc"`
 	}
 
 	p, err := NewParser(Config{}, &args)
@@ -168,7 +191,7 @@ Options:
   --help, -h             display this help and exit
 `
 	var args struct {
-		RequiredMultiple []string `arg:"positional,required,help:required multiple positional"`
+		RequiredMultiple []string `arg:"positional,required" help:"required multiple positional"`
 	}
 
 	p, err := NewParser(Config{}, &args)

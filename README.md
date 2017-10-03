@@ -99,9 +99,9 @@ Workers: 4
 var args struct {
 	Input    string   `arg:"positional"`
 	Output   []string `arg:"positional"`
-	Verbose  bool     `arg:"-v,help:verbosity level"`
-	Dataset  string   `arg:"help:dataset to use"`
-	Optimize int      `arg:"-O,help:optimization level"`
+	Verbose  bool     `arg:"-v" help:"verbosity level"`
+	Dataset  string   `help:"dataset to use"`
+	Optimize int      `arg:"-O" help:"optimization level"`
 }
 arg.MustParse(&args)
 ```
@@ -121,6 +121,9 @@ Options:
                            optimization level
   --help, -h               print this help message
 ```
+
+As the example above shows, the `help` tag can be used in conjunction with `arg`, or instead. When used
+together, they can appear in either order.
 
 ### Default values
 
@@ -306,7 +309,7 @@ Options:
   --help, -h             display this help and exit
 ```
 
-### Documentation
+### API Documentation
 
 https://godoc.org/github.com/alexflint/go-arg
 
@@ -319,3 +322,7 @@ The shortcomings of the `flag` library that ships in the standard library are we
 Many third-party argument parsing libraries are geared for writing sophisticated command line interfaces. The excellent `codegangsta/cli` is perfect for working with multiple sub-commands and nested flags, but is probably overkill for a simple script with a handful of flags.
 
 The main idea behind `go-arg` is that Go already has an excellent way to describe data structures using Go structs, so there is no need to develop more levels of abstraction on top of this. Instead of one API to specify which arguments your program accepts, and then another API to get the values of those arguments, why not replace both with a single struct?
+
+### Backward Compatibility Notes
+
+The tags have changed recently. Earlier versions required the help text to be part of the `arg` tag. This is still supported but is now deprecated. Instead, you should use a separate `help` tag, described above, which removes most of the limits on the text you can write. In particular, you will need to use the new `help` tag if your help text includes any commas.
