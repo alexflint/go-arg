@@ -67,6 +67,28 @@ func TestInt(t *testing.T) {
 	assert.EqualValues(t, 8, *args.Ptr)
 }
 
+func TestNegativeInt(t *testing.T) {
+	var args struct {
+		Foo int
+	}
+	err := parse("-foo -100", &args)
+	require.NoError(t, err)
+	assert.EqualValues(t, args.Foo, -100)
+}
+
+func TestNegativeIntAndFloatAndTricks(t *testing.T) {
+	var args struct {
+		Foo int
+		Bar float64
+		N   int `arg:"--100"`
+	}
+	err := parse("-foo -100 -bar -60.14 -100 -100", &args)
+	require.NoError(t, err)
+	assert.EqualValues(t, args.Foo, -100)
+	assert.EqualValues(t, args.Bar, -60.14)
+	assert.EqualValues(t, args.N, -100)
+}
+
 func TestUint(t *testing.T) {
 	var args struct {
 		Foo uint
