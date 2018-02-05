@@ -345,7 +345,10 @@ func process(specs []*spec, args []string) error {
 
 		// if we have something like "--foo" then the value is the next argument
 		if value == "" {
-			if i+1 == len(args) || isFlag(args[i+1]) {
+			if i+1 == len(args) {
+				return fmt.Errorf("missing value for %s", arg)
+			}
+			if !nextIsNumeric(spec.dest.Type(), args[i+1]) && isFlag(args[i+1]) {
 				return fmt.Errorf("missing value for %s", arg)
 			}
 			value = args[i+1]
@@ -385,6 +388,19 @@ func process(specs []*spec, args []string) error {
 		return fmt.Errorf("too many positional arguments at '%s'", positionals[0])
 	}
 	return nil
+}
+
+func nextIsNumeric(t reflect.Type, s string) bool {
+	switch t.Kind() {
+	case reflect.Ptr:
+		return nextIsNumeric(t.Elem(), s)
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Float32, reflect.Float64, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		v := reflect.New(t)
+		err := scalar.ParseValue(v, s)
+		return err == nil
+	default:
+		return false
+	}
 }
 
 // isFlag returns true if a token is a flag such as "-v" or "--user" but not "-" or "--"
