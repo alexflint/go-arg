@@ -6,6 +6,7 @@ import (
 	"os"
 	"reflect"
 	"strings"
+	"encoding"
 )
 
 // the width of the left column
@@ -134,7 +135,15 @@ func printOption(w io.Writer, spec *spec) {
 	if v.IsValid() {
 		z := reflect.Zero(v.Type())
 		if (v.Type().Comparable() && z.Type().Comparable() && v.Interface() != z.Interface()) || v.Kind() == reflect.Slice && !v.IsNil() {
-			fmt.Fprintf(w, " [default: %v]", v)
+			if scalar, ok := v.Interface().(encoding.TextMarshaler); ok {
+				if value, err := scalar.MarshalText(); err != nil {
+					fmt.Fprintf(w, " [default: error: %v]", err)
+				} else {
+					fmt.Fprintf(w, " [default: %v]", string(value))
+				}
+			} else {
+				fmt.Fprintf(w, " [default: %v]", v)
+			}
 		}
 	}
 	fmt.Fprint(w, "\n")
