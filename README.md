@@ -265,15 +265,33 @@ func (n *NameDotName) UnmarshalText(b []byte) error {
 	return nil
 }
 
+// optional: implement in case you want to display a default value in the usage string
+func (n *NameDotName) MarshalText() (text []byte, err error) {
+	text = []byte(fmt.Sprintf("%s.%s", n.Head, n.Tail))
+	return
+}
+
 func main() {
 	var args struct {
 		Name *NameDotName
 	}
+	// set default
+	args.Name = &NameDotName{"file", "txt"}
 	arg.MustParse(&args)
 	fmt.Printf("%#v\n", args.Name)
 }
 ```
 ```shell
+$ ./example --help
+Usage: test [--name NAME]
+
+Options:
+  --name NAME [default: file.txt]
+  --help, -h             display this help and exit
+
+$ ./example
+&main.NameDotName{Head:"file", Tail:"txt"}
+
 $ ./example --name=foo.bar
 &main.NameDotName{Head:"foo", Tail:"bar"}
 
