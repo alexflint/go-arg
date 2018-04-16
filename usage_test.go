@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"strings"
 	"fmt"
+	"errors"
 )
 
 type NameDotName struct {
@@ -79,6 +80,42 @@ Options:
 	var usage bytes.Buffer
 	p.WriteUsage(&usage)
 	assert.Equal(t, expectedUsage, usage.String())
+
+	var help bytes.Buffer
+	p.WriteHelp(&help)
+	assert.Equal(t, expectedHelp, help.String())
+}
+
+type MyEnum int
+
+func (n *MyEnum) UnmarshalText(b []byte) error {
+	b = []byte("Hello")
+	return nil
+}
+
+func (n *MyEnum) MarshalText() (text []byte, err error) {
+	s := "There was a problem"
+	text = []byte(s)
+	err = errors.New(s)
+	return
+}
+
+func TestUsageError(t *testing.T) {
+	expectedHelp := `Usage: example [--name NAME]
+
+Options:
+  --name NAME [default: error: There was a problem]
+  --help, -h             display this help and exit
+`
+	var args struct {
+		Name *MyEnum
+	}
+	v := MyEnum(42)
+	args.Name = &v
+	p, err := NewParser(Config{"example"}, &args)
+
+	// NB: some might might expect there to be an error here
+	require.NoError(t, err)
 
 	var help bytes.Buffer
 	p.WriteHelp(&help)

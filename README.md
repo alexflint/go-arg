@@ -265,7 +265,7 @@ func (n *NameDotName) UnmarshalText(b []byte) error {
 	return nil
 }
 
-// optional, implement in case you want to use defaults
+// optional: implement in case you want to display a default value in the usage string
 func (n *NameDotName) MarshalText() (text []byte, err error) {
 	text = []byte(fmt.Sprintf("%s.%s", n.Head, n.Tail))
 	return
