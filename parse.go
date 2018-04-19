@@ -426,7 +426,7 @@ func setSlice(dest reflect.Value, values []string, trunc bool) error {
 
 	var ptr bool
 	elem := dest.Type().Elem()
-	if elem.Kind() == reflect.Ptr {
+	if elem.Kind() == reflect.Ptr && !elem.Implements(textUnmarshalerType) {
 		ptr = true
 		elem = elem.Elem()
 	}
