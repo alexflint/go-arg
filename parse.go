@@ -159,7 +159,7 @@ func NewParser(config Config, dests ...interface{}) (*Parser, error) {
 			}
 
 			// Check whether this field is supported. It's good to do this here rather than
-			// wait until setScalar because it means that a program with invalid argument
+			// wait until ParseValue because it means that a program with invalid argument
 			// fields will always fail regardless of whether the arguments it received
 			// exercised those fields.
 			var parseable bool
@@ -275,7 +275,7 @@ func process(specs []*spec, args []string) error {
 		}
 		if spec.env != "" {
 			if value, found := os.LookupEnv(spec.env); found {
-				err := setScalar(spec.dest, value)
+				err := scalar.ParseValue(spec.dest, value)
 				if err != nil {
 					return fmt.Errorf("error processing environment variable %s: %v", spec.env, err)
 				}
@@ -355,7 +355,7 @@ func process(specs []*spec, args []string) error {
 			i++
 		}
 
-		err := setScalar(spec.dest, value)
+		err := scalar.ParseValue(spec.dest, value)
 		if err != nil {
 			return fmt.Errorf("error processing %s: %v", arg, err)
 		}
@@ -374,7 +374,7 @@ func process(specs []*spec, args []string) error {
 				}
 				positionals = nil
 			} else if len(positionals) > 0 {
-				err := setScalar(spec.dest, positionals[0])
+				err := scalar.ParseValue(spec.dest, positionals[0])
 				if err != nil {
 					return fmt.Errorf("error processing %s: %v", spec.long, err)
 				}
@@ -438,7 +438,7 @@ func setSlice(dest reflect.Value, values []string, trunc bool) error {
 
 	for _, s := range values {
 		v := reflect.New(elem)
-		if err := setScalar(v.Elem(), s); err != nil {
+		if err := scalar.ParseValue(v.Elem(), s); err != nil {
 			return err
 		}
 		if !ptr {
@@ -499,9 +499,4 @@ func isScalar(t reflect.Type) (parseable, boolean bool) {
 	default:
 		return parseable, false
 	}
-}
-
-// set a value from a string
-func setScalar(v reflect.Value, s string) error {
-	return scalar.ParseValue(v, s)
 }
