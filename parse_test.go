@@ -612,6 +612,19 @@ func TestRepeatedTextUnmarshaler(t *testing.T) {
 	assert.Equal(t, 2, args.Foo[2].val)
 }
 
+func TestPositionalTextUnmarshaler(t *testing.T) {
+	// fields that implement TextUnmarshaler should be parsed using that interface
+	var args struct {
+		Foo []*textUnmarshaler `arg:"positional"`
+	}
+	err := parse("abc d ef", &args)
+	require.NoError(t, err)
+	require.Len(t, args.Foo, 3)
+	assert.Equal(t, 3, args.Foo[0].val)
+	assert.Equal(t, 1, args.Foo[1].val)
+	assert.Equal(t, 2, args.Foo[2].val)
+}
+
 type boolUnmarshaler bool
 
 func (p *boolUnmarshaler) UnmarshalText(b []byte) error {
