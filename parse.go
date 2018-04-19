@@ -451,7 +451,8 @@ func setSlice(dest reflect.Value, values []string, trunc bool) error {
 
 // canParse returns true if the type can be parsed from a string
 func canParse(t reflect.Type) (parseable, boolean, multiple bool) {
-	parseable, boolean = isScalar(t)
+	parseable = scalar.CanParse(t)
+	boolean = isBoolean(t)
 	if parseable {
 		return
 	}
@@ -466,7 +467,8 @@ func canParse(t reflect.Type) (parseable, boolean, multiple bool) {
 		t = t.Elem()
 	}
 
-	parseable, boolean = isScalar(t)
+	parseable = scalar.CanParse(t)
+	boolean = isBoolean(t)
 	if parseable {
 		return
 	}
@@ -476,7 +478,8 @@ func canParse(t reflect.Type) (parseable, boolean, multiple bool) {
 		t = t.Elem()
 	}
 
-	parseable, boolean = isScalar(t)
+	parseable = scalar.CanParse(t)
+	boolean = isBoolean(t)
 	if parseable {
 		return
 	}
@@ -486,17 +489,16 @@ func canParse(t reflect.Type) (parseable, boolean, multiple bool) {
 
 var textUnmarshalerType = reflect.TypeOf([]encoding.TextUnmarshaler{}).Elem()
 
-// isScalar returns true if the type can be parsed from a single string
-func isScalar(t reflect.Type) (parseable, boolean bool) {
-	parseable = scalar.CanParse(t)
+// isBoolean returns true if the type can be parsed from a single string
+func isBoolean(t reflect.Type) bool {
 	switch {
 	case t.Implements(textUnmarshalerType):
-		return parseable, false
+		return false
 	case t.Kind() == reflect.Bool:
-		return parseable, true
+		return true
 	case t.Kind() == reflect.Ptr && t.Elem().Kind() == reflect.Bool:
-		return parseable, true
+		return true
 	default:
-		return parseable, false
+		return false
 	}
 }
