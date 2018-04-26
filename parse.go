@@ -2,6 +2,7 @@ package arg
 
 import (
 	"encoding"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -275,7 +276,23 @@ func process(specs []*spec, args []string) error {
 		}
 		if spec.env != "" {
 			if value, found := os.LookupEnv(spec.env); found {
-				err := scalar.ParseValue(spec.dest, value)
+				var err error
+				if spec.multiple {
+					// expect a JSON array of strings in an environment
+					// variable in the case of multiple values
+					var values []string
+					err = json.Unmarshal([]byte(value), &values)
+					if err != nil {
+						return fmt.Errorf(
+							"error processing environment variable %s (it should be a JSON array of strings):\n%v",
+							spec.env,
+							err,
+						)
+					}
+					err = setSlice(spec.dest, values, !spec.separate)
+				} else {
+					err = scalar.ParseValue(spec.dest, value)
+				}
 				if err != nil {
 					return fmt.Errorf("error processing environment variable %s: %v", spec.env, err)
 				}

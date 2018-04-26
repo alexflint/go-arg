@@ -94,6 +94,22 @@ $ NUM_WORKERS=4 ./example
 Workers: 4
 ```
 
+You should use a JSON array of strings (value will be converted if
+necessary) in the case of multiple values:
+
+```go
+var args struct {
+    Workers []int `arg:"env"`
+}
+arg.MustParse(&args)
+fmt.Println("Workers:", args.Workers)
+```
+
+```
+$ WORKERS='["1", "99"]' ./example
+Workers: [1 99]
+```
+
 ### Usage strings
 ```go
 var args struct {
