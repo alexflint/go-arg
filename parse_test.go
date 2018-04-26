@@ -616,6 +616,15 @@ func TestEnvironmentVariableSliceArgumentBool(t *testing.T)  {
 	assert.Equal(t, []bool{true, false, false, true}, args.Foo)
 }
 
+func TestEnvironmentVariableSliceArgumentError(t *testing.T) {
+	var args struct {
+		Foo []int `arg:"env"`
+	}
+	setenv(t, "FOO", "[1, 99]")
+	err := Parse(&args)
+	assert.Error(t, err)
+}
+
 type textUnmarshaler struct {
 	val int
 }
