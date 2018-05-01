@@ -584,16 +584,16 @@ func TestEnvironmentVariableSliceArgumentString(t *testing.T)  {
 	var args struct {
 		Foo []string `arg:"env"`
 	}
-	setenv(t, "FOO", "[\"bar\", \"baz\"]")
+	setenv(t, "FOO", "bar,\"baz, qux\"")
 	MustParse(&args)
-	assert.Equal(t, []string{"bar", "baz"}, args.Foo)
+	assert.Equal(t, []string{"bar", "baz, qux"}, args.Foo)
 }
 
 func TestEnvironmentVariableSliceArgumentInteger(t *testing.T)  {
 	var args struct {
 		Foo []int `arg:"env"`
 	}
-	setenv(t, "FOO", "[\"1\", \"99\"]")
+	setenv(t, "FOO", "1,99")
 	MustParse(&args)
 	assert.Equal(t, []int{1, 99}, args.Foo)
 }
@@ -602,7 +602,7 @@ func TestEnvironmentVariableSliceArgumentFloat(t *testing.T)  {
 	var args struct {
 		Foo []float32 `arg:"env"`
 	}
-	setenv(t, "FOO", "[\"1.1\", \"99.9\"]")
+	setenv(t, "FOO", "1.1,99.9")
 	MustParse(&args)
 	assert.Equal(t, []float32{1.1, 99.9}, args.Foo)
 }
@@ -611,18 +611,9 @@ func TestEnvironmentVariableSliceArgumentBool(t *testing.T)  {
 	var args struct {
 		Foo []bool `arg:"env"`
 	}
-	setenv(t, "FOO", "[\"true\", \"false\", \"0\", \"1\"]")
+	setenv(t, "FOO", "true,false,0,1")
 	MustParse(&args)
 	assert.Equal(t, []bool{true, false, false, true}, args.Foo)
-}
-
-func TestEnvironmentVariableSliceArgumentError(t *testing.T) {
-	var args struct {
-		Foo []int `arg:"env"`
-	}
-	setenv(t, "FOO", "[1, 99]")
-	err := Parse(&args)
-	assert.Error(t, err)
 }
 
 type textUnmarshaler struct {

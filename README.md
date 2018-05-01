@@ -94,8 +94,7 @@ $ NUM_WORKERS=4 ./example
 Workers: 4
 ```
 
-You should use a JSON array of strings (value will be converted if
-necessary) in the case of multiple values:
+You can provide multiple values using the CSV (RFC 4180) format:
 
 ```go
 var args struct {
@@ -106,7 +105,7 @@ fmt.Println("Workers:", args.Workers)
 ```
 
 ```
-$ WORKERS='["1", "99"]' ./example
+$ WORKERS='1,99' ./example
 Workers: [1 99]
 ```
 

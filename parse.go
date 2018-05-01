@@ -2,7 +2,7 @@ package arg
 
 import (
 	"encoding"
-	"encoding/json"
+	"encoding/csv"
 	"errors"
 	"fmt"
 	"os"
@@ -278,18 +278,12 @@ func process(specs []*spec, args []string) error {
 			if value, found := os.LookupEnv(spec.env); found {
 				var err error
 				if spec.multiple {
-					// expect a JSON array of strings in an environment
+					// expect a CSV string in an environment
 					// variable in the case of multiple values
-					var values []string
-					err = json.Unmarshal([]byte(value), &values)
-					if err != nil {
-						return fmt.Errorf(
-							"error processing environment variable %s (it should be a JSON array of strings):\n%v",
-							spec.env,
-							err,
-						)
+					values, err := csv.NewReader(strings.NewReader(value)).Read()
+					if err == nil {
+						err = setSlice(spec.dest, values, !spec.separate)
 					}
-					err = setSlice(spec.dest, values, !spec.separate)
 				} else {
 					err = scalar.ParseValue(spec.dest, value)
 				}
