@@ -276,19 +276,28 @@ func process(specs []*spec, args []string) error {
 		}
 		if spec.env != "" {
 			if value, found := os.LookupEnv(spec.env); found {
-				var err error
 				if spec.multiple {
 					// expect a CSV string in an environment
 					// variable in the case of multiple values
 					values, err := csv.NewReader(strings.NewReader(value)).Read()
-					if err == nil {
-						err = setSlice(spec.dest, values, !spec.separate)
+					if err != nil {
+						return fmt.Errorf(
+							"error reading a CSV string from environment variable %s with multiple values: %v",
+							spec.env,
+							err,
+						)
+					}
+					if err = setSlice(spec.dest, values, !spec.separate); err != nil {
+						return fmt.Errorf(
+							"error processing environment variable %s with multiple values: %v",
+							spec.env,
+							err,
+						)
 					}
 				} else {
-					err = scalar.ParseValue(spec.dest, value)
-				}
-				if err != nil {
-					return fmt.Errorf("error processing environment variable %s: %v", spec.env, err)
+					if err := scalar.ParseValue(spec.dest, value); err != nil {
+						return fmt.Errorf("error processing environment variable %s: %v", spec.env, err)
+					}
 				}
 				spec.wasPresent = true
 			}
