@@ -94,6 +94,21 @@ $ NUM_WORKERS=4 ./example
 Workers: 4
 ```
 
+You can provide multiple values using the CSV (RFC 4180) format:
+
+```go
+var args struct {
+    Workers []int `arg:"env"`
+}
+arg.MustParse(&args)
+fmt.Println("Workers:", args.Workers)
+```
+
+```
+$ WORKERS='1,99' ./example
+Workers: [1 99]
+```
+
 ### Usage strings
 ```go
 var args struct {
