@@ -84,6 +84,8 @@ type Parser struct {
 	config      Config
 	version     string
 	description string
+	usage       string
+	title       func(string) string
 }
 
 // Versioned is the interface that the destination struct should implement to
@@ -100,6 +102,52 @@ type Described interface {
 	// Description returns the string that will be printed on a line by itself
 	// at the top of the help message.
 	Description() string
+}
+
+// Usaged is the interface that the destination struct should implement to
+// override the usage string apperaing at the top of the help message.
+//
+// Example:
+//
+//    type args struct {
+//    	File string `arg:"positional,help:filename"`
+//    }
+//
+//    func (args) Usage() string {
+//    	return "Usage:\n  " + filepath.Base(os.Args[0]) + " [OPTIONS]... FILENAME"
+//    }
+//
+type Usaged interface {
+	// Usage returns the string that will be printed on a line by itself at the
+	// top of the help message.
+	Usage() string
+}
+
+// Titled is the interface that the destination struct should implement to
+// override the "Usage", "Options" and "Positional arguments" titles.
+//
+// Example:
+//
+//    type args struct {
+//    	File string `arg:"positional,help:filename"`
+//    }
+//
+//    func (args) Title(name string) string {
+//    	switch name {
+//    	case "Usage":
+//    		return "Command Usage"
+//    	case "Options":
+//    		return "Command Options"
+//    	case "Positional arguments":
+//    		return "Command Arguments"
+//    	}
+//    	return name
+//    }
+//
+type Titled interface {
+	// Title returns the string that will be printed in place of the passed
+	// string.
+	Title(string) string
 }
 
 // walkFields calls a function for each field of a struct, recursively expanding struct fields.
@@ -119,6 +167,7 @@ func walkFields(v reflect.Value, visit func(field reflect.StructField, val refle
 func NewParser(config Config, dests ...interface{}) (*Parser, error) {
 	p := Parser{
 		config: config,
+		title:  func(n string) string { return n },
 	}
 	for _, dest := range dests {
 		if dest, ok := dest.(Versioned); ok {
@@ -126,6 +175,12 @@ func NewParser(config Config, dests ...interface{}) (*Parser, error) {
 		}
 		if dest, ok := dest.(Described); ok {
 			p.description = dest.Description()
+		}
+		if dest, ok := dest.(Usaged); ok {
+			p.usage = dest.Usage()
+		}
+		if dest, ok := dest.(Titled); ok {
+			p.title = dest.Title
 		}
 		v := reflect.ValueOf(dest)
 		if v.Kind() != reflect.Ptr {

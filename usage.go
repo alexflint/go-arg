@@ -1,12 +1,12 @@
 package arg
 
 import (
+	"encoding"
 	"fmt"
 	"io"
 	"os"
 	"reflect"
 	"strings"
-	"encoding"
 )
 
 // the width of the left column
@@ -34,7 +34,12 @@ func (p *Parser) WriteUsage(w io.Writer) {
 		fmt.Fprintln(w, p.version)
 	}
 
-	fmt.Fprintf(w, "Usage: %s", p.config.Program)
+	usageTitle := "Usage"
+	if replacement := p.title(usageTitle); replacement != "" {
+		usageTitle = replacement
+	}
+
+	fmt.Fprint(w, usageTitle+": "+p.config.Program)
 
 	// write the option component of the usage message
 	for _, spec := range options {
@@ -83,11 +88,21 @@ func (p *Parser) WriteHelp(w io.Writer) {
 	if p.description != "" {
 		fmt.Fprintln(w, p.description)
 	}
-	p.WriteUsage(w)
+
+	if p.usage != "" {
+		fmt.Fprintln(w, p.usage)
+	} else {
+		p.WriteUsage(w)
+	}
 
 	// write the list of positionals
 	if len(positionals) > 0 {
-		fmt.Fprint(w, "\nPositional arguments:\n")
+		argumentsTitle := "Positional arguments"
+		if replacement := p.title(argumentsTitle); replacement != "" {
+			argumentsTitle = replacement
+		}
+
+		fmt.Fprint(w, "\n"+argumentsTitle+":\n")
 		for _, spec := range positionals {
 			left := "  " + strings.ToUpper(spec.long)
 			fmt.Fprint(w, left)
@@ -104,7 +119,11 @@ func (p *Parser) WriteHelp(w io.Writer) {
 	}
 
 	// write the list of options
-	fmt.Fprint(w, "\nOptions:\n")
+	optionsTitle := "Options"
+	if replacement := p.title(optionsTitle); replacement != "" {
+		optionsTitle = replacement
+	}
+	fmt.Fprint(w, "\n"+optionsTitle+":\n")
 	for _, spec := range options {
 		printOption(w, spec)
 	}

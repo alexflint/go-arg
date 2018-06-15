@@ -123,10 +123,10 @@ arg.MustParse(&args)
 
 ```shell
 $ ./example -h
-Usage: [--verbose] [--dataset DATASET] [--optimize OPTIMIZE] [--help] INPUT [OUTPUT [OUTPUT ...]] 
+Usage: [--verbose] [--dataset DATASET] [--optimize OPTIMIZE] [--help] INPUT [OUTPUT [OUTPUT ...]]
 
 Positional arguments:
-  INPUT 
+  INPUT
   OUTPUT
 
 Options:
@@ -220,6 +220,86 @@ func main() {
 ```shell
 $ ./example --version
 someprogram 4.3.0
+```
+
+### Usage strings
+
+```go
+package main
+
+import (
+	"os"
+	"path/filepath"
+
+	"github.com/alexflint/go-arg"
+)
+
+type args struct {
+	File string `arg:"positional,help:filename"`
+}
+
+func (args) Usage() string {
+	return "Usage:\n  " + filepath.Base(os.Args[0]) + " [OPTIONS]... FILENAME"
+}
+
+func main() {
+	var args args
+	arg.MustParse(&args)
+}
+```
+
+```shell
+$ ./example --help
+Usage:
+  example [OPTIONS]... FILENAME
+
+Positional arguments:
+  FILE                   filename
+
+Options:
+  --help, -h             display this help and exit
+```
+
+### Title strings
+
+```go
+package main
+
+import (
+	"github.com/alexflint/go-arg"
+)
+
+type args struct {
+	File string `arg:"positional,help:filename"`
+}
+
+func (args) Title(name string) string {
+	switch name {
+	case "Usage":
+		return "Command Usage"
+	case "Options":
+		return "Command Options"
+	case "Positional arguments":
+		return "Command Arguments"
+	}
+	return name
+}
+
+func main() {
+	var args args
+	arg.MustParse(&args)
+}
+```
+
+```shell
+$ ./example --help
+Command Usage: example FILE
+
+Command Arguments:
+  FILE                   filename
+
+Command Options:
+  --help, -h             display this help and exit
 ```
 
 ### Embedded structs

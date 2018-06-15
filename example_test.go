@@ -71,7 +71,7 @@ func Example_multipleValues() {
 	fmt.Printf("Fetching the following IDs from %s: %q", args.Database, args.IDs)
 }
 
-// This eample demonstrates multiple value arguments that can be mixed with
+// This example demonstrates multiple value arguments that can be mixed with
 // other arguments.
 func Example_multipleMixed() {
 	os.Args = []string{"./example", "-c", "cmd1", "db1", "-f", "file1", "db2", "-c", "cmd2", "-f", "file2", "-f", "file3", "db3", "-c", "cmd3"}
