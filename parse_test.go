@@ -580,7 +580,7 @@ func TestEnvironmentVariableRequired(t *testing.T) {
 	assert.Equal(t, "bar", args.Foo)
 }
 
-func TestEnvironmentVariableSliceArgumentString(t *testing.T)  {
+func TestEnvironmentVariableSliceArgumentString(t *testing.T) {
 	var args struct {
 		Foo []string `arg:"env"`
 	}
@@ -589,7 +589,7 @@ func TestEnvironmentVariableSliceArgumentString(t *testing.T)  {
 	assert.Equal(t, []string{"bar", "baz, qux"}, args.Foo)
 }
 
-func TestEnvironmentVariableSliceArgumentInteger(t *testing.T)  {
+func TestEnvironmentVariableSliceArgumentInteger(t *testing.T) {
 	var args struct {
 		Foo []int `arg:"env"`
 	}
@@ -598,7 +598,7 @@ func TestEnvironmentVariableSliceArgumentInteger(t *testing.T)  {
 	assert.Equal(t, []int{1, 99}, args.Foo)
 }
 
-func TestEnvironmentVariableSliceArgumentFloat(t *testing.T)  {
+func TestEnvironmentVariableSliceArgumentFloat(t *testing.T) {
 	var args struct {
 		Foo []float32 `arg:"env"`
 	}
@@ -607,7 +607,7 @@ func TestEnvironmentVariableSliceArgumentFloat(t *testing.T)  {
 	assert.Equal(t, []float32{1.1, 99.9}, args.Foo)
 }
 
-func TestEnvironmentVariableSliceArgumentBool(t *testing.T)  {
+func TestEnvironmentVariableSliceArgumentBool(t *testing.T) {
 	var args struct {
 		Foo []bool `arg:"env"`
 	}
@@ -616,7 +616,7 @@ func TestEnvironmentVariableSliceArgumentBool(t *testing.T)  {
 	assert.Equal(t, []bool{true, false, false, true}, args.Foo)
 }
 
-func TestEnvironmentVariableSliceArgumentWrongCsv(t *testing.T)  {
+func TestEnvironmentVariableSliceArgumentWrongCsv(t *testing.T) {
 	var args struct {
 		Foo []int `arg:"env"`
 	}
@@ -625,7 +625,7 @@ func TestEnvironmentVariableSliceArgumentWrongCsv(t *testing.T)  {
 	assert.Error(t, err)
 }
 
-func TestEnvironmentVariableSliceArgumentWrongType(t *testing.T)  {
+func TestEnvironmentVariableSliceArgumentWrongType(t *testing.T) {
 	var args struct {
 		Foo []bool `arg:"env"`
 	}
@@ -646,6 +646,16 @@ func (f *textUnmarshaler) UnmarshalText(b []byte) error {
 func TestTextUnmarshaler(t *testing.T) {
 	// fields that implement TextUnmarshaler should be parsed using that interface
 	var args struct {
+		Foo textUnmarshaler
+	}
+	err := parse("--foo abc", &args)
+	require.NoError(t, err)
+	assert.Equal(t, 3, args.Foo.val)
+}
+
+func TestPtrToTextUnmarshaler(t *testing.T) {
+	// fields that implement TextUnmarshaler should be parsed using that interface
+	var args struct {
 		Foo *textUnmarshaler
 	}
 	err := parse("--foo abc", &args)
@@ -654,6 +664,19 @@ func TestTextUnmarshaler(t *testing.T) {
 }
 
 func TestRepeatedTextUnmarshaler(t *testing.T) {
+	// fields that implement TextUnmarshaler should be parsed using that interface
+	var args struct {
+		Foo []textUnmarshaler
+	}
+	err := parse("--foo abc d ef", &args)
+	require.NoError(t, err)
+	require.Len(t, args.Foo, 3)
+	assert.Equal(t, 3, args.Foo[0].val)
+	assert.Equal(t, 1, args.Foo[1].val)
+	assert.Equal(t, 2, args.Foo[2].val)
+}
+
+func TestRepeatedPtrToTextUnmarshaler(t *testing.T) {
 	// fields that implement TextUnmarshaler should be parsed using that interface
 	var args struct {
 		Foo []*textUnmarshaler
@@ -667,6 +690,19 @@ func TestRepeatedTextUnmarshaler(t *testing.T) {
 }
 
 func TestPositionalTextUnmarshaler(t *testing.T) {
+	// fields that implement TextUnmarshaler should be parsed using that interface
+	var args struct {
+		Foo []textUnmarshaler `arg:"positional"`
+	}
+	err := parse("abc d ef", &args)
+	require.NoError(t, err)
+	require.Len(t, args.Foo, 3)
+	assert.Equal(t, 3, args.Foo[0].val)
+	assert.Equal(t, 1, args.Foo[1].val)
+	assert.Equal(t, 2, args.Foo[2].val)
+}
+
+func TestPositionalPtrToTextUnmarshaler(t *testing.T) {
 	// fields that implement TextUnmarshaler should be parsed using that interface
 	var args struct {
 		Foo []*textUnmarshaler `arg:"positional"`

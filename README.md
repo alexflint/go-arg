@@ -288,10 +288,10 @@ func (n *NameDotName) MarshalText() (text []byte, err error) {
 
 func main() {
 	var args struct {
-		Name *NameDotName
+		Name NameDotName
 	}
 	// set default
-	args.Name = &NameDotName{"file", "txt"}
+	args.Name = NameDotName{"file", "txt"}
 	arg.MustParse(&args)
 	fmt.Printf("%#v\n", args.Name)
 }
@@ -305,10 +305,10 @@ Options:
   --help, -h             display this help and exit
 
 $ ./example
-&main.NameDotName{Head:"file", Tail:"txt"}
+main.NameDotName{Head:"file", Tail:"txt"}
 
 $ ./example --name=foo.bar
-&main.NameDotName{Head:"foo", Tail:"bar"}
+main.NameDotName{Head:"foo", Tail:"bar"}
 
 $ ./example --name=oops
 Usage: example [--name NAME]
