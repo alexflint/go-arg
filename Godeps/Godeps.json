@@ -1,14 +1,14 @@
 {
 	"ImportPath": "github.com/alexflint/go-arg",
 	"GoVersion": "go1.7",
-	"GodepVersion": "v79",
+	"GodepVersion": "v80",
 	"Packages": [
 		"."
 	],
 	"Deps": [
 		{
 			"ImportPath": "github.com/alexflint/go-scalar",
-			"Rev": "45e5d6cd8605faef82fda2bacc59e734a0b6f1f0"
+			"Rev": "6ab8ad5e1c5b25ca2783fe83f493c3ab471407e2"
 		},
 		{
 			"ImportPath": "github.com/stretchr/testify/assert",

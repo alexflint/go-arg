@@ -18,7 +18,6 @@ var (
 	textUnmarshalerType = reflect.TypeOf([]encoding.TextUnmarshaler{}).Elem()
 	durationType        = reflect.TypeOf(time.Duration(0))
 	mailAddressType     = reflect.TypeOf(mail.Address{})
-	ipType              = reflect.TypeOf(net.IP{})
 	macType             = reflect.TypeOf(net.HardwareAddr{})
 )
 
@@ -47,6 +46,13 @@ func ParseValue(v reflect.Value, s string) error {
 	if scalar, ok := v.Interface().(encoding.TextUnmarshaler); ok {
 		return scalar.UnmarshalText([]byte(s))
 	}
+	// If it's a value instead of a pointer, check that we can unmarshal it
+	// via TextUnmarshaler as well
+	if v.CanAddr() {
+		if scalar, ok := v.Addr().Interface().(encoding.TextUnmarshaler); ok {
+			return scalar.UnmarshalText([]byte(s))
+		}
+	}
 
 	// If we have a pointer then dereference it
 	if v.Kind() == reflect.Ptr {
@@ -72,13 +78,6 @@ func ParseValue(v reflect.Value, s string) error {
 			return err
 		}
 		v.Set(reflect.ValueOf(*addr))
-		return nil
-	case net.IP:
-		ip := net.ParseIP(s)
-		if ip == nil {
-			return fmt.Errorf(`invalid IP address: "%s"`, s)
-		}
-		v.Set(reflect.ValueOf(ip))
 		return nil
 	case net.HardwareAddr:
 		ip, err := net.ParseMAC(s)
@@ -126,7 +125,7 @@ func ParseValue(v reflect.Value, s string) error {
 // CanParse returns true if the type can be parsed from a string.
 func CanParse(t reflect.Type) bool {
 	// If it implements encoding.TextUnmarshaler then use that
-	if t.Implements(textUnmarshalerType) {
+	if t.Implements(textUnmarshalerType) || reflect.PtrTo(t).Implements(textUnmarshalerType) {
 		return true
 	}
 
@@ -137,7 +136,7 @@ func CanParse(t reflect.Type) bool {
 
 	// Check for other special types
 	switch t {
-	case durationType, mailAddressType, ipType, macType:
+	case durationType, mailAddressType, macType:
 		return true
 	}
 
