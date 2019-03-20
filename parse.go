@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	scalar "github.com/alexflint/go-scalar"
+	ecp "github.com/wrfly/ecp"
 )
 
 // spec represents a command line option
@@ -121,6 +122,10 @@ func NewParser(config Config, dests ...interface{}) (*Parser, error) {
 		config: config,
 	}
 	for _, dest := range dests {
+		// set default values to the structure
+		if err := ecp.Default(dest); err != nil {
+			return nil, err
+		}
 		if dest, ok := dest.(Versioned); ok {
 			p.version = dest.Version()
 		}

@@ -144,11 +144,16 @@ together, they can appear in either order.
 
 ```go
 var args struct {
-	Foo string
-	Bar bool
+	Foo string `default:"fooo"`
+	Bar bool   `default:"true"`
 }
-args.Foo = "default value"
 arg.MustParse(&args)
+fmt.Println(args.Foo, args.Bar)
+```
+
+```shell
+./example
+fooo true
 ```
 
 ### Arguments with multiple values
