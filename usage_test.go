@@ -2,14 +2,14 @@ package arg
 
 import (
 	"bytes"
+	"errors"
+	"fmt"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"strings"
-	"fmt"
-	"errors"
 )
 
 type NameDotName struct {
@@ -56,16 +56,16 @@ Options:
   --help, -h             display this help and exit
 `
 	var args struct {
-		Input    string    `arg:"positional"`
-		Output   []string  `arg:"positional" help:"list of outputs"`
-		Name     string    `help:"name to use"`
-		Value    int       `help:"secret value"`
-		Verbose  bool      `arg:"-v" help:"verbosity level"`
-		Dataset  string    `help:"dataset to use"`
-		Optimize int       `arg:"-O" help:"optimization level"`
-		Ids      []int64   `help:"Ids"`
-		Values   []float64 `help:"Values"`
-		Workers  int       `arg:"-w,env:WORKERS" help:"number of workers to start"`
+		Input    string       `arg:"positional"`
+		Output   []string     `arg:"positional" help:"list of outputs"`
+		Name     string       `help:"name to use"`
+		Value    int          `help:"secret value"`
+		Verbose  bool         `arg:"-v" help:"verbosity level"`
+		Dataset  string       `help:"dataset to use"`
+		Optimize int          `arg:"-O" help:"optimization level"`
+		Ids      []int64      `help:"Ids"`
+		Values   []float64    `help:"Values"`
+		Workers  int          `arg:"-w,env:WORKERS" help:"number of workers to start"`
 		File     *NameDotName `arg:"-f" help:"File with mandatory extension"`
 	}
 	args.Name = "Foo Bar"
@@ -89,15 +89,11 @@ Options:
 type MyEnum int
 
 func (n *MyEnum) UnmarshalText(b []byte) error {
-	b = []byte("Hello")
 	return nil
 }
 
-func (n *MyEnum) MarshalText() (text []byte, err error) {
-	s := "There was a problem"
-	text = []byte(s)
-	err = errors.New(s)
-	return
+func (n *MyEnum) MarshalText() ([]byte, error) {
+	return nil, errors.New("There was a problem")
 }
 
 func TestUsageError(t *testing.T) {

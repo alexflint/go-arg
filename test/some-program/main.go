@@ -7,4 +7,5 @@ func main() {
 		Test string
 	}
 	arg.MustParse(&args)
+	_ = args.Test
 }
