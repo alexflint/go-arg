@@ -360,7 +360,7 @@ https://godoc.org/github.com/alexflint/go-arg
 
 There are many command line argument parsing libraries for Go, including one in the standard library, so why build another?
 
-The `flag` library that ships in the standard library I have found awkward to use. For example, positional arguments must preceed options, so `./prog x --foo=1` does what you expect but `./prog --foo=1 x` does not, and it does not allow arguments with both long (`--foo`) and short (`-f`) forms.
+The `flag` library that ships in the standard library seems awkward to me. Positional arguments must preceed options, so `./prog x --foo=1` does what you expect but `./prog --foo=1 x` does not. It also does not allow arguments to have both long (`--foo`) and short (`-f`) forms.
 
 Many third-party argument parsing libraries are great for writing sophisticated command line interfaces, but feel to me like overkill for a simple script with a few flags.
 
