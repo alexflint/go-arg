@@ -458,14 +458,14 @@ func TestHelpFlag(t *testing.T) {
 func TestPanicOnNonPointer(t *testing.T) {
 	var args struct{}
 	assert.Panics(t, func() {
-		parse("", args)
+		_ = parse("", args)
 	})
 }
 
 func TestPanicOnNonStruct(t *testing.T) {
 	var args string
 	assert.Panics(t, func() {
-		parse("", &args)
+		_ = parse("", &args)
 	})
 }
 
