@@ -1,12 +1,12 @@
 package arg
 
 import (
+	"encoding"
 	"fmt"
 	"io"
 	"os"
 	"reflect"
 	"strings"
-	"encoding"
 )
 
 // the width of the left column
@@ -22,7 +22,7 @@ func (p *Parser) Fail(msg string) {
 // WriteUsage writes usage information to the given writer
 func (p *Parser) WriteUsage(w io.Writer) {
 	var positionals, options []*spec
-	for _, spec := range p.spec {
+	for _, spec := range p.specs {
 		if spec.positional {
 			positionals = append(positionals, spec)
 		} else {
@@ -72,7 +72,7 @@ func (p *Parser) WriteUsage(w io.Writer) {
 // WriteHelp writes the usage string followed by the full help string for each option
 func (p *Parser) WriteHelp(w io.Writer) {
 	var positionals, options []*spec
-	for _, spec := range p.spec {
+	for _, spec := range p.specs {
 		if spec.positional {
 			positionals = append(positionals, spec)
 		} else {
