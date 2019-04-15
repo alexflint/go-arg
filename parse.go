@@ -249,18 +249,18 @@ func (p *Parser) Parse(args []string) error {
 	}
 
 	// Process all command line arguments
-	return p.process(args)
+	return process(p.specs, args)
 }
 
 // process goes through arguments one-by-one, parses them, and assigns the result to
 // the underlying struct field
-func (p *Parser) process(args []string) error {
+func process(specs []*spec, args []string) error {
 	// track the options we have seen
 	wasPresent := make(map[*spec]bool)
 
 	// construct a map from --option to spec
 	optionMap := make(map[string]*spec)
-	for _, spec := range p.specs {
+	for _, spec := range specs {
 		if spec.positional {
 			continue
 		}
@@ -273,7 +273,7 @@ func (p *Parser) process(args []string) error {
 	}
 
 	// deal with environment vars
-	for _, spec := range p.specs {
+	for _, spec := range specs {
 		if spec.env == "" {
 			continue
 		}
@@ -387,7 +387,7 @@ func (p *Parser) process(args []string) error {
 	}
 
 	// process positionals
-	for _, spec := range p.specs {
+	for _, spec := range specs {
 		if !spec.positional {
 			continue
 		}
@@ -414,7 +414,7 @@ func (p *Parser) process(args []string) error {
 	}
 
 	// finally check that all the required args were provided
-	for _, spec := range p.specs {
+	for _, spec := range specs {
 		if spec.required && !wasPresent[spec] {
 			name := spec.long
 			if !spec.positional {
