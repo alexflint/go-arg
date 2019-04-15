@@ -383,25 +383,24 @@ func process(specs []*spec, args []string) error {
 
 	// process positionals
 	for _, spec := range specs {
-		if spec.positional {
-			if spec.multiple {
-				if spec.required && len(positionals) == 0 {
-					return fmt.Errorf("%s is required", spec.long)
-				}
-				err := setSlice(spec.dest, positionals, true)
-				if err != nil {
-					return fmt.Errorf("error processing %s: %v", spec.long, err)
-				}
-				positionals = nil
-			} else if len(positionals) > 0 {
-				err := scalar.ParseValue(spec.dest, positionals[0])
-				if err != nil {
-					return fmt.Errorf("error processing %s: %v", spec.long, err)
-				}
-				positionals = positionals[1:]
-			} else if spec.required {
-				return fmt.Errorf("%s is required", spec.long)
+		if !spec.positional {
+			continue
+		}
+		if spec.required && len(positionals) == 0 {
+			return fmt.Errorf("%s is required", spec.long)
+		}
+		if spec.multiple {
+			err := setSlice(spec.dest, positionals, true)
+			if err != nil {
+				return fmt.Errorf("error processing %s: %v", spec.long, err)
 			}
+			positionals = nil
+		} else if len(positionals) > 0 {
+			err := scalar.ParseValue(spec.dest, positionals[0])
+			if err != nil {
+				return fmt.Errorf("error processing %s: %v", spec.long, err)
+			}
+			positionals = positionals[1:]
 		}
 	}
 	if len(positionals) > 0 {
