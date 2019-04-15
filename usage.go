@@ -22,7 +22,7 @@ func (p *Parser) Fail(msg string) {
 // WriteUsage writes usage information to the given writer
 func (p *Parser) WriteUsage(w io.Writer) {
 	var positionals, options []*spec
-	for _, spec := range p.specs {
+	for _, spec := range p.cmd.specs {
 		if spec.positional {
 			positionals = append(positionals, spec)
 		} else {
@@ -34,7 +34,7 @@ func (p *Parser) WriteUsage(w io.Writer) {
 		fmt.Fprintln(w, p.version)
 	}
 
-	fmt.Fprintf(w, "Usage: %s", p.config.Program)
+	fmt.Fprintf(w, "Usage: %s", p.cmd.name)
 
 	// write the option component of the usage message
 	for _, spec := range options {
@@ -72,7 +72,7 @@ func (p *Parser) WriteUsage(w io.Writer) {
 // WriteHelp writes the usage string followed by the full help string for each option
 func (p *Parser) WriteHelp(w io.Writer) {
 	var positionals, options []*spec
-	for _, spec := range p.specs {
+	for _, spec := range p.cmd.specs {
 		if spec.positional {
 			positionals = append(positionals, spec)
 		} else {
@@ -106,17 +106,17 @@ func (p *Parser) WriteHelp(w io.Writer) {
 	// write the list of options
 	fmt.Fprint(w, "\nOptions:\n")
 	for _, spec := range options {
-		printOption(w, spec)
+		p.printOption(w, spec)
 	}
 
 	// write the list of built in options
-	printOption(w, &spec{boolean: true, long: "help", short: "h", help: "display this help and exit"})
+	p.printOption(w, &spec{boolean: true, long: "help", short: "h", help: "display this help and exit", root: -1})
 	if p.version != "" {
-		printOption(w, &spec{boolean: true, long: "version", help: "display version and exit"})
+		p.printOption(w, &spec{boolean: true, long: "version", help: "display version and exit", root: -1})
 	}
 }
 
-func printOption(w io.Writer, spec *spec) {
+func (p *Parser) printOption(w io.Writer, spec *spec) {
 	left := "  " + synopsis(spec, "--"+spec.long)
 	if spec.short != "" {
 		left += ", " + synopsis(spec, "-"+spec.short)
@@ -131,7 +131,10 @@ func printOption(w io.Writer, spec *spec) {
 		fmt.Fprint(w, spec.help)
 	}
 	// If spec.dest is not the zero value then a default value has been added.
-	v := spec.dest
+	var v reflect.Value
+	if spec.root >= 0 {
+		v = p.get(spec)
+	}
 	if v.IsValid() {
 		z := reflect.Zero(v.Type())
 		if (v.Type().Comparable() && z.Type().Comparable() && v.Interface() != z.Interface()) || v.Kind() == reflect.Slice && !v.IsNil() {

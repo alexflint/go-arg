@@ -15,7 +15,9 @@ import (
 
 // spec represents a command line option
 type spec struct {
-	dest       reflect.Value
+	root       int
+	path       []string // sequence of field names
+	typ        reflect.Type
 	long       string
 	short      string
 	multiple   bool
@@ -25,6 +27,13 @@ type spec struct {
 	help       string
 	env        string
 	boolean    bool
+}
+
+// command represents a named subcommand, or the top-level command
+type command struct {
+	name        string
+	specs       []*spec
+	subcommands []*command
 }
 
 // ErrHelp indicates that -h or --help were provided
@@ -79,7 +88,8 @@ type Config struct {
 
 // Parser represents a set of command line options with destination values
 type Parser struct {
-	specs       []*spec
+	cmd         *command
+	roots       []reflect.Value
 	config      Config
 	version     string
 	description string
@@ -102,134 +112,176 @@ type Described interface {
 }
 
 // walkFields calls a function for each field of a struct, recursively expanding struct fields.
-func walkFields(v reflect.Value, visit func(field reflect.StructField, val reflect.Value, owner reflect.Type) bool) {
-	t := v.Type()
+func walkFields(t reflect.Type, visit func(field reflect.StructField, owner reflect.Type) bool) {
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
-		val := v.Field(i)
-		expand := visit(field, val, t)
+		expand := visit(field, t)
 		if expand && field.Type.Kind() == reflect.Struct {
-			walkFields(val, visit)
+			walkFields(field.Type, visit)
 		}
 	}
 }
 
 // NewParser constructs a parser from a list of destination structs
 func NewParser(config Config, dests ...interface{}) (*Parser, error) {
+	// first pick a name for the command for use in the usage text
+	var name string
+	switch {
+	case config.Program != "":
+		name = config.Program
+	case len(os.Args) > 0:
+		name = filepath.Base(os.Args[0])
+	default:
+		name = "program"
+	}
+
+	// construct a parser
 	p := Parser{
+		cmd:    &command{name: name},
 		config: config,
 	}
+
+	// make a list of roots
 	for _, dest := range dests {
+		p.roots = append(p.roots, reflect.ValueOf(dest))
+	}
+
+	// process each of the destination values
+	for i, dest := range dests {
+		t := reflect.TypeOf(dest)
+		if t.Kind() != reflect.Ptr {
+			panic(fmt.Sprintf("%s is not a pointer (did you forget an ampersand?)", t))
+		}
+		t = t.Elem()
+
+		cmd, err := cmdFromStruct(name, t, nil, i)
+		if err != nil {
+			return nil, err
+		}
+		p.cmd.specs = append(p.cmd.specs, cmd.specs...)
+
 		if dest, ok := dest.(Versioned); ok {
 			p.version = dest.Version()
 		}
 		if dest, ok := dest.(Described); ok {
 			p.description = dest.Description()
 		}
-		v := reflect.ValueOf(dest)
-		if v.Kind() != reflect.Ptr {
-			panic(fmt.Sprintf("%s is not a pointer (did you forget an ampersand?)", v.Type()))
+	}
+
+	return &p, nil
+}
+
+func cmdFromStruct(name string, t reflect.Type, path []string, root int) (*command, error) {
+	if t.Kind() != reflect.Struct {
+		panic(fmt.Sprintf("%v is not a struct pointer", t))
+	}
+
+	var cmd command
+	var errs []string
+	walkFields(t, func(field reflect.StructField, t reflect.Type) bool {
+		// Check for the ignore switch in the tag
+		tag := field.Tag.Get("arg")
+		if tag == "-" {
+			return false
 		}
-		v = v.Elem()
-		if v.Kind() != reflect.Struct {
-			panic(fmt.Sprintf("%T is not a struct pointer", dest))
+
+		// If this is an embedded struct then recurse into its fields
+		if field.Anonymous && field.Type.Kind() == reflect.Struct {
+			return true
 		}
 
-		var errs []string
-		walkFields(v, func(field reflect.StructField, val reflect.Value, t reflect.Type) bool {
-			// Check for the ignore switch in the tag
-			tag := field.Tag.Get("arg")
-			if tag == "-" {
-				return false
-			}
+		spec := spec{
+			root: root,
+			path: append(path, field.Name),
+			long: strings.ToLower(field.Name),
+			typ:  field.Type,
+		}
 
-			// If this is an embedded struct then recurse into its fields
-			if field.Anonymous && field.Type.Kind() == reflect.Struct {
-				return true
-			}
+		help, exists := field.Tag.Lookup("help")
+		if exists {
+			spec.help = help
+		}
 
-			spec := spec{
-				long: strings.ToLower(field.Name),
-				dest: val,
-			}
+		// Check whether this field is supported. It's good to do this here rather than
+		// wait until ParseValue because it means that a program with invalid argument
+		// fields will always fail regardless of whether the arguments it received
+		// exercised those fields.
+		var parseable bool
+		parseable, spec.boolean, spec.multiple = canParse(field.Type)
+		if !parseable {
+			errs = append(errs, fmt.Sprintf("%s.%s: %s fields are not supported",
+				t.Name(), field.Name, field.Type.String()))
+			return false
+		}
 
-			help, exists := field.Tag.Lookup("help")
-			if exists {
-				spec.help = help
-			}
+		// Look at the tag
+		if tag != "" {
+			for _, key := range strings.Split(tag, ",") {
+				key = strings.TrimLeft(key, " ")
+				var value string
+				if pos := strings.Index(key, ":"); pos != -1 {
+					value = key[pos+1:]
+					key = key[:pos]
+				}
 
-			// Check whether this field is supported. It's good to do this here rather than
-			// wait until ParseValue because it means that a program with invalid argument
-			// fields will always fail regardless of whether the arguments it received
-			// exercised those fields.
-			var parseable bool
-			parseable, spec.boolean, spec.multiple = canParse(field.Type)
-			if !parseable {
-				errs = append(errs, fmt.Sprintf("%s.%s: %s fields are not supported",
-					t.Name(), field.Name, field.Type.String()))
-				return false
-			}
-
-			// Look at the tag
-			if tag != "" {
-				for _, key := range strings.Split(tag, ",") {
-					key = strings.TrimLeft(key, " ")
-					var value string
-					if pos := strings.Index(key, ":"); pos != -1 {
-						value = key[pos+1:]
-						key = key[:pos]
-					}
-
-					switch {
-					case strings.HasPrefix(key, "---"):
-						errs = append(errs, fmt.Sprintf("%s.%s: too many hyphens", t.Name(), field.Name))
-					case strings.HasPrefix(key, "--"):
-						spec.long = key[2:]
-					case strings.HasPrefix(key, "-"):
-						if len(key) != 2 {
-							errs = append(errs, fmt.Sprintf("%s.%s: short arguments must be one character only",
-								t.Name(), field.Name))
-							return false
-						}
-						spec.short = key[1:]
-					case key == "required":
-						spec.required = true
-					case key == "positional":
-						spec.positional = true
-					case key == "separate":
-						spec.separate = true
-					case key == "help": // deprecated
-						spec.help = value
-					case key == "env":
-						// Use override name if provided
-						if value != "" {
-							spec.env = value
-						} else {
-							spec.env = strings.ToUpper(field.Name)
-						}
-					default:
-						errs = append(errs, fmt.Sprintf("unrecognized tag '%s' on field %s", key, tag))
+				switch {
+				case strings.HasPrefix(key, "---"):
+					errs = append(errs, fmt.Sprintf("%s.%s: too many hyphens", t.Name(), field.Name))
+				case strings.HasPrefix(key, "--"):
+					spec.long = key[2:]
+				case strings.HasPrefix(key, "-"):
+					if len(key) != 2 {
+						errs = append(errs, fmt.Sprintf("%s.%s: short arguments must be one character only",
+							t.Name(), field.Name))
 						return false
 					}
+					spec.short = key[1:]
+				case key == "required":
+					spec.required = true
+				case key == "positional":
+					spec.positional = true
+				case key == "separate":
+					spec.separate = true
+				case key == "help": // deprecated
+					spec.help = value
+				case key == "env":
+					// Use override name if provided
+					if value != "" {
+						spec.env = value
+					} else {
+						spec.env = strings.ToUpper(field.Name)
+					}
+				case key == "subcommand":
+					// decide on a name for the subcommand
+					cmdname := value
+					if cmdname == "" {
+						cmdname = strings.ToLower(field.Name)
+					}
+
+					subcmd, err := cmdFromStruct(cmdname, field.Type, append(path, field.Name), root)
+					if err != nil {
+						errs = append(errs, err.Error())
+						return false
+					}
+
+					cmd.subcommands = append(cmd.subcommands, subcmd)
+				default:
+					errs = append(errs, fmt.Sprintf("unrecognized tag '%s' on field %s", key, tag))
+					return false
 				}
 			}
-			p.specs = append(p.specs, &spec)
-
-			// if this was an embedded field then we already returned true up above
-			return false
-		})
-
-		if len(errs) > 0 {
-			return nil, errors.New(strings.Join(errs, "\n"))
 		}
+		cmd.specs = append(cmd.specs, &spec)
+
+		// if this was an embedded field then we already returned true up above
+		return false
+	})
+
+	if len(errs) > 0 {
+		return nil, errors.New(strings.Join(errs, "\n"))
 	}
-	if p.config.Program == "" {
-		p.config.Program = "program"
-		if len(os.Args) > 0 {
-			p.config.Program = filepath.Base(os.Args[0])
-		}
-	}
-	return &p, nil
+
+	return &cmd, nil
 }
 
 // Parse processes the given command line option, storing the results in the field
@@ -249,12 +301,12 @@ func (p *Parser) Parse(args []string) error {
 	}
 
 	// Process all command line arguments
-	return process(p.specs, args)
+	return p.process(p.cmd.specs, args)
 }
 
 // process goes through arguments one-by-one, parses them, and assigns the result to
 // the underlying struct field
-func process(specs []*spec, args []string) error {
+func (p *Parser) process(specs []*spec, args []string) error {
 	// track the options we have seen
 	wasPresent := make(map[*spec]bool)
 
@@ -294,7 +346,7 @@ func process(specs []*spec, args []string) error {
 					err,
 				)
 			}
-			if err = setSlice(spec.dest, values, !spec.separate); err != nil {
+			if err = setSlice(p.settable(spec), values, !spec.separate); err != nil {
 				return fmt.Errorf(
 					"error processing environment variable %s with multiple values: %v",
 					spec.env,
@@ -302,7 +354,7 @@ func process(specs []*spec, args []string) error {
 				)
 			}
 		} else {
-			if err := scalar.ParseValue(spec.dest, value); err != nil {
+			if err := scalar.ParseValue(p.settable(spec), value); err != nil {
 				return fmt.Errorf("error processing environment variable %s: %v", spec.env, err)
 			}
 		}
@@ -355,7 +407,7 @@ func process(specs []*spec, args []string) error {
 			} else {
 				values = append(values, value)
 			}
-			err := setSlice(spec.dest, values, !spec.separate)
+			err := setSlice(p.settable(spec), values, !spec.separate)
 			if err != nil {
 				return fmt.Errorf("error processing %s: %v", arg, err)
 			}
@@ -373,14 +425,14 @@ func process(specs []*spec, args []string) error {
 			if i+1 == len(args) {
 				return fmt.Errorf("missing value for %s", arg)
 			}
-			if !nextIsNumeric(spec.dest.Type(), args[i+1]) && isFlag(args[i+1]) {
+			if !nextIsNumeric(spec.typ, args[i+1]) && isFlag(args[i+1]) {
 				return fmt.Errorf("missing value for %s", arg)
 			}
 			value = args[i+1]
 			i++
 		}
 
-		err := scalar.ParseValue(spec.dest, value)
+		err := scalar.ParseValue(p.settable(spec), value)
 		if err != nil {
 			return fmt.Errorf("error processing %s: %v", arg, err)
 		}
@@ -396,13 +448,13 @@ func process(specs []*spec, args []string) error {
 		}
 		wasPresent[spec] = true
 		if spec.multiple {
-			err := setSlice(spec.dest, positionals, true)
+			err := setSlice(p.settable(spec), positionals, true)
 			if err != nil {
 				return fmt.Errorf("error processing %s: %v", spec.long, err)
 			}
 			positionals = nil
 		} else {
-			err := scalar.ParseValue(spec.dest, positionals[0])
+			err := scalar.ParseValue(p.settable(spec), positionals[0])
 			if err != nil {
 				return fmt.Errorf("error processing %s: %v", spec.long, err)
 			}
@@ -443,6 +495,44 @@ func nextIsNumeric(t reflect.Type, s string) bool {
 // isFlag returns true if a token is a flag such as "-v" or "--user" but not "-" or "--"
 func isFlag(s string) bool {
 	return strings.HasPrefix(s, "-") && strings.TrimLeft(s, "-") != ""
+}
+
+func (p *Parser) get(spec *spec) reflect.Value {
+	v := p.roots[spec.root]
+	for _, field := range spec.path {
+		if v.Kind() == reflect.Ptr {
+			if v.IsNil() {
+				return reflect.Value{}
+			}
+			v = v.Elem()
+		}
+
+		v = v.FieldByName(field)
+		if !v.IsValid() {
+			panic(fmt.Errorf("error resolving path %v: %v has no field named %v",
+				spec.path, v.Type(), field))
+		}
+	}
+	return v
+}
+
+func (p *Parser) settable(spec *spec) reflect.Value {
+	v := p.roots[spec.root]
+	for _, field := range spec.path {
+		if v.Kind() == reflect.Ptr {
+			if v.IsNil() {
+				v.Set(reflect.New(v.Type().Elem()))
+			}
+			v = v.Elem()
+		}
+
+		v = v.FieldByName(field)
+		if !v.IsValid() {
+			panic(fmt.Errorf("error resolving path %v: %v has no field named %v",
+				spec.path, v.Type(), field))
+		}
+	}
+	return v
 }
 
 // parse a value as the appropriate type and store it in the struct
