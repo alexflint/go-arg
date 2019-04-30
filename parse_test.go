@@ -979,6 +979,7 @@ func TestReuseParser(t *testing.T) {
 	require.NoError(t, err)
 
 	err = p.Parse([]string{"--foo=abc"})
+	require.NoError(t, err)
 	assert.Equal(t, args.Foo, "abc")
 
 	err = p.Parse([]string{})
