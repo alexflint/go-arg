@@ -283,6 +283,7 @@ func cmdFromStruct(name string, dest path, t reflect.Type) (*command, error) {
 						cmdname = strings.ToLower(field.Name)
 					}
 
+					// parse the subcommand recursively
 					subcmd, err := cmdFromStruct(cmdname, subdest, field.Type)
 					if err != nil {
 						errs = append(errs, err.Error())
@@ -444,6 +445,10 @@ func (p *Parser) process(args []string) error {
 			if subcmd == nil {
 				return fmt.Errorf("invalid subcommand: %s", arg)
 			}
+
+			// instantiate the field to point to a new struct
+			v := p.writable(subcmd.dest)
+			v.Set(reflect.New(v.Type().Elem())) // we already checked that all subcommands are struct pointers
 
 			// add the new options to the set of allowed options
 			specs = append(specs, subcmd.specs...)
