@@ -292,7 +292,6 @@ func cmdFromStruct(name string, dest path, t reflect.Type) (*command, error) {
 
 					cmd.subcommands = append(cmd.subcommands, subcmd)
 					isSubcommand = true
-					fmt.Println("found a subcommand")
 				default:
 					errs = append(errs, fmt.Sprintf("unrecognized tag '%s' on field %s", key, tag))
 					return false
@@ -334,8 +333,6 @@ func cmdFromStruct(name string, dest path, t reflect.Type) (*command, error) {
 	if hasPositional && len(cmd.subcommands) > 0 {
 		return nil, fmt.Errorf("%T cannot have both subcommands and positional arguments", t)
 	}
-
-	fmt.Printf("parsed a command with %d subcommands\n", len(cmd.subcommands))
 
 	return &cmd, nil
 }
@@ -434,7 +431,6 @@ func (p *Parser) process(args []string) error {
 
 		if !isFlag(arg) || allpositional {
 			// each subcommand can have either subcommands or positionals, but not both
-			fmt.Printf("processing %q, with %d subcommands", arg, len(curCmd.subcommands))
 			if len(curCmd.subcommands) == 0 {
 				positionals = append(positionals, arg)
 				continue
