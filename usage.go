@@ -110,9 +110,20 @@ func (p *Parser) WriteHelp(w io.Writer) {
 	}
 
 	// write the list of built in options
-	p.printOption(w, &spec{boolean: true, long: "help", short: "h", help: "display this help and exit", root: -1})
+	p.printOption(w, &spec{
+		boolean: true,
+		long:    "help",
+		short:   "h",
+		help:    "display this help and exit",
+		root:    -1,
+	})
 	if p.version != "" {
-		p.printOption(w, &spec{boolean: true, long: "version", help: "display version and exit", root: -1})
+		p.printOption(w, &spec{
+			boolean: true,
+			long:    "version",
+			help:    "display version and exit",
+			root:    -1,
+		})
 	}
 }
 
