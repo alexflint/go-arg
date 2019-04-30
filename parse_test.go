@@ -969,3 +969,19 @@ func TestSpacesAllowedInTags(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, []string{"one", "two", "three", "four"}, args.Foo)
 }
+
+func TestReuseParser(t *testing.T) {
+	var args struct {
+		Foo string `arg:"required"`
+	}
+
+	p, err := NewParser(Config{}, &args)
+	require.NoError(t, err)
+
+	err = p.Parse([]string{"--foo=abc"})
+	require.NoError(t, err)
+	assert.Equal(t, args.Foo, "abc")
+
+	err = p.Parse([]string{})
+	assert.Error(t, err)
+}
