@@ -462,11 +462,10 @@ func TestPanicOnNonPointer(t *testing.T) {
 	})
 }
 
-func TestPanicOnNonStruct(t *testing.T) {
+func TestErrorOnNonStruct(t *testing.T) {
 	var args string
-	assert.Panics(t, func() {
-		_ = parse("", &args)
-	})
+	err := parse("", &args)
+	assert.Error(t, err)
 }
 
 func TestUnsupportedType(t *testing.T) {
