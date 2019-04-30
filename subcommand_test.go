@@ -160,3 +160,11 @@ func TestSubcommandsWithOptions(t *testing.T) {
 		assert.Equal(t, args.Get.Name, "test")
 	}
 }
+
+func TestNestedSubcommands(t *testing.T) {
+	// tree of subcommands
+}
+
+func TestSubcommandsWithPositionals(t *testing.T) {
+	// subcommands with positional arguments
+}
