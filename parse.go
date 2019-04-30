@@ -346,7 +346,7 @@ func (p *Parser) process(specs []*spec, args []string) error {
 					err,
 				)
 			}
-			if err = setSlice(p.settable(spec), values, !spec.separate); err != nil {
+			if err = setSlice(p.writable(spec), values, !spec.separate); err != nil {
 				return fmt.Errorf(
 					"error processing environment variable %s with multiple values: %v",
 					spec.env,
@@ -354,7 +354,7 @@ func (p *Parser) process(specs []*spec, args []string) error {
 				)
 			}
 		} else {
-			if err := scalar.ParseValue(p.settable(spec), value); err != nil {
+			if err := scalar.ParseValue(p.writable(spec), value); err != nil {
 				return fmt.Errorf("error processing environment variable %s: %v", spec.env, err)
 			}
 		}
@@ -407,7 +407,7 @@ func (p *Parser) process(specs []*spec, args []string) error {
 			} else {
 				values = append(values, value)
 			}
-			err := setSlice(p.settable(spec), values, !spec.separate)
+			err := setSlice(p.writable(spec), values, !spec.separate)
 			if err != nil {
 				return fmt.Errorf("error processing %s: %v", arg, err)
 			}
@@ -432,7 +432,7 @@ func (p *Parser) process(specs []*spec, args []string) error {
 			i++
 		}
 
-		err := scalar.ParseValue(p.settable(spec), value)
+		err := scalar.ParseValue(p.writable(spec), value)
 		if err != nil {
 			return fmt.Errorf("error processing %s: %v", arg, err)
 		}
@@ -448,13 +448,13 @@ func (p *Parser) process(specs []*spec, args []string) error {
 		}
 		wasPresent[spec] = true
 		if spec.multiple {
-			err := setSlice(p.settable(spec), positionals, true)
+			err := setSlice(p.writable(spec), positionals, true)
 			if err != nil {
 				return fmt.Errorf("error processing %s: %v", spec.long, err)
 			}
 			positionals = nil
 		} else {
-			err := scalar.ParseValue(p.settable(spec), positionals[0])
+			err := scalar.ParseValue(p.writable(spec), positionals[0])
 			if err != nil {
 				return fmt.Errorf("error processing %s: %v", spec.long, err)
 			}
@@ -497,7 +497,9 @@ func isFlag(s string) bool {
 	return strings.HasPrefix(s, "-") && strings.TrimLeft(s, "-") != ""
 }
 
-func (p *Parser) get(spec *spec) reflect.Value {
+// readable returns a reflect.Value corresponding to the current value for the
+// given
+func (p *Parser) readable(spec *spec) reflect.Value {
 	v := p.roots[spec.root]
 	for _, field := range spec.path {
 		if v.Kind() == reflect.Ptr {
@@ -509,6 +511,9 @@ func (p *Parser) get(spec *spec) reflect.Value {
 
 		v = v.FieldByName(field)
 		if !v.IsValid() {
+			// it is appropriate to panic here because this can only happen due to
+			// an internal bug in this library (since we construct spec.path ourselves
+			// by reflecting on the same struct)
 			panic(fmt.Errorf("error resolving path %v: %v has no field named %v",
 				spec.path, v.Type(), field))
 		}
@@ -516,7 +521,10 @@ func (p *Parser) get(spec *spec) reflect.Value {
 	return v
 }
 
-func (p *Parser) settable(spec *spec) reflect.Value {
+// writable traverses the destination struct to find the destination to
+// which the value of the given spec should be written. It fills in null
+// structs with pointers to the zero value for that struct.
+func (p *Parser) writable(spec *spec) reflect.Value {
 	v := p.roots[spec.root]
 	for _, field := range spec.path {
 		if v.Kind() == reflect.Ptr {
@@ -528,6 +536,9 @@ func (p *Parser) settable(spec *spec) reflect.Value {
 
 		v = v.FieldByName(field)
 		if !v.IsValid() {
+			// it is appropriate to panic here because this can only happen due to
+			// an internal bug in this library (since we construct spec.path ourselves
+			// by reflecting on the same struct)
 			panic(fmt.Errorf("error resolving path %v: %v has no field named %v",
 				spec.path, v.Type(), field))
 		}

@@ -144,7 +144,7 @@ func (p *Parser) printOption(w io.Writer, spec *spec) {
 	// If spec.dest is not the zero value then a default value has been added.
 	var v reflect.Value
 	if spec.root >= 0 {
-		v = p.get(spec)
+		v = p.readable(spec)
 	}
 	if v.IsValid() {
 		z := reflect.Zero(v.Type())
