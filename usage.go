@@ -115,14 +115,12 @@ func (p *Parser) WriteHelp(w io.Writer) {
 		long:    "help",
 		short:   "h",
 		help:    "display this help and exit",
-		root:    -1,
 	})
 	if p.version != "" {
 		p.printOption(w, &spec{
 			boolean: true,
 			long:    "version",
 			help:    "display version and exit",
-			root:    -1,
 		})
 	}
 }
@@ -143,8 +141,8 @@ func (p *Parser) printOption(w io.Writer, spec *spec) {
 	}
 	// If spec.dest is not the zero value then a default value has been added.
 	var v reflect.Value
-	if spec.root >= 0 {
-		v = p.readable(spec)
+	if len(spec.dest.fields) > 0 {
+		v = p.readable(spec.dest)
 	}
 	if v.IsValid() {
 		z := reflect.Zero(v.Type())
