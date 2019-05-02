@@ -9,8 +9,6 @@ import (
 
 var textUnmarshalerType = reflect.TypeOf([]encoding.TextUnmarshaler{}).Elem()
 
-// This file contains miscellaneous reflection utilities
-
 // canParse returns true if the type can be parsed from a string
 func canParse(t reflect.Type) (parseable, boolean, multiple bool) {
 	parseable = scalar.CanParse(t)

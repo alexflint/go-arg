@@ -38,3 +38,18 @@ func TestCanParse(t *testing.T) {
 	assertCanParse(t, reflect.TypeOf(is), true, false, true)
 	assertCanParse(t, reflect.TypeOf(&is), true, false, true)
 }
+
+type implementsTextUnmarshaler struct{}
+
+func (*implementsTextUnmarshaler) UnmarshalText(text []byte) error {
+	return nil
+}
+
+func TestCanParseTextUnmarshaler(t *testing.T) {
+	var u implementsTextUnmarshaler
+	var su []implementsTextUnmarshaler
+	assertCanParse(t, reflect.TypeOf(u), true, false, false)
+	assertCanParse(t, reflect.TypeOf(&u), true, false, false)
+	assertCanParse(t, reflect.TypeOf(su), true, false, true)
+	assertCanParse(t, reflect.TypeOf(&su), true, false, true)
+}
