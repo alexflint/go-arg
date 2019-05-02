@@ -610,7 +610,7 @@ func TestEnvironmentVariableSliceArgumentString(t *testing.T) {
 	var args struct {
 		Foo []string `arg:"env"`
 	}
-	setenv(t, "FOO", "bar,\"baz, qux\"")
+	setenv(t, "FOO", `bar,"baz, qux"`)
 	MustParse(&args)
 	assert.Equal(t, []string{"bar", "baz, qux"}, args.Foo)
 }
