@@ -28,8 +28,8 @@ func TestSubcommandNotAPointerToStruct(t *testing.T) {
 
 func TestPositionalAndSubcommandNotAllowed(t *testing.T) {
 	var args struct {
-		A string   `arg:"positional"`
-		B struct{} `arg:"subcommand"`
+		A string    `arg:"positional"`
+		B *struct{} `arg:"subcommand"`
 	}
 	_, err := NewParser(Config{}, &args)
 	assert.Error(t, err)
@@ -44,6 +44,16 @@ func TestMinimalSubcommand(t *testing.T) {
 	err := parse("list", &args)
 	require.NoError(t, err)
 	assert.NotNil(t, args.List)
+}
+
+func TestNoSuchSubcommand(t *testing.T) {
+	type listCmd struct {
+	}
+	var args struct {
+		List *listCmd `arg:"subcommand"`
+	}
+	err := parse("invalid", &args)
+	assert.Error(t, err)
 }
 
 func TestNamedSubcommand(t *testing.T) {
