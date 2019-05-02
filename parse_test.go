@@ -371,12 +371,30 @@ func TestNonsenseKey(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestMissingValue(t *testing.T) {
+func TestMissingValueAtEnd(t *testing.T) {
 	var args struct {
 		Foo string
 	}
 	err := parse("--foo", &args)
 	assert.Error(t, err)
+}
+
+func TestMissingValueInMIddle(t *testing.T) {
+	var args struct {
+		Foo string
+		Bar string
+	}
+	err := parse("--foo --bar=abc", &args)
+	assert.Error(t, err)
+}
+
+func TestNegativeValue(t *testing.T) {
+	var args struct {
+		Foo int
+	}
+	err := parse("--foo -123", &args)
+	require.NoError(t, err)
+	assert.Equal(t, -123, args.Foo)
 }
 
 func TestInvalidInt(t *testing.T) {
