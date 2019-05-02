@@ -1011,3 +1011,10 @@ func TestReuseParser(t *testing.T) {
 	err = p.Parse([]string{})
 	assert.Error(t, err)
 }
+
+func TestVersion(t *testing.T) {
+	var args struct{}
+	err := parse("--version", &args)
+	assert.Equal(t, ErrVersion, err)
+
+}
