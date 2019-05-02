@@ -557,6 +557,15 @@ func TestEnvironmentVariable(t *testing.T) {
 	assert.Equal(t, "bar", args.Foo)
 }
 
+func TestEnvironmentVariableNotPresent(t *testing.T) {
+	var args struct {
+		NotPresent string `arg:"env"`
+	}
+	os.Args = []string{"example"}
+	MustParse(&args)
+	assert.Equal(t, "", args.NotPresent)
+}
+
 func TestEnvironmentVariableOverrideName(t *testing.T) {
 	var args struct {
 		Foo string `arg:"env:BAZ"`
