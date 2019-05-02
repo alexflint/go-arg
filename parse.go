@@ -21,6 +21,9 @@ type path struct {
 
 // String gets a string representation of the given path
 func (p path) String() string {
+	if len(p.fields) == 0 {
+		return "args"
+	}
 	return "args." + strings.Join(p.fields, ".")
 }
 
@@ -330,7 +333,7 @@ func cmdFromStruct(name string, dest path, t reflect.Type) (*command, error) {
 		}
 	}
 	if hasPositional && len(cmd.subcommands) > 0 {
-		return nil, fmt.Errorf("%T cannot have both subcommands and positional arguments", t)
+		return nil, fmt.Errorf("%s cannot have both subcommands and positional arguments", dest)
 	}
 
 	return &cmd, nil
