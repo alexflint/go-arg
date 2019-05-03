@@ -56,7 +56,7 @@ func (p *Parser) writeUsageForCommand(w io.Writer, cmd *command) {
 	}
 
 	// print the beginning of the usage string
-	fmt.Fprintf(w, "Usage:")
+	fmt.Fprint(w, "Usage:")
 	for i := len(ancestors) - 1; i >= 0; i-- {
 		fmt.Fprint(w, " "+ancestors[i])
 	}
