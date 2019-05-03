@@ -393,7 +393,7 @@ func (p *Parser) captureEnvVars(specs []*spec, wasPresent map[*spec]bool) error 
 					err,
 				)
 			}
-			if err = setSlice(p.writable(spec.dest), values, !spec.separate); err != nil {
+			if err = setSlice(p.val(spec.dest), values, !spec.separate); err != nil {
 				return fmt.Errorf(
 					"error processing environment variable %s with multiple values: %v",
 					spec.env,
@@ -401,7 +401,7 @@ func (p *Parser) captureEnvVars(specs []*spec, wasPresent map[*spec]bool) error 
 				)
 			}
 		} else {
-			if err := scalar.ParseValue(p.writable(spec.dest), value); err != nil {
+			if err := scalar.ParseValue(p.val(spec.dest), value); err != nil {
 				return fmt.Errorf("error processing environment variable %s: %v", spec.env, err)
 			}
 		}
@@ -457,7 +457,7 @@ func (p *Parser) process(args []string) error {
 			}
 
 			// instantiate the field to point to a new struct
-			v := p.writable(subcmd.dest)
+			v := p.val(subcmd.dest)
 			v.Set(reflect.New(v.Type().Elem())) // we already checked that all subcommands are struct pointers
 
 			// add the new options to the set of allowed options
@@ -512,7 +512,7 @@ func (p *Parser) process(args []string) error {
 			} else {
 				values = append(values, value)
 			}
-			err := setSlice(p.writable(spec.dest), values, !spec.separate)
+			err := setSlice(p.val(spec.dest), values, !spec.separate)
 			if err != nil {
 				return fmt.Errorf("error processing %s: %v", arg, err)
 			}
@@ -537,7 +537,7 @@ func (p *Parser) process(args []string) error {
 			i++
 		}
 
-		err := scalar.ParseValue(p.writable(spec.dest), value)
+		err := scalar.ParseValue(p.val(spec.dest), value)
 		if err != nil {
 			return fmt.Errorf("error processing %s: %v", arg, err)
 		}
@@ -553,13 +553,13 @@ func (p *Parser) process(args []string) error {
 		}
 		wasPresent[spec] = true
 		if spec.multiple {
-			err := setSlice(p.writable(spec.dest), positionals, true)
+			err := setSlice(p.val(spec.dest), positionals, true)
 			if err != nil {
 				return fmt.Errorf("error processing %s: %v", spec.long, err)
 			}
 			positionals = nil
 		} else {
-			err := scalar.ParseValue(p.writable(spec.dest), positionals[0])
+			err := scalar.ParseValue(p.val(spec.dest), positionals[0])
 			if err != nil {
 				return fmt.Errorf("error processing %s: %v", spec.long, err)
 			}
@@ -602,9 +602,9 @@ func isFlag(s string) bool {
 	return strings.HasPrefix(s, "-") && strings.TrimLeft(s, "-") != ""
 }
 
-// readable returns a reflect.Value corresponding to the current value for the
-// given
-func (p *Parser) readable(dest path) reflect.Value {
+// val returns a reflect.Value corresponding to the current value for the
+// given path
+func (p *Parser) val(dest path) reflect.Value {
 	v := p.roots[dest.root]
 	for _, field := range dest.fields {
 		if v.Kind() == reflect.Ptr {
@@ -626,35 +626,10 @@ func (p *Parser) readable(dest path) reflect.Value {
 	return v
 }
 
-// writable trav.patherses the destination struct to find the destination to
-// which the value of the given spec should be written. It fills in null
-// structs with pointers to the zero value for that struct.
-func (p *Parser) writable(dest path) reflect.Value {
-	v := p.roots[dest.root]
-	for _, field := range dest.fields {
-		if v.Kind() == reflect.Ptr {
-			if v.IsNil() {
-				v.Set(reflect.New(v.Type().Elem()))
-			}
-			v = v.Elem()
-		}
-
-		v = v.FieldByName(field)
-		if !v.IsValid() {
-			// it is appropriate to panic here because this can only happen due to
-			// an internal bug in this library (since we construct the path ourselves
-			// by reflecting on the same struct)
-			panic(fmt.Errorf("error resolving path %v: %v has no field named %v",
-				dest.fields, v.Type(), field))
-		}
-	}
-	return v
-}
-
 // parse a value as the appropriate type and store it in the struct
 func setSlice(dest reflect.Value, values []string, trunc bool) error {
 	if !dest.CanSet() {
-		return fmt.Errorf("field is not writable")
+		return fmt.Errorf("field is not val")
 	}
 
 	var ptr bool

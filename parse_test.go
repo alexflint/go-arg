@@ -877,6 +877,26 @@ func TestEmbedded(t *testing.T) {
 	assert.Equal(t, true, args.Z)
 }
 
+func TestEmbeddedPtr(t *testing.T) {
+	// embedded pointer fields are not supported so this should return an error
+	var args struct {
+		*A
+	}
+	err := parse("--x=hello", &args)
+	require.Error(t, err)
+}
+
+func TestEmbeddedPtrIgnored(t *testing.T) {
+	// embedded pointer fields are not supported but here we
+	var args struct {
+		*A `arg:"-"`
+		B
+	}
+	err := parse("--y=321", &args)
+	require.NoError(t, err)
+	assert.Equal(t, 321, args.Y)
+}
+
 func TestEmptyArgs(t *testing.T) {
 	origArgs := os.Args
 

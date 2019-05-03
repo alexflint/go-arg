@@ -10,7 +10,7 @@ func (p *Parser) Subcommand() interface{} {
 	if p.lastCmd == nil || p.lastCmd.parent == nil {
 		return nil
 	}
-	return p.readable(p.lastCmd.dest).Interface()
+	return p.val(p.lastCmd.dest).Interface()
 }
 
 // SubcommandNames returns the sequence of subcommands specified by the

@@ -179,7 +179,7 @@ func (p *Parser) printOption(w io.Writer, spec *spec) {
 	// If spec.dest is not the zero value then a default value has been added.
 	var v reflect.Value
 	if len(spec.dest.fields) > 0 {
-		v = p.readable(spec.dest)
+		v = p.val(spec.dest)
 	}
 
 	var defaultVal *string
