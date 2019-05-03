@@ -115,5 +115,23 @@ func Example_usageString() {
 		Dataset  string   `help:"dataset to use"`
 		Optimize int      `arg:"-O,help:optimization level"`
 	}
+
+	// This is only necessary when running inside golang's runnable example harness
+	osExit = func(int) {}
+
 	MustParse(&args)
+
+	// output:
+	// Usage: example [--verbose] [--dataset DATASET] [--optimize OPTIMIZE] INPUT [OUTPUT [OUTPUT ...]]
+	//
+	// Positional arguments:
+	//   INPUT
+	//   OUTPUT
+	//
+	// Options:
+	//   --verbose, -v          verbosity level
+	//   --dataset DATASET      dataset to use
+	//   --optimize OPTIMIZE, -O OPTIMIZE
+	//                          optimization level
+	//   --help, -h             display this help and exit
 }
