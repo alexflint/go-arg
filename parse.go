@@ -59,6 +59,7 @@ type spec struct {
 // command represents a named subcommand, or the top-level command
 type command struct {
 	name        string
+	help        string
 	dest        path
 	specs       []*spec
 	subcommands []*command
@@ -295,6 +296,8 @@ func cmdFromStruct(name string, dest path, t reflect.Type) (*command, error) {
 						errs = append(errs, err.Error())
 						return false
 					}
+
+					subcmd.help = field.Tag.Get("help")
 
 					cmd.subcommands = append(cmd.subcommands, subcmd)
 					isSubcommand = true

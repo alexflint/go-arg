@@ -69,6 +69,23 @@ func (p *Parser) WriteUsage(w io.Writer) {
 	fmt.Fprint(w, "\n")
 }
 
+func printTwoCols(w io.Writer, left, help string, defaultVal *string) {
+	lhs := "  " + left
+	fmt.Fprint(w, lhs)
+	if help != "" {
+		if len(lhs)+2 < colWidth {
+			fmt.Fprint(w, strings.Repeat(" ", colWidth-len(lhs)))
+		} else {
+			fmt.Fprint(w, "\n"+strings.Repeat(" ", colWidth))
+		}
+		fmt.Fprint(w, help)
+	}
+	if defaultVal != nil {
+		fmt.Fprintf(w, " [default: %s]", *defaultVal)
+	}
+	fmt.Fprint(w, "\n")
+}
+
 // WriteHelp writes the usage string followed by the full help string for each option
 func (p *Parser) WriteHelp(w io.Writer) {
 	var positionals, options []*spec
@@ -89,17 +106,7 @@ func (p *Parser) WriteHelp(w io.Writer) {
 	if len(positionals) > 0 {
 		fmt.Fprint(w, "\nPositional arguments:\n")
 		for _, spec := range positionals {
-			left := "  " + strings.ToUpper(spec.long)
-			fmt.Fprint(w, left)
-			if spec.help != "" {
-				if len(left)+2 < colWidth {
-					fmt.Fprint(w, strings.Repeat(" ", colWidth-len(left)))
-				} else {
-					fmt.Fprint(w, "\n"+strings.Repeat(" ", colWidth))
-				}
-				fmt.Fprint(w, spec.help)
-			}
-			fmt.Fprint(w, "\n")
+			printTwoCols(w, strings.ToUpper(spec.long), spec.help, nil)
 		}
 	}
 
@@ -123,42 +130,44 @@ func (p *Parser) WriteHelp(w io.Writer) {
 			help:    "display version and exit",
 		})
 	}
+
+	// write the list of subcommands
+	if len(p.cmd.subcommands) > 0 {
+		fmt.Fprint(w, "\nCommands:\n")
+		for _, subcmd := range p.cmd.subcommands {
+			printTwoCols(w, subcmd.name, subcmd.help, nil)
+		}
+	}
 }
 
 func (p *Parser) printOption(w io.Writer, spec *spec) {
-	left := "  " + synopsis(spec, "--"+spec.long)
+	left := synopsis(spec, "--"+spec.long)
 	if spec.short != "" {
 		left += ", " + synopsis(spec, "-"+spec.short)
 	}
-	fmt.Fprint(w, left)
-	if spec.help != "" {
-		if len(left)+2 < colWidth {
-			fmt.Fprint(w, strings.Repeat(" ", colWidth-len(left)))
-		} else {
-			fmt.Fprint(w, "\n"+strings.Repeat(" ", colWidth))
-		}
-		fmt.Fprint(w, spec.help)
-	}
+
 	// If spec.dest is not the zero value then a default value has been added.
 	var v reflect.Value
 	if len(spec.dest.fields) > 0 {
 		v = p.readable(spec.dest)
 	}
+
+	var defaultVal *string
 	if v.IsValid() {
 		z := reflect.Zero(v.Type())
 		if (v.Type().Comparable() && z.Type().Comparable() && v.Interface() != z.Interface()) || v.Kind() == reflect.Slice && !v.IsNil() {
 			if scalar, ok := v.Interface().(encoding.TextMarshaler); ok {
 				if value, err := scalar.MarshalText(); err != nil {
-					fmt.Fprintf(w, " [default: error: %v]", err)
+					defaultVal = ptrTo(fmt.Sprintf("error: %v", err))
 				} else {
-					fmt.Fprintf(w, " [default: %v]", string(value))
+					defaultVal = ptrTo(fmt.Sprintf("%v", string(value)))
 				}
 			} else {
-				fmt.Fprintf(w, " [default: %v]", v)
+				defaultVal = ptrTo(fmt.Sprintf("%v", v))
 			}
 		}
 	}
-	fmt.Fprint(w, "\n")
+	printTwoCols(w, left, spec.help, defaultVal)
 }
 
 func synopsis(spec *spec, form string) string {
@@ -166,4 +175,8 @@ func synopsis(spec *spec, form string) string {
 		return form
 	}
 	return form + " " + strings.ToUpper(spec.long)
+}
+
+func ptrTo(s string) *string {
+	return &s
 }
