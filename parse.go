@@ -63,6 +63,7 @@ type command struct {
 	dest        path
 	specs       []*spec
 	subcommands []*command
+	parent      *command
 }
 
 // ErrHelp indicates that -h or --help were provided
@@ -77,18 +78,19 @@ func MustParse(dest ...interface{}) *Parser {
 	if err != nil {
 		fmt.Println(err)
 		osExit(-1)
+		return nil // just in case osExit was monkey-patched
 	}
 
 	err = p.Parse(flags())
 	switch {
 	case err == ErrHelp:
-		p.WriteHelp(os.Stdout)
+		p.writeHelpForCommand(os.Stdout, p.lastCmd)
 		osExit(0)
 	case err == ErrVersion:
 		fmt.Println(p.version)
 		osExit(0)
 	case err != nil:
-		p.Fail(err.Error())
+		p.failWithCommand(err.Error(), p.lastCmd)
 	}
 
 	return p
@@ -123,6 +125,9 @@ type Parser struct {
 	config      Config
 	version     string
 	description string
+
+	// the following fields change curing processing of command line arguments
+	lastCmd *command
 }
 
 // Versioned is the interface that the destination struct should implement to
@@ -297,6 +302,7 @@ func cmdFromStruct(name string, dest path, t reflect.Type) (*command, error) {
 						return false
 					}
 
+					subcmd.parent = &cmd
 					subcmd.help = field.Tag.Get("help")
 
 					cmd.subcommands = append(cmd.subcommands, subcmd)
@@ -349,21 +355,19 @@ func cmdFromStruct(name string, dest path, t reflect.Type) (*command, error) {
 // Parse processes the given command line option, storing the results in the field
 // of the structs from which NewParser was constructed
 func (p *Parser) Parse(args []string) error {
-	// If -h or --help were specified then print usage
-	for _, arg := range args {
-		if arg == "-h" || arg == "--help" {
-			return ErrHelp
-		}
-		if arg == "--version" {
-			return ErrVersion
-		}
-		if arg == "--" {
-			break
+	err := p.process(args)
+	if err != nil {
+		// If -h or --help were specified then make sure help text supercedes other errors
+		for _, arg := range args {
+			if arg == "-h" || arg == "--help" {
+				return ErrHelp
+			}
+			if arg == "--" {
+				break
+			}
 		}
 	}
-
-	// Process all command line arguments
-	return p.process(args)
+	return err
 }
 
 // process environment vars for the given arguments
@@ -415,6 +419,7 @@ func (p *Parser) process(args []string) error {
 
 	// union of specs for the chain of subcommands encountered so far
 	curCmd := p.cmd
+	p.lastCmd = curCmd
 
 	// make a copy of the specs because we will add to this list each time we expand a subcommand
 	specs := make([]*spec, len(curCmd.specs))
@@ -465,7 +470,16 @@ func (p *Parser) process(args []string) error {
 			}
 
 			curCmd = subcmd
+			p.lastCmd = curCmd
 			continue
+		}
+
+		// check for special --help and --version flags
+		switch arg {
+		case "-h", "--help":
+			return ErrHelp
+		case "--version":
+			return ErrVersion
 		}
 
 		// check for an equals sign, as in "--foo=bar"

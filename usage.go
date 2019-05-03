@@ -12,17 +12,30 @@ import (
 // the width of the left column
 const colWidth = 25
 
+// to allow monkey patching in tests
+var stderr = os.Stderr
+
 // Fail prints usage information to stderr and exits with non-zero status
 func (p *Parser) Fail(msg string) {
-	p.WriteUsage(os.Stderr)
-	fmt.Fprintln(os.Stderr, "error:", msg)
-	os.Exit(-1)
+	p.failWithCommand(msg, p.cmd)
+}
+
+// failWithCommand prints usage information for the given subcommand to stderr and exits with non-zero status
+func (p *Parser) failWithCommand(msg string, cmd *command) {
+	p.writeUsageForCommand(stderr, cmd)
+	fmt.Fprintln(stderr, "error:", msg)
+	osExit(-1)
 }
 
 // WriteUsage writes usage information to the given writer
 func (p *Parser) WriteUsage(w io.Writer) {
+	p.writeUsageForCommand(w, p.cmd)
+}
+
+// writeUsageForCommand writes usage information for the given subcommand
+func (p *Parser) writeUsageForCommand(w io.Writer, cmd *command) {
 	var positionals, options []*spec
-	for _, spec := range p.cmd.specs {
+	for _, spec := range cmd.specs {
 		if spec.positional {
 			positionals = append(positionals, spec)
 		} else {
@@ -34,7 +47,19 @@ func (p *Parser) WriteUsage(w io.Writer) {
 		fmt.Fprintln(w, p.version)
 	}
 
-	fmt.Fprintf(w, "Usage: %s", p.cmd.name)
+	// make a list of ancestor commands so that we print with full context
+	var ancestors []string
+	ancestor := cmd
+	for ancestor != nil {
+		ancestors = append(ancestors, ancestor.name)
+		ancestor = ancestor.parent
+	}
+
+	// print the beginning of the usage string
+	fmt.Fprintf(w, "Usage:")
+	for i := len(ancestors) - 1; i >= 0; i-- {
+		fmt.Fprint(w, " "+ancestors[i])
+	}
 
 	// write the option component of the usage message
 	for _, spec := range options {
@@ -88,8 +113,13 @@ func printTwoCols(w io.Writer, left, help string, defaultVal *string) {
 
 // WriteHelp writes the usage string followed by the full help string for each option
 func (p *Parser) WriteHelp(w io.Writer) {
+	p.writeHelpForCommand(w, p.cmd)
+}
+
+// writeHelp writes the usage string for the given subcommand
+func (p *Parser) writeHelpForCommand(w io.Writer, cmd *command) {
 	var positionals, options []*spec
-	for _, spec := range p.cmd.specs {
+	for _, spec := range cmd.specs {
 		if spec.positional {
 			positionals = append(positionals, spec)
 		} else {
@@ -100,7 +130,7 @@ func (p *Parser) WriteHelp(w io.Writer) {
 	if p.description != "" {
 		fmt.Fprintln(w, p.description)
 	}
-	p.WriteUsage(w)
+	p.writeUsageForCommand(w, cmd)
 
 	// write the list of positionals
 	if len(positionals) > 0 {
@@ -132,9 +162,9 @@ func (p *Parser) WriteHelp(w io.Writer) {
 	}
 
 	// write the list of subcommands
-	if len(p.cmd.subcommands) > 0 {
+	if len(cmd.subcommands) > 0 {
 		fmt.Fprint(w, "\nCommands:\n")
-		for _, subcmd := range p.cmd.subcommands {
+		for _, subcmd := range cmd.subcommands {
 			printTwoCols(w, subcmd.name, subcmd.help, nil)
 		}
 	}
