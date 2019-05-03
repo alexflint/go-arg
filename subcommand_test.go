@@ -41,9 +41,11 @@ func TestMinimalSubcommand(t *testing.T) {
 	var args struct {
 		List *listCmd `arg:"subcommand"`
 	}
-	err := parse("list", &args)
+	p, err := pparse("list", &args)
 	require.NoError(t, err)
 	assert.NotNil(t, args.List)
+	assert.Equal(t, args.List, p.Subcommand())
+	assert.Equal(t, []string{"list"}, p.SubcommandNames())
 }
 
 func TestNoSuchSubcommand(t *testing.T) {
@@ -52,7 +54,7 @@ func TestNoSuchSubcommand(t *testing.T) {
 	var args struct {
 		List *listCmd `arg:"subcommand"`
 	}
-	err := parse("invalid", &args)
+	_, err := pparse("invalid", &args)
 	assert.Error(t, err)
 }
 
@@ -62,9 +64,11 @@ func TestNamedSubcommand(t *testing.T) {
 	var args struct {
 		List *listCmd `arg:"subcommand:ls"`
 	}
-	err := parse("ls", &args)
+	p, err := pparse("ls", &args)
 	require.NoError(t, err)
 	assert.NotNil(t, args.List)
+	assert.Equal(t, args.List, p.Subcommand())
+	assert.Equal(t, []string{"ls"}, p.SubcommandNames())
 }
 
 func TestEmptySubcommand(t *testing.T) {
@@ -73,9 +77,11 @@ func TestEmptySubcommand(t *testing.T) {
 	var args struct {
 		List *listCmd `arg:"subcommand"`
 	}
-	err := parse("", &args)
+	p, err := pparse("", &args)
 	require.NoError(t, err)
 	assert.Nil(t, args.List)
+	assert.Nil(t, p.Subcommand())
+	assert.Empty(t, p.SubcommandNames())
 }
 
 func TestTwoSubcommands(t *testing.T) {
@@ -87,10 +93,12 @@ func TestTwoSubcommands(t *testing.T) {
 		Get  *getCmd  `arg:"subcommand"`
 		List *listCmd `arg:"subcommand"`
 	}
-	err := parse("list", &args)
+	p, err := pparse("list", &args)
 	require.NoError(t, err)
 	assert.Nil(t, args.Get)
 	assert.NotNil(t, args.List)
+	assert.Equal(t, args.List, p.Subcommand())
+	assert.Equal(t, []string{"list"}, p.SubcommandNames())
 }
 
 func TestSubcommandsWithOptions(t *testing.T) {
@@ -185,35 +193,43 @@ func TestNestedSubcommands(t *testing.T) {
 
 	{
 		var args root
-		err := parse("grandparent parent child", &args)
+		p, err := pparse("grandparent parent child", &args)
 		require.NoError(t, err)
 		require.NotNil(t, args.Grandparent)
 		require.NotNil(t, args.Grandparent.Parent)
 		require.NotNil(t, args.Grandparent.Parent.Child)
+		assert.Equal(t, args.Grandparent.Parent.Child, p.Subcommand())
+		assert.Equal(t, []string{"grandparent", "parent", "child"}, p.SubcommandNames())
 	}
 
 	{
 		var args root
-		err := parse("grandparent parent", &args)
+		p, err := pparse("grandparent parent", &args)
 		require.NoError(t, err)
 		require.NotNil(t, args.Grandparent)
 		require.NotNil(t, args.Grandparent.Parent)
 		require.Nil(t, args.Grandparent.Parent.Child)
+		assert.Equal(t, args.Grandparent.Parent, p.Subcommand())
+		assert.Equal(t, []string{"grandparent", "parent"}, p.SubcommandNames())
 	}
 
 	{
 		var args root
-		err := parse("grandparent", &args)
+		p, err := pparse("grandparent", &args)
 		require.NoError(t, err)
 		require.NotNil(t, args.Grandparent)
 		require.Nil(t, args.Grandparent.Parent)
+		assert.Equal(t, args.Grandparent, p.Subcommand())
+		assert.Equal(t, []string{"grandparent"}, p.SubcommandNames())
 	}
 
 	{
 		var args root
-		err := parse("", &args)
+		p, err := pparse("", &args)
 		require.NoError(t, err)
 		require.Nil(t, args.Grandparent)
+		assert.Nil(t, p.Subcommand())
+		assert.Empty(t, p.SubcommandNames())
 	}
 }
 

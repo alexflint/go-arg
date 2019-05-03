@@ -19,15 +19,20 @@ func setenv(t *testing.T, name, val string) {
 }
 
 func parse(cmdline string, dest interface{}) error {
+	_, err := pparse(cmdline, dest)
+	return err
+}
+
+func pparse(cmdline string, dest interface{}) (*Parser, error) {
 	p, err := NewParser(Config{}, dest)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	var parts []string
 	if len(cmdline) > 0 {
 		parts = strings.Split(cmdline, " ")
 	}
-	return p.Parse(parts)
+	return p, p.Parse(parts)
 }
 
 func TestString(t *testing.T) {
