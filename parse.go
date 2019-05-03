@@ -12,6 +12,9 @@ import (
 	scalar "github.com/alexflint/go-scalar"
 )
 
+// to enable monkey-patching during tests
+var osExit = os.Exit
+
 // path represents a sequence of steps to find the output location for an
 // argument or subcommand in the final destination struct
 type path struct {
@@ -72,20 +75,21 @@ func MustParse(dest ...interface{}) *Parser {
 	p, err := NewParser(Config{}, dest...)
 	if err != nil {
 		fmt.Println(err)
-		os.Exit(-1)
+		osExit(-1)
 	}
+
 	err = p.Parse(flags())
-	if err == ErrHelp {
+	switch {
+	case err == ErrHelp:
 		p.WriteHelp(os.Stdout)
-		os.Exit(0)
-	}
-	if err == ErrVersion {
+		osExit(0)
+	case err == ErrVersion:
 		fmt.Println(p.version)
-		os.Exit(0)
-	}
-	if err != nil {
+		osExit(0)
+	case err != nil:
 		p.Fail(err.Error())
 	}
+
 	return p
 }
 
