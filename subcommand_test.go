@@ -172,9 +172,168 @@ func TestSubcommandsWithOptions(t *testing.T) {
 }
 
 func TestNestedSubcommands(t *testing.T) {
-	// tree of subcommands
+	type child struct{}
+	type parent struct {
+		Child *child `arg:"subcommand"`
+	}
+	type grandparent struct {
+		Parent *parent `arg:"subcommand"`
+	}
+	type root struct {
+		Grandparent *grandparent `arg:"subcommand"`
+	}
+
+	{
+		var args root
+		err := parse("grandparent parent child", &args)
+		require.NoError(t, err)
+		require.NotNil(t, args.Grandparent)
+		require.NotNil(t, args.Grandparent.Parent)
+		require.NotNil(t, args.Grandparent.Parent.Child)
+	}
+
+	{
+		var args root
+		err := parse("grandparent parent", &args)
+		require.NoError(t, err)
+		require.NotNil(t, args.Grandparent)
+		require.NotNil(t, args.Grandparent.Parent)
+		require.Nil(t, args.Grandparent.Parent.Child)
+	}
+
+	{
+		var args root
+		err := parse("grandparent", &args)
+		require.NoError(t, err)
+		require.NotNil(t, args.Grandparent)
+		require.Nil(t, args.Grandparent.Parent)
+	}
+
+	{
+		var args root
+		err := parse("", &args)
+		require.NoError(t, err)
+		require.Nil(t, args.Grandparent)
+	}
 }
 
 func TestSubcommandsWithPositionals(t *testing.T) {
-	// subcommands with positional arguments
+	type listCmd struct {
+		Pattern string `arg:"positional"`
+	}
+	type cmd struct {
+		Format string
+		List   *listCmd `arg:"subcommand"`
+	}
+
+	{
+		var args cmd
+		err := parse("list", &args)
+		require.NoError(t, err)
+		assert.NotNil(t, args.List)
+		assert.Equal(t, "", args.List.Pattern)
+	}
+
+	{
+		var args cmd
+		err := parse("list --format json", &args)
+		require.NoError(t, err)
+		assert.NotNil(t, args.List)
+		assert.Equal(t, "", args.List.Pattern)
+		assert.Equal(t, "json", args.Format)
+	}
+
+	{
+		var args cmd
+		err := parse("list somepattern", &args)
+		require.NoError(t, err)
+		assert.NotNil(t, args.List)
+		assert.Equal(t, "somepattern", args.List.Pattern)
+	}
+
+	{
+		var args cmd
+		err := parse("list somepattern --format json", &args)
+		require.NoError(t, err)
+		assert.NotNil(t, args.List)
+		assert.Equal(t, "somepattern", args.List.Pattern)
+		assert.Equal(t, "json", args.Format)
+	}
+
+	{
+		var args cmd
+		err := parse("list --format json somepattern", &args)
+		require.NoError(t, err)
+		assert.NotNil(t, args.List)
+		assert.Equal(t, "somepattern", args.List.Pattern)
+		assert.Equal(t, "json", args.Format)
+	}
+
+	{
+		var args cmd
+		err := parse("--format json list somepattern", &args)
+		require.NoError(t, err)
+		assert.NotNil(t, args.List)
+		assert.Equal(t, "somepattern", args.List.Pattern)
+		assert.Equal(t, "json", args.Format)
+	}
+
+	{
+		var args cmd
+		err := parse("--format json", &args)
+		require.NoError(t, err)
+		assert.Nil(t, args.List)
+		assert.Equal(t, "json", args.Format)
+	}
+}
+func TestSubcommandsWithMultiplePositionals(t *testing.T) {
+	type getCmd struct {
+		Items []string `arg:"positional"`
+	}
+	type cmd struct {
+		Limit int
+		Get   *getCmd `arg:"subcommand"`
+	}
+
+	{
+		var args cmd
+		err := parse("get", &args)
+		require.NoError(t, err)
+		assert.NotNil(t, args.Get)
+		assert.Empty(t, args.Get.Items)
+	}
+
+	{
+		var args cmd
+		err := parse("get --limit 5", &args)
+		require.NoError(t, err)
+		assert.NotNil(t, args.Get)
+		assert.Empty(t, args.Get.Items)
+		assert.Equal(t, 5, args.Limit)
+	}
+
+	{
+		var args cmd
+		err := parse("get item1", &args)
+		require.NoError(t, err)
+		assert.NotNil(t, args.Get)
+		assert.Equal(t, []string{"item1"}, args.Get.Items)
+	}
+
+	{
+		var args cmd
+		err := parse("get item1 item2 item3", &args)
+		require.NoError(t, err)
+		assert.NotNil(t, args.Get)
+		assert.Equal(t, []string{"item1", "item2", "item3"}, args.Get.Items)
+	}
+
+	{
+		var args cmd
+		err := parse("get item1 --limit 5 item2", &args)
+		require.NoError(t, err)
+		assert.NotNil(t, args.Get)
+		assert.Equal(t, []string{"item1", "item2"}, args.Get.Items)
+		assert.Equal(t, 5, args.Limit)
+	}
 }
