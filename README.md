@@ -353,6 +353,59 @@ Options:
   --help, -h             display this help and exit
 ```
 
+### Subcommands
+
+*Introduced in `v1.1.0`*
+
+Subcommands are commonly used in tools that wish to group multiple functions into a single program. An example is the `git` tool:
+```shell
+$ git checkout [arguments specific to checking out code]
+$ git commit [arguments specific to committing]
+$ git push [arguments specific to pushing]
+```
+
+The strings "checkout", "commit", and "push" are different from simple positional arguments because the options available to the user change depending on which subcommand they choose.
+
+This can be implemented with `go-arg` as follows:
+
+```go
+type CheckoutCmd struct {
+	Branch string `arg:"positional"`
+	Track  bool   `arg:"-t"`
+}
+type CommitCmd struct {
+	All     bool   `arg:"-a"`
+	Message string `arg:"-m"`
+}
+type PushCmd struct {
+	Remote      string `arg:"positional"`
+	Branch      string `arg:"positional"`
+	SetUpstream bool   `arg:"-u"`
+}
+var args struct {
+	Checkout *CheckoutCmd `arg:"subcommand:checkout"`
+	Commit   *CommitCmd   `arg:"subcommand:commit"`
+	Push     *PushCmd     `arg:"subcommand:push"`
+	Quiet    bool         `arg:"-q"` // this flag is global to all subcommands
+}
+
+arg.MustParse(&args)
+
+switch {
+case args.Checkout != nil:
+	fmt.Printf("checkout requested for branch %s\n", args.Checkout.Branch)
+case args.Commit != nil:
+	fmt.Printf("commit requested with message \"%s\"\n", args.Commit.Message)
+case args.Push != nil:
+	fmt.Printf("push requested from %s to %s\n", args.Push.Branch, args.Push.Remote)
+}
+```
+
+Some additional rules apply when working with subcommands:
+* The `subcommand` tag can only be used with fields that are pointers to structs
+* Any struct that contains a subcommand must not contain any positionals
+
+
 ### API Documentation
 
 https://godoc.org/github.com/alexflint/go-arg

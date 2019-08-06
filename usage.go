@@ -12,17 +12,30 @@ import (
 // the width of the left column
 const colWidth = 25
 
+// to allow monkey patching in tests
+var stderr = os.Stderr
+
 // Fail prints usage information to stderr and exits with non-zero status
 func (p *Parser) Fail(msg string) {
-	p.WriteUsage(os.Stderr)
-	fmt.Fprintln(os.Stderr, "error:", msg)
-	os.Exit(-1)
+	p.failWithCommand(msg, p.cmd)
+}
+
+// failWithCommand prints usage information for the given subcommand to stderr and exits with non-zero status
+func (p *Parser) failWithCommand(msg string, cmd *command) {
+	p.writeUsageForCommand(stderr, cmd)
+	fmt.Fprintln(stderr, "error:", msg)
+	osExit(-1)
 }
 
 // WriteUsage writes usage information to the given writer
 func (p *Parser) WriteUsage(w io.Writer) {
+	p.writeUsageForCommand(w, p.cmd)
+}
+
+// writeUsageForCommand writes usage information for the given subcommand
+func (p *Parser) writeUsageForCommand(w io.Writer, cmd *command) {
 	var positionals, options []*spec
-	for _, spec := range p.specs {
+	for _, spec := range cmd.specs {
 		if spec.positional {
 			positionals = append(positionals, spec)
 		} else {
@@ -34,7 +47,19 @@ func (p *Parser) WriteUsage(w io.Writer) {
 		fmt.Fprintln(w, p.version)
 	}
 
-	fmt.Fprintf(w, "Usage: %s", p.config.Program)
+	// make a list of ancestor commands so that we print with full context
+	var ancestors []string
+	ancestor := cmd
+	for ancestor != nil {
+		ancestors = append(ancestors, ancestor.name)
+		ancestor = ancestor.parent
+	}
+
+	// print the beginning of the usage string
+	fmt.Fprint(w, "Usage:")
+	for i := len(ancestors) - 1; i >= 0; i-- {
+		fmt.Fprint(w, " "+ancestors[i])
+	}
 
 	// write the option component of the usage message
 	for _, spec := range options {
@@ -69,10 +94,32 @@ func (p *Parser) WriteUsage(w io.Writer) {
 	fmt.Fprint(w, "\n")
 }
 
+func printTwoCols(w io.Writer, left, help string, defaultVal *string) {
+	lhs := "  " + left
+	fmt.Fprint(w, lhs)
+	if help != "" {
+		if len(lhs)+2 < colWidth {
+			fmt.Fprint(w, strings.Repeat(" ", colWidth-len(lhs)))
+		} else {
+			fmt.Fprint(w, "\n"+strings.Repeat(" ", colWidth))
+		}
+		fmt.Fprint(w, help)
+	}
+	if defaultVal != nil {
+		fmt.Fprintf(w, " [default: %s]", *defaultVal)
+	}
+	fmt.Fprint(w, "\n")
+}
+
 // WriteHelp writes the usage string followed by the full help string for each option
 func (p *Parser) WriteHelp(w io.Writer) {
+	p.writeHelpForCommand(w, p.cmd)
+}
+
+// writeHelp writes the usage string for the given subcommand
+func (p *Parser) writeHelpForCommand(w io.Writer, cmd *command) {
 	var positionals, options []*spec
-	for _, spec := range p.specs {
+	for _, spec := range cmd.specs {
 		if spec.positional {
 			positionals = append(positionals, spec)
 		} else {
@@ -83,70 +130,74 @@ func (p *Parser) WriteHelp(w io.Writer) {
 	if p.description != "" {
 		fmt.Fprintln(w, p.description)
 	}
-	p.WriteUsage(w)
+	p.writeUsageForCommand(w, cmd)
 
 	// write the list of positionals
 	if len(positionals) > 0 {
 		fmt.Fprint(w, "\nPositional arguments:\n")
 		for _, spec := range positionals {
-			left := "  " + strings.ToUpper(spec.long)
-			fmt.Fprint(w, left)
-			if spec.help != "" {
-				if len(left)+2 < colWidth {
-					fmt.Fprint(w, strings.Repeat(" ", colWidth-len(left)))
-				} else {
-					fmt.Fprint(w, "\n"+strings.Repeat(" ", colWidth))
-				}
-				fmt.Fprint(w, spec.help)
-			}
-			fmt.Fprint(w, "\n")
+			printTwoCols(w, strings.ToUpper(spec.long), spec.help, nil)
 		}
 	}
 
 	// write the list of options
 	fmt.Fprint(w, "\nOptions:\n")
 	for _, spec := range options {
-		printOption(w, spec)
+		p.printOption(w, spec)
 	}
 
 	// write the list of built in options
-	printOption(w, &spec{boolean: true, long: "help", short: "h", help: "display this help and exit"})
+	p.printOption(w, &spec{
+		boolean: true,
+		long:    "help",
+		short:   "h",
+		help:    "display this help and exit",
+	})
 	if p.version != "" {
-		printOption(w, &spec{boolean: true, long: "version", help: "display version and exit"})
+		p.printOption(w, &spec{
+			boolean: true,
+			long:    "version",
+			help:    "display version and exit",
+		})
+	}
+
+	// write the list of subcommands
+	if len(cmd.subcommands) > 0 {
+		fmt.Fprint(w, "\nCommands:\n")
+		for _, subcmd := range cmd.subcommands {
+			printTwoCols(w, subcmd.name, subcmd.help, nil)
+		}
 	}
 }
 
-func printOption(w io.Writer, spec *spec) {
-	left := "  " + synopsis(spec, "--"+spec.long)
+func (p *Parser) printOption(w io.Writer, spec *spec) {
+	left := synopsis(spec, "--"+spec.long)
 	if spec.short != "" {
 		left += ", " + synopsis(spec, "-"+spec.short)
 	}
-	fmt.Fprint(w, left)
-	if spec.help != "" {
-		if len(left)+2 < colWidth {
-			fmt.Fprint(w, strings.Repeat(" ", colWidth-len(left)))
-		} else {
-			fmt.Fprint(w, "\n"+strings.Repeat(" ", colWidth))
-		}
-		fmt.Fprint(w, spec.help)
-	}
+
 	// If spec.dest is not the zero value then a default value has been added.
-	v := spec.dest
+	var v reflect.Value
+	if len(spec.dest.fields) > 0 {
+		v = p.val(spec.dest)
+	}
+
+	var defaultVal *string
 	if v.IsValid() {
 		z := reflect.Zero(v.Type())
 		if (v.Type().Comparable() && z.Type().Comparable() && v.Interface() != z.Interface()) || v.Kind() == reflect.Slice && !v.IsNil() {
 			if scalar, ok := v.Interface().(encoding.TextMarshaler); ok {
 				if value, err := scalar.MarshalText(); err != nil {
-					fmt.Fprintf(w, " [default: error: %v]", err)
+					defaultVal = ptrTo(fmt.Sprintf("error: %v", err))
 				} else {
-					fmt.Fprintf(w, " [default: %v]", string(value))
+					defaultVal = ptrTo(fmt.Sprintf("%v", string(value)))
 				}
 			} else {
-				fmt.Fprintf(w, " [default: %v]", v)
+				defaultVal = ptrTo(fmt.Sprintf("%v", v))
 			}
 		}
 	}
-	fmt.Fprint(w, "\n")
+	printTwoCols(w, left, spec.help, defaultVal)
 }
 
 func synopsis(spec *spec, form string) string {
@@ -154,4 +205,8 @@ func synopsis(spec *spec, form string) string {
 		return form
 	}
 	return form + " " + strings.ToUpper(spec.long)
+}
+
+func ptrTo(s string) *string {
+	return &s
 }

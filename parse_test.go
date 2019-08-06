@@ -19,15 +19,20 @@ func setenv(t *testing.T, name, val string) {
 }
 
 func parse(cmdline string, dest interface{}) error {
+	_, err := pparse(cmdline, dest)
+	return err
+}
+
+func pparse(cmdline string, dest interface{}) (*Parser, error) {
 	p, err := NewParser(Config{}, dest)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	var parts []string
 	if len(cmdline) > 0 {
 		parts = strings.Split(cmdline, " ")
 	}
-	return p.Parse(parts)
+	return p, p.Parse(parts)
 }
 
 func TestString(t *testing.T) {
@@ -371,12 +376,30 @@ func TestNonsenseKey(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestMissingValue(t *testing.T) {
+func TestMissingValueAtEnd(t *testing.T) {
 	var args struct {
 		Foo string
 	}
 	err := parse("--foo", &args)
 	assert.Error(t, err)
+}
+
+func TestMissingValueInMIddle(t *testing.T) {
+	var args struct {
+		Foo string
+		Bar string
+	}
+	err := parse("--foo --bar=abc", &args)
+	assert.Error(t, err)
+}
+
+func TestNegativeValue(t *testing.T) {
+	var args struct {
+		Foo int
+	}
+	err := parse("--foo -123", &args)
+	require.NoError(t, err)
+	assert.Equal(t, -123, args.Foo)
 }
 
 func TestInvalidInt(t *testing.T) {
@@ -462,11 +485,10 @@ func TestPanicOnNonPointer(t *testing.T) {
 	})
 }
 
-func TestPanicOnNonStruct(t *testing.T) {
+func TestErrorOnNonStruct(t *testing.T) {
 	var args string
-	assert.Panics(t, func() {
-		_ = parse("", &args)
-	})
+	err := parse("", &args)
+	assert.Error(t, err)
 }
 
 func TestUnsupportedType(t *testing.T) {
@@ -540,6 +562,15 @@ func TestEnvironmentVariable(t *testing.T) {
 	assert.Equal(t, "bar", args.Foo)
 }
 
+func TestEnvironmentVariableNotPresent(t *testing.T) {
+	var args struct {
+		NotPresent string `arg:"env"`
+	}
+	os.Args = []string{"example"}
+	MustParse(&args)
+	assert.Equal(t, "", args.NotPresent)
+}
+
 func TestEnvironmentVariableOverrideName(t *testing.T) {
 	var args struct {
 		Foo string `arg:"env:BAZ"`
@@ -584,7 +615,7 @@ func TestEnvironmentVariableSliceArgumentString(t *testing.T) {
 	var args struct {
 		Foo []string `arg:"env"`
 	}
-	setenv(t, "FOO", "bar,\"baz, qux\"")
+	setenv(t, "FOO", `bar,"baz, qux"`)
 	MustParse(&args)
 	assert.Equal(t, []string{"bar", "baz, qux"}, args.Foo)
 }
@@ -846,6 +877,28 @@ func TestEmbedded(t *testing.T) {
 	assert.Equal(t, true, args.Z)
 }
 
+func TestEmbeddedPtr(t *testing.T) {
+	// embedded pointer fields are not supported so this should return an error
+	var args struct {
+		*A
+	}
+	err := parse("--x=hello", &args)
+	require.Error(t, err)
+}
+
+func TestEmbeddedPtrIgnored(t *testing.T) {
+	// embedded pointer fields are not normally supported but here
+	// we explicitly exclude it so the non-nil embedded structs
+	// should work as expected
+	var args struct {
+		*A `arg:"-"`
+		B
+	}
+	err := parse("--y=321", &args)
+	require.NoError(t, err)
+	assert.Equal(t, 321, args.Y)
+}
+
 func TestEmptyArgs(t *testing.T) {
 	origArgs := os.Args
 
@@ -984,4 +1037,11 @@ func TestReuseParser(t *testing.T) {
 
 	err = p.Parse([]string{})
 	assert.Error(t, err)
+}
+
+func TestVersion(t *testing.T) {
+	var args struct{}
+	err := parse("--version", &args)
+	assert.Equal(t, ErrVersion, err)
+
 }
