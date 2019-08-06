@@ -255,3 +255,47 @@ func Example_errorTextForSubcommand() {
 	// Usage: example get [--count COUNT]
 	// error: error processing --count: strconv.ParseInt: parsing "INVALID": invalid syntax
 }
+
+// This example demonstrates use of subcommands
+func Example_subcommand() {
+	// These are the args you would pass in on the command line
+	os.Args = split("./example commit -a -m what-this-commit-is-about")
+
+	type CheckoutCmd struct {
+		Branch string `arg:"positional"`
+		Track  bool   `arg:"-t"`
+	}
+	type CommitCmd struct {
+		All     bool   `arg:"-a"`
+		Message string `arg:"-m"`
+	}
+	type PushCmd struct {
+		Remote      string `arg:"positional"`
+		Branch      string `arg:"positional"`
+		SetUpstream bool   `arg:"-u"`
+	}
+	var args struct {
+		Checkout *CheckoutCmd `arg:"subcommand:checkout"`
+		Commit   *CommitCmd   `arg:"subcommand:commit"`
+		Push     *PushCmd     `arg:"subcommand:push"`
+		Quiet    bool         `arg:"-q"` // this flag is global to all subcommands
+	}
+
+	// This is only necessary when running inside golang's runnable example harness
+	osExit = func(int) {}
+	stderr = os.Stdout
+
+	MustParse(&args)
+
+	switch {
+	case args.Checkout != nil:
+		fmt.Printf("checkout requested for branch %s\n", args.Checkout.Branch)
+	case args.Commit != nil:
+		fmt.Printf("commit requested with message \"%s\"\n", args.Commit.Message)
+	case args.Push != nil:
+		fmt.Printf("push requested from %s to %s\n", args.Push.Branch, args.Push.Remote)
+	}
+
+	// output:
+	// commit requested with message "what-this-commit-is-about"
+}
