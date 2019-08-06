@@ -887,7 +887,9 @@ func TestEmbeddedPtr(t *testing.T) {
 }
 
 func TestEmbeddedPtrIgnored(t *testing.T) {
-	// embedded pointer fields are not supported but here we
+	// embedded pointer fields are not normally supported but here
+	// we explicitly exclude it so the non-nil embedded structs
+	// should work as expected
 	var args struct {
 		*A `arg:"-"`
 		B
