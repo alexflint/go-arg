@@ -629,7 +629,7 @@ func (p *Parser) val(dest path) reflect.Value {
 // parse a value as the appropriate type and store it in the struct
 func setSlice(dest reflect.Value, values []string, trunc bool) error {
 	if !dest.CanSet() {
-		return fmt.Errorf("field is not val")
+		return fmt.Errorf("field is not writable")
 	}
 
 	var ptr bool
