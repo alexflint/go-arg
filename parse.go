@@ -125,9 +125,15 @@ type Parser struct {
 	config      Config
 	version     string
 	description string
+	rootCount   int
 
 	// the following fields change curing processing of command line arguments
 	lastCmd *command
+
+	// processing state
+	wasPresent map[*spec]bool
+	specs      []*spec
+	curCmd     *command
 }
 
 // Versioned is the interface that the destination struct should implement to
@@ -171,29 +177,42 @@ func NewParser(config Config, dests ...interface{}) (*Parser, error) {
 	}
 
 	// construct a parser
-	p := Parser{
-		cmd:    &command{name: name},
+	cmd := &command{name: name}
+	p := &Parser{
+		cmd:    cmd,
 		config: config,
+		curCmd: cmd,
 	}
 
+	if err := p.AddDestinations(dests...); err != nil {
+		return nil, err
+	}
+
+	return p, nil
+}
+
+// AddDestinations to the current command
+func (p *Parser) AddDestinations(dests ...interface{}) error {
 	// make a list of roots
 	for _, dest := range dests {
 		p.roots = append(p.roots, reflect.ValueOf(dest))
 	}
 
 	// process each of the destination values
-	for i, dest := range dests {
+	for _, dest := range dests {
 		t := reflect.TypeOf(dest)
 		if t.Kind() != reflect.Ptr {
 			panic(fmt.Sprintf("%s is not a pointer (did you forget an ampersand?)", t))
 		}
 
-		cmd, err := cmdFromStruct(name, path{root: i}, t)
+		cmd, err := cmdFromStruct(p.curCmd.name, path{root: p.rootCount}, t)
 		if err != nil {
-			return nil, err
+			return err
 		}
-		p.cmd.specs = append(p.cmd.specs, cmd.specs...)
-		p.cmd.subcommands = append(p.cmd.subcommands, cmd.subcommands...)
+		p.rootCount++
+
+		p.curCmd.specs = append(p.curCmd.specs, cmd.specs...)
+		p.curCmd.subcommands = append(p.curCmd.subcommands, cmd.subcommands...)
 
 		if dest, ok := dest.(Versioned); ok {
 			p.version = dest.Version()
@@ -202,8 +221,7 @@ func NewParser(config Config, dests ...interface{}) (*Parser, error) {
 			p.description = dest.Description()
 		}
 	}
-
-	return &p, nil
+	return nil
 }
 
 func cmdFromStruct(name string, dest path, t reflect.Type) (*command, error) {
@@ -354,20 +372,46 @@ func cmdFromStruct(name string, dest path, t reflect.Type) (*command, error) {
 
 // Parse processes the given command line option, storing the results in the field
 // of the structs from which NewParser was constructed
+// Parse processes the given command line option, storing the results in the field
+// of the structs from which NewParser was constructed
 func (p *Parser) Parse(args []string) error {
-	err := p.process(args)
-	if err != nil {
-		// If -h or --help were specified then make sure help text supercedes other errors
-		for _, arg := range args {
-			if arg == "-h" || arg == "--help" {
-				return ErrHelp
-			}
-			if arg == "--" {
-				break
-			}
+	// check if this is the root parser
+	if p.specs == nil {
+		// track the options we have seen
+		p.wasPresent = make(map[*spec]bool)
+
+		// union of specs for the chain of subcommands encountered so far
+		p.curCmd = p.cmd
+		p.lastCmd = p.cmd
+
+		// make a copy of the specs because we will add to this list each time we expand a subcommand
+		p.specs = make([]*spec, len(p.cmd.specs))
+		copy(p.specs, p.cmd.specs)
+
+		// deal with environment vars
+		err := p.captureEnvVars(p.specs, p.wasPresent)
+		if err != nil {
+			return err
 		}
+		// process
+		err = p.process(args)
+
+		// clear specs to mark root parser
+		p.specs = nil
+
+		return err
 	}
-	return err
+	// sub parser. if AddDestinations was called we need to add
+	// any new specs to the p.specs slice
+	p.specs = appendUniqSpecs(p.specs, p.curCmd.specs)
+
+	// handle environment vars for the new specs
+	err := p.captureEnvVars(p.specs, p.wasPresent)
+	if err != nil {
+		return err
+	}
+
+	return p.process(args)
 }
 
 // process environment vars for the given arguments
@@ -414,22 +458,6 @@ func (p *Parser) captureEnvVars(specs []*spec, wasPresent map[*spec]bool) error 
 // process goes through arguments one-by-one, parses them, and assigns the result to
 // the underlying struct field
 func (p *Parser) process(args []string) error {
-	// track the options we have seen
-	wasPresent := make(map[*spec]bool)
-
-	// union of specs for the chain of subcommands encountered so far
-	curCmd := p.cmd
-	p.lastCmd = curCmd
-
-	// make a copy of the specs because we will add to this list each time we expand a subcommand
-	specs := make([]*spec, len(curCmd.specs))
-	copy(specs, curCmd.specs)
-
-	// deal with environment vars
-	err := p.captureEnvVars(specs, wasPresent)
-	if err != nil {
-		return err
-	}
 
 	// process each string from the command line
 	var allpositional bool
@@ -445,13 +473,13 @@ func (p *Parser) process(args []string) error {
 
 		if !isFlag(arg) || allpositional {
 			// each subcommand can have either subcommands or positionals, but not both
-			if len(curCmd.subcommands) == 0 {
+			if len(p.curCmd.subcommands) == 0 {
 				positionals = append(positionals, arg)
 				continue
 			}
 
 			// if we have a subcommand then make sure it is valid for the current context
-			subcmd := findSubcommand(curCmd.subcommands, arg)
+			subcmd := findSubcommand(p.curCmd.subcommands, arg)
 			if subcmd == nil {
 				return fmt.Errorf("invalid subcommand: %s", arg)
 			}
@@ -460,17 +488,24 @@ func (p *Parser) process(args []string) error {
 			v := p.val(subcmd.dest)
 			v.Set(reflect.New(v.Type().Elem())) // we already checked that all subcommands are struct pointers
 
+			// update current and last command to have help for the correct command on failure
+			p.curCmd = subcmd
+			p.lastCmd = p.curCmd
+
 			// add the new options to the set of allowed options
-			specs = append(specs, subcmd.specs...)
+			p.specs = append(p.specs, subcmd.specs...)
 
 			// capture environment vars for these new options
-			err := p.captureEnvVars(subcmd.specs, wasPresent)
+			err := p.captureEnvVars(subcmd.specs, p.wasPresent)
 			if err != nil {
 				return err
 			}
 
-			curCmd = subcmd
-			p.lastCmd = curCmd
+			// check if subcommand has custom parser
+			if v.Type().Implements(subcommandParserType) {
+				return callSubcommandParser(v, p, args[i+1:])
+			}
+
 			continue
 		}
 
@@ -492,11 +527,11 @@ func (p *Parser) process(args []string) error {
 
 		// lookup the spec for this option (note that the "specs" slice changes as
 		// we expand subcommands so it is better not to use a map)
-		spec := findOption(specs, opt)
+		spec := findOption(p.specs, opt)
 		if spec == nil {
 			return fmt.Errorf("unknown argument %s", arg)
 		}
-		wasPresent[spec] = true
+		p.wasPresent[spec] = true
 
 		// deal with the case of multiple values
 		if spec.multiple {
@@ -544,14 +579,14 @@ func (p *Parser) process(args []string) error {
 	}
 
 	// process positionals
-	for _, spec := range specs {
+	for _, spec := range p.specs {
 		if !spec.positional {
 			continue
 		}
 		if len(positionals) == 0 {
 			break
 		}
-		wasPresent[spec] = true
+		p.wasPresent[spec] = true
 		if spec.multiple {
 			err := setSlice(p.val(spec.dest), positionals, true)
 			if err != nil {
@@ -571,8 +606,8 @@ func (p *Parser) process(args []string) error {
 	}
 
 	// finally check that all the required args were provided
-	for _, spec := range specs {
-		if spec.required && !wasPresent[spec] {
+	for _, spec := range p.specs {
+		if spec.required && !p.wasPresent[spec] {
 			name := spec.long
 			if !spec.positional {
 				name = "--" + spec.long
@@ -678,4 +713,20 @@ func findSubcommand(cmds []*command, name string) *command {
 		}
 	}
 	return nil
+}
+
+// appendUniqSpecs will append to "to" specs from "from" not found in "to"
+func appendUniqSpecs(to []*spec, from []*spec) []*spec {
+	ret := []*spec{}
+	idx := map[string]struct{}{}
+	for _, s := range to {
+		idx[s.long] = struct{}{}
+		ret = append(ret, s)
+	}
+	for _, s := range from {
+		if _, exists := idx[s.long]; !exists {
+			ret = append(ret, s)
+		}
+	}
+	return ret
 }

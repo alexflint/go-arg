@@ -1,5 +1,29 @@
 package arg
 
+import (
+	"reflect"
+)
+
+// type to check for interface implementations
+var subcommandParserType = reflect.TypeOf((*SubcommandParser)(nil)).Elem()
+
+// SubcommandParser interface defines a way for subcommands to override the
+// default parsing of the subcommand struct. The implementor is given the
+// calling parser primed with the state so far and with calls to p.AddDestinations
+// can extent the list of args prior to calling p.Parse(args)
+type SubcommandParser interface {
+	SubcommandParse(p *Parser, args []string) error
+}
+
+func callSubcommandParser(v reflect.Value, p *Parser, args []string) error {
+	in := []reflect.Value{reflect.ValueOf(p), reflect.ValueOf(args)}
+	out := v.MethodByName("SubcommandParse").Call(in)
+	if out[0].IsNil() {
+		return nil
+	}
+	return out[0].Interface().(error)
+}
+
 // Subcommand returns the user struct for the subcommand selected by
 // the command line arguments most recently processed by the parser.
 // The return value is always a pointer to a struct. If no subcommand

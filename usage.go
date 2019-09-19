@@ -113,7 +113,7 @@ func printTwoCols(w io.Writer, left, help string, defaultVal *string) {
 
 // WriteHelp writes the usage string followed by the full help string for each option
 func (p *Parser) WriteHelp(w io.Writer) {
-	p.writeHelpForCommand(w, p.cmd)
+	p.writeHelpForCommand(w, p.curCmd)
 }
 
 // writeHelp writes the usage string for the given subcommand

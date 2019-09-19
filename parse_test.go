@@ -35,6 +35,18 @@ func pparse(cmdline string, dest interface{}) (*Parser, error) {
 	return p, p.Parse(parts)
 }
 
+func pparsename(name string, cmdline string, dest interface{}) (*Parser, error) {
+	p, err := NewParser(Config{Program: name}, dest)
+	if err != nil {
+		return nil, err
+	}
+	var parts []string
+	if len(cmdline) > 0 {
+		parts = strings.Split(cmdline, " ")
+	}
+	return p, p.Parse(parts)
+}
+
 func TestString(t *testing.T) {
 	var args struct {
 		Foo string
