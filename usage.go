@@ -32,6 +32,10 @@ func (p *Parser) WriteUsage(w io.Writer) {
 	p.writeUsageForCommand(w, p.cmd)
 }
 
+func (p * Parser) WriteSubcommandUsage(w io.Writer) {
+	p.writeUsageForCommand(w, p.lastCmd)
+}
+
 // writeUsageForCommand writes usage information for the given subcommand
 func (p *Parser) writeUsageForCommand(w io.Writer, cmd *command) {
 	var positionals, options []*spec
@@ -114,6 +118,10 @@ func printTwoCols(w io.Writer, left, help string, defaultVal *string) {
 // WriteHelp writes the usage string followed by the full help string for each option
 func (p *Parser) WriteHelp(w io.Writer) {
 	p.writeHelpForCommand(w, p.cmd)
+}
+
+func (p *Parser) WriteSubcommandHelp(w io.Writer) {
+	p.writeHelpForCommand(w, p.lastCmd)
 }
 
 // writeHelp writes the usage string for the given subcommand
