@@ -502,7 +502,7 @@ func (p *Parser) process(args []string) error {
 		if spec.multiple {
 			var values []string
 			if value == "" {
-				for i+1 < len(args) && !isFlag(args[i+1]) {
+				for i+1 < len(args) && !isFlag(args[i+1]) && args[i+1] != "--" {
 					values = append(values, args[i+1])
 					i++
 					if spec.separate {
