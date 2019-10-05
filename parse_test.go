@@ -1045,3 +1045,15 @@ func TestVersion(t *testing.T) {
 	assert.Equal(t, ErrVersion, err)
 
 }
+
+func TestMultipleTerminates(t *testing.T) {
+	var args struct {
+		X []string
+		Y string `arg:"positional"`
+	}
+
+	err := parse("--x a b -- c", &args)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"a", "b"}, args.X)
+	assert.Equal(t, "c", args.Y)
+}
