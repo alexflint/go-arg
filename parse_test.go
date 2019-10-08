@@ -1057,3 +1057,71 @@ func TestMultipleTerminates(t *testing.T) {
 	assert.Equal(t, []string{"a", "b"}, args.X)
 	assert.Equal(t, "c", args.Y)
 }
+
+func TestDefaultOptionValues(t *testing.T) {
+	var args struct {
+		A int      `default:"123"`
+		B *int     `default:"123"`
+		C string   `default:"abc"`
+		D *string  `default:"abc"`
+		E float64  `default:"1.23"`
+		F *float64 `default:"1.23"`
+		G bool     `default:"true"`
+		H *bool    `default:"true"`
+	}
+
+	err := parse("--c=xyz --e=4.56", &args)
+	require.NoError(t, err)
+
+	assert.Equal(t, 123, args.A)
+	assert.Equal(t, 123, *args.B)
+	assert.Equal(t, "xyz", args.C)
+	assert.Equal(t, "abc", *args.D)
+	assert.Equal(t, 4.56, args.E)
+	assert.Equal(t, 1.23, *args.F)
+	assert.True(t, args.G)
+	assert.True(t, args.G)
+}
+
+func TestDefaultPositionalValues(t *testing.T) {
+	var args struct {
+		A int      `arg:"positional" default:"123"`
+		B *int     `arg:"positional" default:"123"`
+		C string   `arg:"positional" default:"abc"`
+		D *string  `arg:"positional" default:"abc"`
+		E float64  `arg:"positional" default:"1.23"`
+		F *float64 `arg:"positional" default:"1.23"`
+		G bool     `arg:"positional" default:"true"`
+		H *bool    `arg:"positional" default:"true"`
+	}
+
+	err := parse("456 789", &args)
+	require.NoError(t, err)
+
+	assert.Equal(t, 456, args.A)
+	assert.Equal(t, 789, *args.B)
+	assert.Equal(t, "abc", args.C)
+	assert.Equal(t, "abc", *args.D)
+	assert.Equal(t, 1.23, args.E)
+	assert.Equal(t, 1.23, *args.F)
+	assert.True(t, args.G)
+	assert.True(t, args.G)
+}
+
+func TestDefaultValuesNotAllowedWithRequired(t *testing.T) {
+	var args struct {
+		A int `arg:"required" default:"123"` // required not allowed with default!
+	}
+
+	err := parse("", &args)
+	assert.EqualError(t, err, ".A: 'required' cannot be used when a default value is specified")
+}
+
+func TestDefaultValuesNotAllowedWithSlice(t *testing.T) {
+	var args struct {
+		A []int `default:"123"` // required not allowed with default!
+	}
+
+	err := parse("", &args)
+	assert.EqualError(t, err, ".A: default values are not supported for slice fields")
+}
