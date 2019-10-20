@@ -1,6 +1,7 @@
 package arg
 
 import (
+	"encoding"
 	"encoding/csv"
 	"errors"
 	"fmt"
@@ -193,6 +194,22 @@ func NewParser(config Config, dests ...interface{}) (*Parser, error) {
 		if err != nil {
 			return nil, err
 		}
+
+		// add nonzero field values as defaults
+		for _, spec := range cmd.specs {
+			if v := p.val(spec.dest); v.IsValid() && !isZero(v) {
+				if defaultVal, ok := v.Interface().(encoding.TextMarshaler); ok {
+					str, err := defaultVal.MarshalText()
+					if err != nil {
+						return nil, fmt.Errorf("%v: error marshaling default value to string: %w", spec.dest, err)
+					}
+					spec.defaultVal = string(str)
+				} else {
+					spec.defaultVal = fmt.Sprintf("%v", v)
+				}
+			}
+		}
+
 		p.cmd.specs = append(p.cmd.specs, cmd.specs...)
 		p.cmd.subcommands = append(p.cmd.subcommands, cmd.subcommands...)
 
@@ -705,4 +722,17 @@ func findSubcommand(cmds []*command, name string) *command {
 		}
 	}
 	return nil
+}
+
+// isZero returns true if v contains the zero value for its type
+func isZero(v reflect.Value) bool {
+	t := v.Type()
+	if t.Kind() == reflect.Slice {
+		return v.IsNil()
+	}
+	if !t.Comparable() {
+		return false
+	}
+	z := reflect.Zero(t)
+	return v.Interface() == z.Interface()
 }

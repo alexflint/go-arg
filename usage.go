@@ -1,11 +1,9 @@
 package arg
 
 import (
-	"encoding"
 	"fmt"
 	"io"
 	"os"
-	"reflect"
 	"strings"
 )
 
@@ -94,7 +92,7 @@ func (p *Parser) writeUsageForCommand(w io.Writer, cmd *command) {
 	fmt.Fprint(w, "\n")
 }
 
-func printTwoCols(w io.Writer, left, help string, defaultVal *string) {
+func printTwoCols(w io.Writer, left, help string, defaultVal string) {
 	lhs := "  " + left
 	fmt.Fprint(w, lhs)
 	if help != "" {
@@ -105,8 +103,8 @@ func printTwoCols(w io.Writer, left, help string, defaultVal *string) {
 		}
 		fmt.Fprint(w, help)
 	}
-	if defaultVal != nil {
-		fmt.Fprintf(w, " [default: %s]", *defaultVal)
+	if defaultVal != "" {
+		fmt.Fprintf(w, " [default: %s]", defaultVal)
 	}
 	fmt.Fprint(w, "\n")
 }
@@ -136,7 +134,7 @@ func (p *Parser) writeHelpForCommand(w io.Writer, cmd *command) {
 	if len(positionals) > 0 {
 		fmt.Fprint(w, "\nPositional arguments:\n")
 		for _, spec := range positionals {
-			printTwoCols(w, strings.ToUpper(spec.long), spec.help, nil)
+			printTwoCols(w, strings.ToUpper(spec.long), spec.help, "")
 		}
 	}
 
@@ -165,7 +163,7 @@ func (p *Parser) writeHelpForCommand(w io.Writer, cmd *command) {
 	if len(cmd.subcommands) > 0 {
 		fmt.Fprint(w, "\nCommands:\n")
 		for _, subcmd := range cmd.subcommands {
-			printTwoCols(w, subcmd.name, subcmd.help, nil)
+			printTwoCols(w, subcmd.name, subcmd.help, "")
 		}
 	}
 }
@@ -175,29 +173,7 @@ func (p *Parser) printOption(w io.Writer, spec *spec) {
 	if spec.short != "" {
 		left += ", " + synopsis(spec, "-"+spec.short)
 	}
-
-	// If spec.dest is not the zero value then a default value has been added.
-	var v reflect.Value
-	if len(spec.dest.fields) > 0 {
-		v = p.val(spec.dest)
-	}
-
-	var defaultVal *string
-	if v.IsValid() {
-		z := reflect.Zero(v.Type())
-		if (v.Type().Comparable() && z.Type().Comparable() && v.Interface() != z.Interface()) || v.Kind() == reflect.Slice && !v.IsNil() {
-			if scalar, ok := v.Interface().(encoding.TextMarshaler); ok {
-				if value, err := scalar.MarshalText(); err != nil {
-					defaultVal = ptrTo(fmt.Sprintf("error: %v", err))
-				} else {
-					defaultVal = ptrTo(fmt.Sprintf("%v", string(value)))
-				}
-			} else {
-				defaultVal = ptrTo(fmt.Sprintf("%v", v))
-			}
-		}
-	}
-	printTwoCols(w, left, spec.help, defaultVal)
+	printTwoCols(w, left, spec.help, spec.defaultVal)
 }
 
 func synopsis(spec *spec, form string) string {

@@ -1083,6 +1083,15 @@ func TestDefaultOptionValues(t *testing.T) {
 	assert.True(t, args.G)
 }
 
+func TestDefaultUnparseable(t *testing.T) {
+	var args struct {
+		A int `default:"x"`
+	}
+
+	err := parse("", &args)
+	assert.EqualError(t, err, `error processing default value for --a: strconv.ParseInt: parsing "x": invalid syntax`)
+}
+
 func TestDefaultPositionalValues(t *testing.T) {
 	var args struct {
 		A int      `arg:"positional" default:"123"`
