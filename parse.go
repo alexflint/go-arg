@@ -55,7 +55,7 @@ type spec struct {
 	help       string
 	env        string
 	boolean    bool
-	defaultVal string // default value for this option, only if provided as a struct tag
+	defaultVal string // default value for this option
 }
 
 // command represents a named subcommand, or the top-level command
@@ -733,6 +733,5 @@ func isZero(v reflect.Value) bool {
 	if !t.Comparable() {
 		return false
 	}
-	z := reflect.Zero(t)
-	return v.Interface() == z.Interface()
+	return v.Interface() == reflect.Zero(t).Interface()
 }
