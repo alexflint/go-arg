@@ -201,7 +201,7 @@ func NewParser(config Config, dests ...interface{}) (*Parser, error) {
 				if defaultVal, ok := v.Interface().(encoding.TextMarshaler); ok {
 					str, err := defaultVal.MarshalText()
 					if err != nil {
-						return nil, fmt.Errorf("%v: error marshaling default value to string: %w", spec.dest, err)
+						return nil, fmt.Errorf("%v: error marshaling default value to string: %v", spec.dest, err)
 					}
 					spec.defaultVal = string(str)
 				} else {
