@@ -96,26 +96,37 @@ func (n *MyEnum) MarshalText() ([]byte, error) {
 	return nil, errors.New("There was a problem")
 }
 
-func TestUsageError(t *testing.T) {
-	expectedHelp := `Usage: example [--name NAME]
+func TestUsageWithDefaults(t *testing.T) {
+	expectedHelp := `Usage: example [--label LABEL] [--content CONTENT]
 
 Options:
-  --name NAME [default: error: There was a problem]
+  --label LABEL [default: cat]
+  --content CONTENT [default: dog]
   --help, -h             display this help and exit
 `
+	var args struct {
+		Label   string
+		Content string `default:"dog"`
+	}
+	args.Label = "cat"
+	p, err := NewParser(Config{"example"}, &args)
+	require.NoError(t, err)
+
+	args.Label = "should_ignore_this"
+
+	var help bytes.Buffer
+	p.WriteHelp(&help)
+	assert.Equal(t, expectedHelp, help.String())
+}
+
+func TestUsageCannotMarshalToString(t *testing.T) {
 	var args struct {
 		Name *MyEnum
 	}
 	v := MyEnum(42)
 	args.Name = &v
-	p, err := NewParser(Config{"example"}, &args)
-
-	// NB: some might might expect there to be an error here
-	require.NoError(t, err)
-
-	var help bytes.Buffer
-	p.WriteHelp(&help)
-	assert.Equal(t, expectedHelp, help.String())
+	_, err := NewParser(Config{"example"}, &args)
+	assert.EqualError(t, err, `args.Name: error marshaling default value to string: There was a problem`)
 }
 
 func TestUsageLongPositionalWithHelp_legacyForm(t *testing.T) {
