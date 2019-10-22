@@ -30,12 +30,11 @@ func Example_defaultValues() {
 	os.Args = split("./example")
 
 	var args struct {
-		Foo string
+		Foo string `default:"abc"`
 	}
-	args.Foo = "default value"
 	MustParse(&args)
 	fmt.Println(args.Foo)
-	// output: default value
+	// output: abc
 }
 
 // This example demonstrates arguments that are required

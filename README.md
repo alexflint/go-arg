@@ -142,10 +142,9 @@ Options:
 
 ```go
 var args struct {
-	Foo string
+	Foo string `default:"abc"`
 	Bar bool
 }
-args.Foo = "default value"
 arg.MustParse(&args)
 ```
 
@@ -307,9 +306,8 @@ func (n *NameDotName) MarshalText() ([]byte, error) {
 
 func main() {
 	var args struct {
-		Name NameDotName
+		Name NameDotName `default:"file.txt"`
 	}
-	args.Name = NameDotName{"file", "txt"}  // set default value
 	arg.MustParse(&args)
 	fmt.Printf("%#v\n", args.Name)
 }
