@@ -148,6 +148,17 @@ var args struct {
 arg.MustParse(&args)
 ```
 
+### Default values (before v1.2)
+
+```go
+var args struct {
+	Foo string
+	Bar bool
+}
+arg.Foo = "abc"
+arg.MustParse(&args)
+```
+
 ### Arguments with multiple values
 ```go
 var args struct {
