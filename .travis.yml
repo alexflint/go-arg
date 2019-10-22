@@ -1,10 +1,7 @@
 language: go
 go:
-  - "1.10"
   - "1.12"
-  - tip
-env:
-  - GO111MODULE=on  # will only be used in go 1.11
+  - "1.13"
 before_install:
   - go get github.com/axw/gocov/gocov
   - go get github.com/mattn/goveralls
