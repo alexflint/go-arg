@@ -148,6 +148,31 @@ type Described interface {
 	Description() string
 }
 
+// Renamer is the interface that the destination struct should implement to
+// customize the renaming of a struct's field into the long argument name and
+// environment variable name, when activated.
+type Renamer interface {
+	// RenameLong renames the given struct field into the long argument name.
+	// For example, a kebab-case conversion could be used.
+	RenameLong(field string) string
+	// RenameEnv renames the given struct field into the environment variable name.
+	// For example, a SCREAMING_SNAKE_CASE conversion could be used.
+	RenameEnv(field string) string
+}
+
+// defaultRenamer maintains the original behavior of renaming fields
+// to a long argument by converting to all lowercase and
+// to an environment variable by converting to all uppercase
+type defaultRenamer struct{}
+
+func (r defaultRenamer) RenameLong(field string) string {
+	return strings.ToLower(field)
+}
+
+func (r defaultRenamer) RenameEnv(field string) string {
+	return strings.ToUpper(field)
+}
+
 // walkFields calls a function for each field of a struct, recursively expanding struct fields.
 func walkFields(t reflect.Type, visit func(field reflect.StructField, owner reflect.Type) bool) {
 	for i := 0; i < t.NumField(); i++ {
@@ -190,7 +215,13 @@ func NewParser(config Config, dests ...interface{}) (*Parser, error) {
 			panic(fmt.Sprintf("%s is not a pointer (did you forget an ampersand?)", t))
 		}
 
-		cmd, err := cmdFromStruct(name, path{root: i}, t)
+		var renamer Renamer
+		if customRenamer, ok := dest.(Renamer); ok {
+			renamer = customRenamer
+		} else {
+			renamer = &defaultRenamer{}
+		}
+		cmd, err := cmdFromStruct(name, path{root: i}, t, renamer)
 		if err != nil {
 			return nil, err
 		}
@@ -224,7 +255,7 @@ func NewParser(config Config, dests ...interface{}) (*Parser, error) {
 	return &p, nil
 }
 
-func cmdFromStruct(name string, dest path, t reflect.Type) (*command, error) {
+func cmdFromStruct(name string, dest path, t reflect.Type, renamer Renamer) (*command, error) {
 	// commands can only be created from pointers to structs
 	if t.Kind() != reflect.Ptr {
 		return nil, fmt.Errorf("subcommands must be pointers to structs but %s is a %s",
@@ -259,7 +290,7 @@ func cmdFromStruct(name string, dest path, t reflect.Type) (*command, error) {
 		subdest := dest.Child(field.Name)
 		spec := spec{
 			dest: subdest,
-			long: strings.ToLower(field.Name),
+			long: renamer.RenameLong(field.Name),
 			typ:  field.Type,
 		}
 
@@ -314,7 +345,7 @@ func cmdFromStruct(name string, dest path, t reflect.Type) (*command, error) {
 					if value != "" {
 						spec.env = value
 					} else {
-						spec.env = strings.ToUpper(field.Name)
+						spec.env = renamer.RenameEnv(field.Name)
 					}
 				case key == "subcommand":
 					// decide on a name for the subcommand
@@ -324,7 +355,7 @@ func cmdFromStruct(name string, dest path, t reflect.Type) (*command, error) {
 					}
 
 					// parse the subcommand recursively
-					subcmd, err := cmdFromStruct(cmdname, subdest, field.Type)
+					subcmd, err := cmdFromStruct(cmdname, subdest, field.Type, renamer)
 					if err != nil {
 						errs = append(errs, err.Error())
 						return false

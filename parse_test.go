@@ -1134,3 +1134,33 @@ func TestDefaultValuesNotAllowedWithSlice(t *testing.T) {
 	err := parse("", &args)
 	assert.EqualError(t, err, ".A: default values are not supported for slice fields")
 }
+
+type customRenamerArgs struct {
+	SomeField string `arg:"env"`
+}
+
+func (r customRenamerArgs) RenameLong(field string) string {
+	return "long-" + field
+}
+func (r customRenamerArgs) RenameEnv(field string) string {
+	return "env-" + field
+}
+
+func TestRenamerLong(t *testing.T) {
+	var args customRenamerArgs
+
+	err := parse("--long-SomeField someLongValue", &args)
+	require.NoError(t, err)
+
+	assert.Equal(t, "someLongValue", args.SomeField)
+}
+
+func TestRenamerEnv(t *testing.T) {
+	var args customRenamerArgs
+
+	setenv(t, "env-SomeField", "someEnvValue")
+	err := parse("", &args)
+	require.NoError(t, err)
+
+	assert.Equal(t, "someEnvValue", args.SomeField)
+}
