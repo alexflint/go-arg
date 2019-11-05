@@ -335,6 +335,26 @@ $ ./example
 main.NameDotName{Head:"file", Tail:"txt"}
 ```
 
+## Custom field renaming
+
+By default, struct field names are converted to a long argument by converting to all lowercase and an environment variable by converting to all uppercase. That behavior can customized by implementing the `Renamer` interface:
+
+```go
+type args struct {
+	SomeField string `arg:"env"`
+}
+
+func (args) RenameLong(field string) string {
+	return strcase.ToKebab(field)
+}
+
+func (args) RenameEnv(field string) string {
+	return strcase.ToScreamingSnake(field)
+}
+```
+
+In this example, the long argument name becomes `--some-field` and the environment variable becomes `SOME_FIELD`.
+
 ### Description strings
 
 ```go
