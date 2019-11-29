@@ -306,8 +306,6 @@ func cmdFromStruct(name string, dest path, t reflect.Type) (*command, error) {
 					spec.required = true
 				case key == "positional":
 					spec.positional = true
-				case key == "dataname":
-					spec.dataname = value
 				case key == "separate":
 					spec.separate = true
 				case key == "help": // deprecated
