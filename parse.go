@@ -56,6 +56,7 @@ type spec struct {
 	env        string
 	boolean    bool
 	defaultVal string // default value for this option
+	dataname   string // name of the data in help
 }
 
 // command represents a named subcommand, or the top-level command
@@ -305,6 +306,8 @@ func cmdFromStruct(name string, dest path, t reflect.Type) (*command, error) {
 					spec.required = true
 				case key == "positional":
 					spec.positional = true
+				case key == "dataname":
+					spec.dataname = value
 				case key == "separate":
 					spec.separate = true
 				case key == "help": // deprecated
@@ -340,6 +343,10 @@ func cmdFromStruct(name string, dest path, t reflect.Type) (*command, error) {
 					return false
 				}
 			}
+		}
+
+		if spec.dataname == "" {
+			spec.dataname = strings.ToUpper(spec.long)
 		}
 
 		// Check whether this field is supported. It's good to do this here rather than
