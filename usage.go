@@ -80,12 +80,12 @@ func (p *Parser) writeUsageForCommand(w io.Writer, cmd *command) {
 			if !spec.required {
 				fmt.Fprint(w, "[")
 			}
-			fmt.Fprintf(w, "%s [%s ...]", spec.dataname, spec.dataname)
+			fmt.Fprintf(w, "%s [%s ...]", spec.placeholder, spec.placeholder)
 			if !spec.required {
 				fmt.Fprint(w, "]")
 			}
 		} else {
-			fmt.Fprint(w, spec.dataname)
+			fmt.Fprint(w, spec.placeholder)
 		}
 	}
 	fmt.Fprint(w, "\n")
@@ -133,7 +133,7 @@ func (p *Parser) writeHelpForCommand(w io.Writer, cmd *command) {
 	if len(positionals) > 0 {
 		fmt.Fprint(w, "\nPositional arguments:\n")
 		for _, spec := range positionals {
-			printTwoCols(w, spec.dataname, spec.help, "")
+			printTwoCols(w, spec.placeholder, spec.help, "")
 		}
 	}
 
@@ -179,7 +179,7 @@ func synopsis(spec *spec, form string) string {
 	if spec.boolean {
 		return form
 	}
-	return form + " " + spec.dataname
+	return form + " " + spec.placeholder
 }
 
 func ptrTo(s string) *string {

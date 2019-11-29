@@ -148,6 +148,32 @@ var args struct {
 arg.MustParse(&args)
 ```
 
+### Custom placeholders
+
+```go
+var args struct {
+	Input    string   `arg:"positional" placeholder:"SRC"`
+	Output   []string `arg:"positional" placeholder:"DST"`
+	Optimize int      `arg:"-O" help:"optimization level" placeholder:"LEVEL"`
+	MaxJobs  int      `arg:"-j" help:"maximum number of simultaneous jobs" placeholder:"N"`
+}
+arg.MustParse(&args)
+```
+```shell
+$ ./example -h
+Usage: example [--optimize LEVEL] [--maxjobs N] SRC [DST [DST ...]]
+
+Positional arguments:
+  SRC
+  DST
+
+Options:
+  --optimize LEVEL, -O LEVEL
+                         optimization level
+  --maxjobs N, -j N      maximum number of simultaneous jobs
+  --help, -h             display this help and exit
+```
+
 ### Default values (before v1.2)
 
 ```go

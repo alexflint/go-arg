@@ -44,19 +44,19 @@ func (p path) Child(child string) path {
 
 // spec represents a command line option
 type spec struct {
-	dest       path
-	typ        reflect.Type
-	long       string
-	short      string
-	multiple   bool
-	required   bool
-	positional bool
-	separate   bool
-	help       string
-	env        string
-	boolean    bool
-	defaultVal string // default value for this option
-	dataname   string // name of the data in help
+	dest        path
+	typ         reflect.Type
+	long        string
+	short       string
+	multiple    bool
+	required    bool
+	positional  bool
+	separate    bool
+	help        string
+	env         string
+	boolean     bool
+	defaultVal  string // default value for this option
+	placeholder string // name of the data in help
 }
 
 // command represents a named subcommand, or the top-level command
@@ -345,8 +345,11 @@ func cmdFromStruct(name string, dest path, t reflect.Type) (*command, error) {
 			}
 		}
 
-		if spec.dataname == "" {
-			spec.dataname = strings.ToUpper(spec.long)
+		placeholder, hasPlaceholder := field.Tag.Lookup("placeholder")
+		if hasPlaceholder {
+			spec.placeholder = placeholder
+		} else {
+			spec.placeholder = strings.ToUpper(spec.long)
 		}
 
 		// Check whether this field is supported. It's good to do this here rather than
