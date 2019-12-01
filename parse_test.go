@@ -220,6 +220,17 @@ func TestLongFlag(t *testing.T) {
 	assert.Equal(t, "xyz", args.Foo)
 }
 
+func TestPlaceholder(t *testing.T) {
+	var args struct {
+		Input    string   `arg:"positional" placeholder:"SRC"`
+		Output   []string `arg:"positional" placeholder:"DST"`
+		Optimize int      `arg:"-O" placeholder:"LEVEL"`
+		MaxJobs  int      `arg:"-j" placeholder:"N"`
+	}
+	err := parse("-O 5 --maxjobs 2 src dest1 dest2", &args)
+	assert.NoError(t, err)
+}
+
 func TestCaseSensitive(t *testing.T) {
 	var args struct {
 		Lower bool `arg:"-v"`
