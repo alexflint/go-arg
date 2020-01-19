@@ -193,7 +193,7 @@ func Example_helpTextWithSubcommand() {
 	MustParse(&args)
 
 	// output:
-	// Usage: example [--verbose]
+	// Usage: example [--verbose] <command> [<args>]
 	//
 	// Options:
 	//   --verbose
