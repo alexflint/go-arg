@@ -89,9 +89,8 @@ func (p *Parser) writeUsageForCommand(w io.Writer, cmd *command) {
 		}
 	}
 
-	// if the program supports subcommands and the command-line doesn't contain any,
-	// give a hint to the user about the existence of these subcommands.
-	if len(p.cmd.subcommands) > 0 && p.cmd == cmd {
+	// if the program supports subcommands, give a hint to the user about their existence
+	if len(cmd.subcommands) > 0 {
 		fmt.Fprint(w, " <command> [<args>]")
 	}
 
