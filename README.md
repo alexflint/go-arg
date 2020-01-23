@@ -442,6 +442,17 @@ Some additional rules apply when working with subcommands:
 * The `subcommand` tag can only be used with fields that are pointers to structs
 * Any struct that contains a subcommand must not contain any positionals
 
+This package allows to have a program that accepts subcommands, but also does something else
+when no subcommands are specified.
+If on the other hand you want the program to terminate when no subcommands are specified,
+the recommended way is:
+
+```go
+p := arg.MustParse(&args)
+if p.Subcommand() == nil {
+    p.Fail("missing subcommand")
+}
+```
 
 ### API Documentation
 
