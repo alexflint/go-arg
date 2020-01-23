@@ -129,7 +129,7 @@ type Parser struct {
 	version     string
 	description string
 
-	// the following fields change curing processing of command line arguments
+	// the following field changes during processing of command line arguments
 	lastCmd *command
 }
 

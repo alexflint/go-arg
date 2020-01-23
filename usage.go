@@ -88,6 +88,12 @@ func (p *Parser) writeUsageForCommand(w io.Writer, cmd *command) {
 			fmt.Fprint(w, spec.placeholder)
 		}
 	}
+
+	// if the program supports subcommands, give a hint to the user about their existence
+	if len(cmd.subcommands) > 0 {
+		fmt.Fprint(w, " <command> [<args>]")
+	}
+
 	fmt.Fprint(w, "\n")
 }
 
