@@ -144,9 +144,29 @@ func (p *Parser) writeHelpForCommand(w io.Writer, cmd *command) {
 	}
 
 	// write the list of options
-	fmt.Fprint(w, "\nOptions:\n")
-	for _, spec := range options {
-		p.printOption(w, spec)
+	if len(options) > 0 || cmd.parent == nil {
+		fmt.Fprint(w, "\nOptions:\n")
+		for _, spec := range options {
+			p.printOption(w, spec)
+		}
+	}
+
+	// obtain a flattened list of options from all ancestors
+	var globals []*spec
+	ancestor := cmd.parent
+	for ancestor != nil {
+		for _, spec := range ancestor.specs {
+			globals = append(globals, spec)
+		}
+		ancestor = ancestor.parent
+	}
+
+	// write the list of global options
+	if len(globals) > 0 {
+		fmt.Fprint(w, "\nGlobal options:\n")
+		for _, spec := range globals {
+			p.printOption(w, spec)
+		}
 	}
 
 	// write the list of built in options
