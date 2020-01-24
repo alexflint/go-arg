@@ -913,6 +913,25 @@ func TestEmbeddedPtrIgnored(t *testing.T) {
 func TestEmbeddedWithDuplicateField(t *testing.T) {
 	// see https://github.com/alexflint/go-arg/issues/100
 	type T struct {
+		A string `arg:"--cat"`
+	}
+	type U struct {
+		A string `arg:"--dog"`
+	}
+	var args struct {
+		T
+		U
+	}
+
+	err := parse("--cat=cat --dog=dog", &args)
+	require.NoError(t, err)
+	assert.Equal(t, "cat", args.T.A)
+	assert.Equal(t, "dog", args.U.A)
+}
+
+func TestEmbeddedWithDuplicateField2(t *testing.T) {
+	// see https://github.com/alexflint/go-arg/issues/100
+	type T struct {
 		A string
 	}
 	type U struct {
@@ -923,8 +942,10 @@ func TestEmbeddedWithDuplicateField(t *testing.T) {
 		U
 	}
 
-	err := parse("", &args)
+	err := parse("--a=xyz", &args)
 	require.NoError(t, err)
+	assert.Equal(t, "xyz", args.T.A)
+	assert.Equal(t, "", args.U.A)
 }
 
 func TestEmptyArgs(t *testing.T) {
