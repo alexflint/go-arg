@@ -301,7 +301,7 @@ Global options:
 	p, err := NewParser(Config{}, &args)
 	require.NoError(t, err)
 
-	err = p.Parse([]string{"child", "nested", "value"})
+	_ = p.Parse([]string{"child", "nested", "value"})
 
 	var help bytes.Buffer
 	p.WriteHelp(&help)

@@ -163,9 +163,7 @@ func (p *Parser) writeHelpForCommand(w io.Writer, cmd *command) {
 	var globals []*spec
 	ancestor := cmd.parent
 	for ancestor != nil {
-		for _, spec := range ancestor.specs {
-			globals = append(globals, spec)
-		}
+		globals = append(globals, ancestor.specs...)
 		ancestor = ancestor.parent
 	}
 
