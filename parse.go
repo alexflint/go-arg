@@ -19,23 +19,25 @@ var osExit = os.Exit
 // path represents a sequence of steps to find the output location for an
 // argument or subcommand in the final destination struct
 type path struct {
-	root   int      // index of the destination struct
-	fields []string // sequence of struct field names to traverse
+	root   int                   // index of the destination struct
+	fields []reflect.StructField // sequence of struct fields to traverse
 }
 
 // String gets a string representation of the given path
 func (p path) String() string {
-	if len(p.fields) == 0 {
-		return "args"
+	s := "args"
+	for _, f := range p.fields {
+		s += "." + f.Name
 	}
-	return "args." + strings.Join(p.fields, ".")
+	return s
 }
 
 // Child gets a new path representing a child of this path.
-func (p path) Child(child string) path {
+func (p path) Child(f reflect.StructField) path {
 	// copy the entire slice of fields to avoid possible slice overwrite
-	subfields := make([]string, len(p.fields)+1)
-	copy(subfields, append(p.fields, child))
+	subfields := make([]reflect.StructField, len(p.fields)+1)
+	copy(subfields, p.fields)
+	subfields[len(subfields)-1] = f
 	return path{
 		root:   p.root,
 		fields: subfields,
@@ -151,11 +153,21 @@ type Described interface {
 
 // walkFields calls a function for each field of a struct, recursively expanding struct fields.
 func walkFields(t reflect.Type, visit func(field reflect.StructField, owner reflect.Type) bool) {
+	walkFieldsImpl(t, visit, nil)
+}
+
+func walkFieldsImpl(t reflect.Type, visit func(field reflect.StructField, owner reflect.Type) bool, path []int) {
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
+		field.Index = make([]int, len(path)+1)
+		copy(field.Index, append(path, i))
 		expand := visit(field, t)
 		if expand && field.Type.Kind() == reflect.Struct {
-			walkFields(field.Type, visit)
+			var subpath []int
+			if field.Anonymous {
+				subpath = append(path, i)
+			}
+			walkFieldsImpl(field.Type, visit, subpath)
 		}
 	}
 }
@@ -257,7 +269,7 @@ func cmdFromStruct(name string, dest path, t reflect.Type) (*command, error) {
 		}
 
 		// duplicate the entire path to avoid slice overwrites
-		subdest := dest.Child(field.Name)
+		subdest := dest.Child(field)
 		spec := spec{
 			dest: subdest,
 			long: strings.ToLower(field.Name),
@@ -666,14 +678,15 @@ func (p *Parser) val(dest path) reflect.Value {
 			v = v.Elem()
 		}
 
-		v = v.FieldByName(field)
-		if !v.IsValid() {
+		next := v.FieldByIndex(field.Index)
+		if !next.IsValid() {
 			// it is appropriate to panic here because this can only happen due to
 			// an internal bug in this library (since we construct the path ourselves
 			// by reflecting on the same struct)
 			panic(fmt.Errorf("error resolving path %v: %v has no field named %v",
 				dest.fields, v.Type(), field))
 		}
+		v = next
 	}
 	return v
 }
