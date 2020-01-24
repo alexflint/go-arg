@@ -159,7 +159,8 @@ func walkFields(t reflect.Type, visit func(field reflect.StructField, owner refl
 func walkFieldsImpl(t reflect.Type, visit func(field reflect.StructField, owner reflect.Type) bool, path []int) {
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
-		field.Index = append(path, i)
+		field.Index = make([]int, len(path)+1)
+		copy(field.Index, append(path, i))
 		expand := visit(field, t)
 		if expand && field.Type.Kind() == reflect.Struct {
 			var subpath []int
