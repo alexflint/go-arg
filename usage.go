@@ -27,7 +27,11 @@ func (p *Parser) failWithCommand(msg string, cmd *command) {
 
 // WriteUsage writes usage information to the given writer
 func (p *Parser) WriteUsage(w io.Writer) {
-	p.writeUsageForCommand(w, p.cmd)
+	cmd := p.cmd
+	if p.lastCmd != nil {
+		cmd = p.lastCmd
+	}
+	p.writeUsageForCommand(w, cmd)
 }
 
 // writeUsageForCommand writes usage information for the given subcommand
@@ -116,7 +120,11 @@ func printTwoCols(w io.Writer, left, help string, defaultVal string) {
 
 // WriteHelp writes the usage string followed by the full help string for each option
 func (p *Parser) WriteHelp(w io.Writer) {
-	p.writeHelpForCommand(w, p.cmd)
+	cmd := p.cmd
+	if p.lastCmd != nil {
+		cmd = p.lastCmd
+	}
+	p.writeHelpForCommand(w, cmd)
 }
 
 // writeHelp writes the usage string for the given subcommand

@@ -266,8 +266,45 @@ Options:
 	p, err := NewParser(Config{}, &args)
 	require.NoError(t, err)
 
-	os.Args[0] = "example"
 	var help bytes.Buffer
 	p.WriteHelp(&help)
+	assert.Equal(t, expectedHelp, help.String())
+}
+
+func TestUsagWithNestedSubcommands(t *testing.T) {
+	expectedHelp := `Usage: example child nested [--enable] OUTPUT
+
+Positional arguments:
+  OUTPUT
+
+Options:
+  --enable
+
+Global options:
+  --values VALUES        Values
+  --verbose, -v          verbosity level
+  --help, -h             display this help and exit
+`
+
+	var args struct {
+		Verbose bool `arg:"-v" help:"verbosity level"`
+		Child   *struct {
+			Values []float64 `help:"Values"`
+			Nested *struct {
+				Enable bool
+				Output string `arg:"positional,required"`
+			} `arg:"subcommand:nested"`
+		} `arg:"subcommand:child"`
+	}
+
+	os.Args[0] = "example"
+	p, err := NewParser(Config{}, &args)
+	require.NoError(t, err)
+
+	err = p.Parse([]string{"child", "nested", "value"})
+
+	var help bytes.Buffer
+	p.WriteHelp(&help)
+	fmt.Println(help.String())
 	assert.Equal(t, expectedHelp, help.String())
 }
