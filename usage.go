@@ -27,7 +27,11 @@ func (p *Parser) failWithCommand(msg string, cmd *command) {
 
 // WriteUsage writes usage information to the given writer
 func (p *Parser) WriteUsage(w io.Writer) {
-	p.writeUsageForCommand(w, p.cmd)
+	cmd := p.cmd
+	if p.lastCmd != nil {
+		cmd = p.lastCmd
+	}
+	p.writeUsageForCommand(w, cmd)
 }
 
 // writeUsageForCommand writes usage information for the given subcommand
@@ -116,7 +120,11 @@ func printTwoCols(w io.Writer, left, help string, defaultVal string) {
 
 // WriteHelp writes the usage string followed by the full help string for each option
 func (p *Parser) WriteHelp(w io.Writer) {
-	p.writeHelpForCommand(w, p.cmd)
+	cmd := p.cmd
+	if p.lastCmd != nil {
+		cmd = p.lastCmd
+	}
+	p.writeHelpForCommand(w, cmd)
 }
 
 // writeHelp writes the usage string for the given subcommand
@@ -144,9 +152,27 @@ func (p *Parser) writeHelpForCommand(w io.Writer, cmd *command) {
 	}
 
 	// write the list of options
-	fmt.Fprint(w, "\nOptions:\n")
-	for _, spec := range options {
-		p.printOption(w, spec)
+	if len(options) > 0 || cmd.parent == nil {
+		fmt.Fprint(w, "\nOptions:\n")
+		for _, spec := range options {
+			p.printOption(w, spec)
+		}
+	}
+
+	// obtain a flattened list of options from all ancestors
+	var globals []*spec
+	ancestor := cmd.parent
+	for ancestor != nil {
+		globals = append(globals, ancestor.specs...)
+		ancestor = ancestor.parent
+	}
+
+	// write the list of global options
+	if len(globals) > 0 {
+		fmt.Fprint(w, "\nGlobal options:\n")
+		for _, spec := range globals {
+			p.printOption(w, spec)
+		}
 	}
 
 	// write the list of built in options

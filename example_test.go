@@ -235,7 +235,8 @@ func Example_helpTextForSubcommand() {
 	// Positional arguments:
 	//   ITEM                   item to fetch
 	//
-	// Options:
+	// Global options:
+	//   --verbose
 	//   --help, -h             display this help and exit
 }
 
