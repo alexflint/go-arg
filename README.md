@@ -337,6 +337,8 @@ main.NameDotName{Head:"file", Tail:"txt"}
 
 ### Custom placeholders
 
+*Introduced in version 1.3.0*
+
 Use the `placeholder` tag to control which placeholder text is used in the usage text.
 
 ```go
@@ -392,7 +394,7 @@ Options:
 
 ### Subcommands
 
-*Introduced in `v1.1.0`*
+*Introduced in version 1.1.0*
 
 Subcommands are commonly used in tools that wish to group multiple functions into a single program. An example is the `git` tool:
 ```shell
