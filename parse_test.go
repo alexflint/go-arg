@@ -676,6 +676,36 @@ func TestEnvironmentVariableSliceArgumentWrongType(t *testing.T) {
 	assert.Error(t, err)
 }
 
+func TestEnvironmentVariableIgnored(t *testing.T) {
+	var args struct {
+		Foo string `arg:"env"`
+	}
+	setenv(t, "FOO", "abc")
+
+	p, err := NewParser(Config{IgnoreEnv: true}, &args)
+	require.NoError(t, err)
+
+	err = p.Parse(nil)
+	assert.NoError(t, err)
+	assert.Equal(t, "", args.Foo)
+}
+
+func TestEnvironmentVariableInSubcommandIgnored(t *testing.T) {
+	var args struct {
+		Sub *struct {
+			Foo string `arg:"env"`
+		} `arg:"subcommand"`
+	}
+	setenv(t, "FOO", "abc")
+
+	p, err := NewParser(Config{IgnoreEnv: true}, &args)
+	require.NoError(t, err)
+
+	err = p.Parse([]string{"sub"})
+	assert.NoError(t, err)
+	assert.Equal(t, "", args.Sub.Foo)
+}
+
 type textUnmarshaler struct {
 	val int
 }
