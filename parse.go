@@ -120,7 +120,11 @@ func flags() []string {
 
 // Config represents configuration options for an argument parser
 type Config struct {
-	Program string // Program is the name of the program used in the help text
+	// Program is the name of the program used in the help text
+	Program string
+
+	// IgnoreEnv instructs the library not to read environment variables
+	IgnoreEnv bool
 }
 
 // Parser represents a set of command line options with destination values
@@ -479,9 +483,11 @@ func (p *Parser) process(args []string) error {
 	copy(specs, curCmd.specs)
 
 	// deal with environment vars
-	err := p.captureEnvVars(specs, wasPresent)
-	if err != nil {
-		return err
+	if !p.config.IgnoreEnv {
+		err := p.captureEnvVars(specs, wasPresent)
+		if err != nil {
+			return err
+		}
 	}
 
 	// process each string from the command line
@@ -517,9 +523,11 @@ func (p *Parser) process(args []string) error {
 			specs = append(specs, subcmd.specs...)
 
 			// capture environment vars for these new options
-			err := p.captureEnvVars(subcmd.specs, wasPresent)
-			if err != nil {
-				return err
+			if !p.config.IgnoreEnv {
+				err := p.captureEnvVars(subcmd.specs, wasPresent)
+				if err != nil {
+					return err
+				}
 			}
 
 			curCmd = subcmd
