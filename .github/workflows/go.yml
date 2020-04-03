@@ -22,7 +22,7 @@ jobs:
       name: Set up Go
       uses: actions/setup-go@v1
       with:
-        go-version: 1.13  # ${{ matrix.go }}
+        go-version: ${{ matrix.go }}
 
     - name: Check out code into the Go module directory
       uses: actions/checkout@v2
@@ -41,6 +41,7 @@ jobs:
 
   # notifies coveralls that all test jobs are finished
   finish:
+    name: Finish
     needs: build_and_test
     runs-on: ubuntu-latest
     steps:
