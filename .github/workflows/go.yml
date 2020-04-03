@@ -41,9 +41,9 @@ jobs:
 
   # notifies coveralls that all test jobs are finished
   finish:
-    needs: test
+    needs: build_and_test
     runs-on: ubuntu-latest
     steps:
-      - uses: shogo82148/actions-goveralls@v1
-        with:
-          parallel-finished: true
+    - uses: shogo82148/actions-goveralls@v1
+      with:
+        parallel-finished: true
