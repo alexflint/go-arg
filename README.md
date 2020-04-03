@@ -1,7 +1,8 @@
 [![GoDoc](https://godoc.org/github.com/alexflint/go-arg?status.svg)](https://godoc.org/github.com/alexflint/go-arg)
-[![Build Status](https://travis-ci.org/alexflint/go-arg.svg?branch=master)](https://travis-ci.org/alexflint/go-arg)
+[![Build Status](https://github.com/alexflint/go-arg/workflows/Go/badge.svg)](https://github.com/alexflint/go-arg/actions)
 [![GolangCI](https://golangci.com/badges/github.com/alexflint/go-arg.svg)](https://golangci.com/r/github.com/alexflint/go-arg)
 [![Report Card](https://goreportcard.com/badge/github.com/alexflint/go-arg)](https://goreportcard.com/badge/github.com/alexflint/go-arg)
+
 
 ## Structured argument parsing for Go
 
