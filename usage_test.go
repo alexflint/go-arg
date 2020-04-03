@@ -215,9 +215,9 @@ Options:
 	var help bytes.Buffer
 	p.WriteHelp(&help)
 	actual := help.String()
-	t.Logf("Expected:\n%s", expectedHelp)
-	t.Logf("Actual:\n%s", actual)
 	if expectedHelp != actual {
+		t.Logf("Expected:\n%s", expectedHelp)
+		t.Logf("Actual:\n%s", actual)
 		t.Fail()
 	}
 }
@@ -243,9 +243,9 @@ Options:
 	var help bytes.Buffer
 	p.WriteHelp(&help)
 	actual := help.String()
-	t.Logf("Expected:\n%s", expectedHelp)
-	t.Logf("Actual:\n%s", actual)
 	if expectedHelp != actual {
+		t.Logf("Expected:\n%s", expectedHelp)
+		t.Logf("Actual:\n%s", actual)
 		t.Fail()
 	}
 }
@@ -271,7 +271,7 @@ Options:
 	assert.Equal(t, expectedHelp, help.String())
 }
 
-func TestUsagWithNestedSubcommands(t *testing.T) {
+func TestUsageWithNestedSubcommands(t *testing.T) {
 	expectedHelp := `Usage: example child nested [--enable] OUTPUT
 
 Positional arguments:
@@ -305,6 +305,5 @@ Global options:
 
 	var help bytes.Buffer
 	p.WriteHelp(&help)
-	fmt.Println(help.String())
 	assert.Equal(t, expectedHelp, help.String())
 }

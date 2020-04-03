@@ -1,0 +1,50 @@
+name: Go
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+
+  build_and_test:
+    name: Build and test
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        go: ['1.11', '1.12', '1.13', '1.14']
+
+    steps:
+    - id: go
+      name: Set up Go
+      uses: actions/setup-go@v1
+      with:
+        go-version: ${{ matrix.go }}
+
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v2
+
+    - name: Build
+      run: go build -v .
+    
+    - name: Test
+      run: go test -v -coverprofile=profile.cov .
+
+    - name: Send coverage
+      uses: shogo82148/actions-goveralls@v1
+      with:
+        path-to-profile: profile.cov
+        parallel: true
+
+  # notifies coveralls that all test jobs are finished
+  finish:
+    name: Finish
+    needs: build_and_test
+    runs-on: ubuntu-latest
+    steps:
+    - uses: shogo82148/actions-goveralls@v1
+      with:
+        parallel-finished: true
