@@ -251,16 +251,26 @@ Options:
 }
 
 func TestRequiredMultiplePositionals(t *testing.T) {
-	expectedHelp := `Usage: example REQUIREDMULTIPLE [REQUIREDMULTIPLE ...]
+	expectedHelp := `Usage: go-arg.test [--makerequired MAKEREQUIRED] [--requiredvariable REQUIREDVARIABLE] REQUIREDMULTIPLE [REQUIREDMULTIPLE ...]
+
+Required arguments:
+  REQUIREDMULTIPLE       required multiple positional
+
+Conditionally required arguments:
+  REQUIREDVARIABLE       required if: makerequired has be set
 
 Positional arguments:
   REQUIREDMULTIPLE       required multiple positional
 
 Options:
+  --makerequired MAKEREQUIRED [default: dog]
+  --requiredvariable REQUIREDVARIABLE
   --help, -h             display this help and exit
 `
 	var args struct {
 		RequiredMultiple []string `arg:"positional,required" help:"required multiple positional"`
+		MakeRequired     string   `default:"dog"`
+		RequiredVariable string   `arg:"required-if:makerequired|"`
 	}
 
 	p, err := NewParser(Config{}, &args)
@@ -271,8 +281,11 @@ Options:
 	assert.Equal(t, expectedHelp, help.String())
 }
 
-func TestUsageWithNestedSubcommands(t *testing.T) {
+func TestUsagWithNestedSubcommands(t *testing.T) {
 	expectedHelp := `Usage: example child nested [--enable] OUTPUT
+
+Required arguments:
+  OUTPUT
 
 Positional arguments:
   OUTPUT

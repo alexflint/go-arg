@@ -129,8 +129,13 @@ func (p *Parser) WriteHelp(w io.Writer) {
 
 // writeHelp writes the usage string for the given subcommand
 func (p *Parser) writeHelpForCommand(w io.Writer, cmd *command) {
-	var positionals, options []*spec
+	var positionals, options, requireds, requiredIf []*spec
 	for _, spec := range cmd.specs {
+		if spec.required {
+			requireds = append(requireds, spec)
+		} else if len(spec.requiredIf) > 0 {
+			requiredIf = append(requiredIf, spec)
+		}
 		if spec.positional {
 			positionals = append(positionals, spec)
 		} else {
@@ -142,6 +147,31 @@ func (p *Parser) writeHelpForCommand(w io.Writer, cmd *command) {
 		fmt.Fprintln(w, p.description)
 	}
 	p.writeUsageForCommand(w, cmd)
+
+	//write the list of required arguments
+	if len(requireds) > 0 {
+		fmt.Fprint(w, "\nRequired arguments:\n")
+		for _, spec := range requireds {
+			printTwoCols(w, spec.placeholder, spec.help, "")
+		}
+	}
+
+	//write the list of required-if list arguments
+	if len(requiredIf) > 0 {
+		fmt.Fprint(w, "\nConditionally required arguments:\n")
+		for _, spec := range requiredIf {
+			requiredString := "required if: "
+			for index, v := range spec.requiredIf {
+				requiredString += v
+				if index+1 < len(spec.requiredIf) {
+					requiredString += " ,"
+				} else {
+					requiredString += " has be set"
+				}
+			}
+			printTwoCols(w, spec.placeholder, requiredString, "")
+		}
+	}
 
 	// write the list of positionals
 	if len(positionals) > 0 {
