@@ -42,6 +42,23 @@ $ ./example
 Usage: example --id ID [--timeout TIMEOUT]
 error: --id is required
 ```
+### Conditional required arguments
+
+```go
+var args struct {
+	UserName      string `default:"abc"`
+	UserID        string `default:"123"`
+	Password      string `arg:"required-if:username|userid"`
+}
+arg.MustParse(&args)
+```
+
+```shell
+$ ./example --username=happytimes
+Usage: example --id ID [--timeout TIMEOUT]
+error: --password is required, because: 
+			username was set
+```
 
 ### Positional arguments
 
