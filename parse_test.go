@@ -1249,15 +1249,6 @@ func TestMissingRequiredIf(t *testing.T) {
 	err := parse("x", &args)
 	assert.Error(t, err)
 }
-func TestEnvironmentVariableRequiredIf(t *testing.T) {
-	var args struct {
-		Foo string `arg:"env,required-if:dummy"`
-	}
-	setenv(t, "FOO", "bar")
-	os.Args = []string{"example"}
-	MustParse(&args)
-	assert.Equal(t, "bar", args.Foo)
-}
 
 func TestDefaultPositionalRequiredIfValues(t *testing.T) {
 	var args struct {
@@ -1303,4 +1294,5 @@ func TestRequiredIfValues(t *testing.T) {
 	assert.Equal(t, 1.23, *args.F)
 	assert.True(t, args.G)
 	assert.NotNil(t, args.H)
+	assert.True(t, *args.H)
 }
