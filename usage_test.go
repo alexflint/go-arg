@@ -251,7 +251,7 @@ Options:
 }
 
 func TestRequiredMultiplePositionals(t *testing.T) {
-	expectedHelp := `Usage: go-arg.test [--makerequired MAKEREQUIRED] [--requiredvariable REQUIREDVARIABLE] REQUIREDMULTIPLE [REQUIREDMULTIPLE ...]
+	expectedHelp := `Usage: example [--makerequired MAKEREQUIRED] [--requiredvariable REQUIREDVARIABLE] REQUIREDMULTIPLE [REQUIREDMULTIPLE ...]
 
 Required arguments:
   REQUIREDMULTIPLE       required multiple positional
