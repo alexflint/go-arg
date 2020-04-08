@@ -52,6 +52,7 @@ type spec struct {
 	short       string
 	multiple    bool
 	required    bool
+	requiredIf  []string // list of other spec names
 	positional  bool
 	separate    bool
 	help        string
@@ -319,7 +320,26 @@ func cmdFromStruct(name string, dest path, t reflect.Type) (*command, error) {
 							t.Name(), field.Name))
 						return false
 					}
+					if len(spec.requiredIf) > 0 { // mutually exculisive from required-if
+						errs = append(errs, fmt.Sprintf("cannot be %s while also having conditional requirements", key))
+						return false
+					}
 					spec.required = true
+				case key == "required-if":
+					if spec.required { // mutually exclusive from required
+						errs = append(errs, fmt.Sprintf("cannot have %s while also being required", key))
+						return false
+					}
+					requiredIfNames := strings.Split(value, "|") // list of names which relate to another spec
+					for index, requiredNames := range requiredIfNames {
+						requiredIfNames[index] = strings.TrimSpace(requiredNames)
+					}
+					// only assign to spec if values != ""
+					for _, v := range requiredIfNames {
+						if v != "" {
+							spec.requiredIf = append(spec.requiredIf, v)
+						}
+					}
 				case key == "positional":
 					spec.positional = true
 				case key == "separate":
@@ -645,6 +665,19 @@ func (p *Parser) process(args []string) error {
 		if spec.required {
 			return fmt.Errorf("%s is required", name)
 		}
+		requiredIfErrors := ""
+		for _, requiredName := range spec.requiredIf { // check if conditionally required
+			foundSpec := findSpec(specs, requiredName)
+			if foundSpec == nil {
+				continue
+			}
+			if wasPresent[foundSpec] {
+				requiredIfErrors = requiredIfErrors + fmt.Sprintf("\t %s was set \n", requiredName)
+			}
+		}
+		if len(requiredIfErrors) > 0 {
+			return fmt.Errorf("%s is required, because: \n %s", name, requiredIfErrors)
+		}
 		if spec.defaultVal != "" {
 			err := scalar.ParseValue(p.val(spec.dest), spec.defaultVal)
 			if err != nil {
@@ -736,6 +769,16 @@ func findOption(specs []*spec, name string) *spec {
 		if spec.positional {
 			continue
 		}
+		if spec.long == name || spec.short == name {
+			return spec
+		}
+	}
+	return nil
+}
+
+// findOption finds an option from its name not excluding positional, or returns null if no spec is found
+func findSpec(specs []*spec, name string) *spec {
+	for _, spec := range specs {
 		if spec.long == name || spec.short == name {
 			return spec
 		}

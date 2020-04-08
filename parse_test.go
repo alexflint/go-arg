@@ -1213,3 +1213,94 @@ func TestDefaultValuesNotAllowedWithSlice(t *testing.T) {
 	err := parse("", &args)
 	assert.EqualError(t, err, ".A: default values are not supported for slice fields")
 }
+
+func TestRequiredIf(t *testing.T) {
+	var args struct {
+		Dummy string `default:"123"`
+		Foo   string `arg:"required-if:dummy"`
+	}
+	err := parse("--dummy=3", &args)
+	require.Error(t, err, "--foo is required")
+}
+
+func TestRequiredIfPositional(t *testing.T) {
+	var args struct {
+		Input  string `arg:"positional"`
+		Output string `arg:"required-if:input"`
+	}
+	err := parse("foo", &args)
+	assert.Error(t, err)
+}
+
+func TestRequiredIfPositionalMultiple(t *testing.T) {
+	var args struct {
+		Input    string   `arg:"positional"`
+		Multiple []string `arg:"positional,required-if:input"`
+	}
+	err := parse("foo", &args)
+	assert.Error(t, err)
+}
+
+func TestMissingRequiredIf(t *testing.T) {
+	var args struct {
+		Foo string   `arg:"required-if:x"`
+		X   []string `arg:"positional"`
+	}
+	err := parse("x", &args)
+	assert.Error(t, err)
+}
+func TestEnvironmentVariableRequiredIf(t *testing.T) {
+	var args struct {
+		Foo string `arg:"env,required-if:dummy"`
+	}
+	setenv(t, "FOO", "bar")
+	os.Args = []string{"example"}
+	MustParse(&args)
+	assert.Equal(t, "bar", args.Foo)
+}
+
+func TestDefaultPositionalRequiredIfValues(t *testing.T) {
+	var args struct {
+		A int      `arg:"positional" default:"123"`
+		B *int     `arg:"positional" default:"123"`
+		C string   `arg:"positional" default:"abc"`
+		D *string  `arg:"positional" default:"abc"`
+		E float64  `arg:"positional" default:"1.23"`
+		F *float64 `arg:"positional" default:"1.23"`
+		G bool     `arg:"positional" default:"true"`
+		H *bool    `arg:"required-if:a|b" default:"true"`
+	}
+	err := parse("456 789", &args)
+	require.Error(t, err)
+	assert.Equal(t, 456, args.A)
+	assert.Equal(t, 789, *args.B)
+	assert.Equal(t, "abc", args.C)
+	assert.Equal(t, "abc", *args.D)
+	assert.Equal(t, 1.23, args.E)
+	assert.Equal(t, 1.23, *args.F)
+	assert.True(t, args.G)
+	assert.Nil(t, args.H)
+}
+
+func TestRequiredIfValues(t *testing.T) {
+	var args struct {
+		A int      `arg:"positional" default:"123"`
+		B *int     `arg:"positional" default:"123"`
+		C string   `arg:"positional" default:"abc"`
+		D *string  `arg:"positional" default:"abc"`
+		E float64  `arg:"positional" default:"1.23"`
+		F *float64 `arg:"positional" default:"1.23"`
+		G bool     `arg:"positional" default:"true"`
+		H *bool    `arg:"required-if:a|b" default:"true"`
+	}
+	err := parse("456 789 -h=true", &args)
+	require.NoError(t, err)
+	assert.Equal(t, 456, args.A)
+	assert.Equal(t, 789, *args.B)
+	assert.Equal(t, "abc", args.C)
+	assert.Equal(t, "abc", *args.D)
+	assert.Equal(t, 1.23, args.E)
+	assert.Equal(t, 1.23, *args.F)
+	assert.True(t, args.G)
+	assert.NotNil(t, args.H)
+}
