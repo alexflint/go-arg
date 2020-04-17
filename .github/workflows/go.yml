@@ -34,16 +34,4 @@ jobs:
       run: go test -v -coverprofile=profile.cov .
 
     - name: Send coverage
-      run: bash <(curl -s https://codecov.io/bash)
-      with:
-        file: ./profile.cov
-
-  # notifies coveralls that all test jobs are finished
-  finish:
-    name: Finish
-    needs: build_and_test
-    runs-on: ubuntu-latest
-    steps:
-    - uses: shogo82148/actions-goveralls@v1
-      with:
-        parallel-finished: true
+      run: bash <(curl -s https://codecov.io/bash) -f profile.cov
