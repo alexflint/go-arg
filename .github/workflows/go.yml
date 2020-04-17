@@ -24,7 +24,7 @@ jobs:
       with:
         go-version: ${{ matrix.go }}
 
-    - name: Check out code into the Go module directory
+    - name: Checkout
       uses: actions/checkout@v2
 
     - name: Build
@@ -34,17 +34,4 @@ jobs:
       run: go test -v -coverprofile=profile.cov .
 
     - name: Send coverage
-      uses: shogo82148/actions-goveralls@v1
-      with:
-        path-to-profile: profile.cov
-        parallel: true
-
-  # notifies coveralls that all test jobs are finished
-  finish:
-    name: Finish
-    needs: build_and_test
-    runs-on: ubuntu-latest
-    steps:
-    - uses: shogo82148/actions-goveralls@v1
-      with:
-        parallel-finished: true
+      run: bash <(curl -s https://codecov.io/bash) -f profile.cov
