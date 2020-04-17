@@ -1,4 +1,9 @@
-<h1 align="center"><br>go-arg</br></h1>
+<h1 align="center">
+  <img src="./.github/banner.jpg" alt="go-arg" height="250px">
+  <br>
+  go-arg
+  </br>
+</h1>
 <h4 align="center">Struct-based argument parsing for Go</h4>
 <p align="center">
   <a href="https://sourcegraph.com/github.com/alexflint/go-arg?badge"><img src="https://sourcegraph.com/github.com/alexflint/go-arg/-/badge.svg" alt="Sourcegraph"></a>
