@@ -1,22 +1,13 @@
 <h1 align="center"><br>go-arg</br></h1>
-
 <h4 align="center">Struct-based argument parsing for Go</h4>
 <p align="center">
-
   <a href="https://sourcegraph.com/github.com/alexflint/go-arg?badge"><img src="https://sourcegraph.com/github.com/alexflint/go-arg/-/badge.svg" alt="Sourcegraph"></a>
-
   <a href="https://github.com/alexflint/go-arg/actions"><img src="https://github.com/alexflint/go-arg/workflows/Go/badge.svg" alt="Build Status"></a>
-
   <a href="https://pkg.go.dev/github.com/alexflint/go-arg/v2"><img src="https://godoc.org/github.com/alexflint/go-arg?status.svg" alt="GoDoc"></a>
-
   <a href="https://coveralls.io/github/alexflint/go-arg?branch=master"><img src="https://coveralls.io/repos/alexflint/go-arg/badge.svg?branch=master&service=github" alt="Test Coverage"></a>
-
   <!--<a href="https://codecov.io/gh/alexflint/go-arg"><img src="https://codecov.io/gh/alexflint/go-arg/branch/master/graph/badge.svg" alt="Coverage Status"></a>-->
-
   <a href="https://golangci.com/r/github.com/alexflint/go-arg)"><img src="https://golangci.com/badges/github.com/alexflint/go-arg.svg" alt="Golang CI"></a>
-
   <a href="https://goreportcard.com/report/github.com/alexflint/go-arg"><img src="https://goreportcard.com/badge/github.com/alexflint/go-arg" alt="Go Report Card"></a>
-
 </p>
 <br>
 
