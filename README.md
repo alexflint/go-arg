@@ -1,15 +1,24 @@
-[![GoDoc](https://godoc.org/github.com/alexflint/go-arg?status.svg)](https://godoc.org/github.com/alexflint/go-arg)
-[![Build Status](https://github.com/alexflint/go-arg/workflows/Go/badge.svg)](https://github.com/alexflint/go-arg/actions)
-[![GolangCI](https://golangci.com/badges/github.com/alexflint/go-arg.svg)](https://golangci.com/r/github.com/alexflint/go-arg)
--[![Coverage](https://coveralls.io/repos/alexflint/go-arg/badge.svg?branch=master&service=github)](https://coveralls.io/github/alexflint/go-arg?branch=master)
-[![Report Card](https://goreportcard.com/badge/github.com/alexflint/go-arg)](https://goreportcard.com/badge/github.com/alexflint/go-arg)
+<h1 align="center"><br>go-arg</br></h1>
 
+<h4 align="center">Struct-based argument parsing for Go</h4>
+<p align="center">
 
-## Structured argument parsing for Go
+  <a href="https://sourcegraph.com/github.com/alexflint/go-arg?badge"><img src="https://sourcegraph.com/github.com/alexflint/go-arg/-/badge.svg" alt="Sourcegraph"></a>
 
-```shell
-go get github.com/alexflint/go-arg
-```
+  <a href="https://github.com/alexflint/go-arg/actions"><img src="https://github.com/alexflint/go-arg/workflows/Go/badge.svg" alt="Build Status"></a>
+
+  <a href="https://pkg.go.dev/github.com/alexflint/go-arg/v2"><img src="https://godoc.org/github.com/alexflint/go-arg?status.svg" alt="GoDoc"></a>
+
+  <a href="https://coveralls.io/github/alexflint/go-arg?branch=master"><img src="https://coveralls.io/repos/alexflint/go-arg/badge.svg?branch=master&service=github" alt="Test Coverage"></a>
+
+  <!--<a href="https://codecov.io/gh/alexflint/go-arg"><img src="https://codecov.io/gh/alexflint/go-arg/branch/master/graph/badge.svg" alt="Coverage Status"></a>-->
+
+  <a href="https://golangci.com/r/github.com/alexflint/go-arg)"><img src="https://golangci.com/badges/github.com/alexflint/go-arg.svg" alt="Golang CI"></a>
+
+  <a href="https://goreportcard.com/report/github.com/alexflint/go-arg"><img src="https://goreportcard.com/badge/github.com/alexflint/go-arg" alt="Go Report Card"></a>
+
+</p>
+<br>
 
 Declare command line arguments for your program by defining a struct.
 
@@ -25,6 +34,12 @@ fmt.Println(args.Foo, args.Bar)
 ```shell
 $ ./example --foo=hello --bar
 hello true
+```
+
+### Installation
+
+```shell
+go get github.com/alexflint/go-arg
 ```
 
 ### Required arguments
