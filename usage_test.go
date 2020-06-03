@@ -33,9 +33,9 @@ func (n *NameDotName) MarshalText() (text []byte, err error) {
 }
 
 func TestWriteUsage(t *testing.T) {
-	expectedUsage := "Usage: example [--name NAME] [--value VALUE] [--verbose] [--dataset DATASET] [--optimize OPTIMIZE] [--ids IDS] [--values VALUES] [--workers WORKERS] [--file FILE] INPUT [OUTPUT [OUTPUT ...]]\n"
+	expectedUsage := "Usage: example [--name NAME] [--value VALUE] [--verbose] [--dataset DATASET] [--optimize OPTIMIZE] [--ids IDS] [--values VALUES] [--workers WORKERS] [--testenv TESTENV] [--file FILE] INPUT [OUTPUT [OUTPUT ...]]\n"
 
-	expectedHelp := `Usage: example [--name NAME] [--value VALUE] [--verbose] [--dataset DATASET] [--optimize OPTIMIZE] [--ids IDS] [--values VALUES] [--workers WORKERS] [--file FILE] INPUT [OUTPUT [OUTPUT ...]]
+	expectedHelp := `Usage: example [--name NAME] [--value VALUE] [--verbose] [--dataset DATASET] [--optimize OPTIMIZE] [--ids IDS] [--values VALUES] [--workers WORKERS] [--testenv TESTENV] [--file FILE] INPUT [OUTPUT [OUTPUT ...]]
 
 Positional arguments:
   INPUT
@@ -51,7 +51,8 @@ Options:
   --ids IDS              Ids
   --values VALUES        Values [default: [3.14 42 256]]
   --workers WORKERS, -w WORKERS
-                         number of workers to start
+                         number of workers to start [default: 10, env: WORKERS]
+  --testenv TESTENV, -a TESTENV [env: TEST_ENV]
   --file FILE, -f FILE   File with mandatory extension [default: scratch.txt]
   --help, -h             display this help and exit
 `
@@ -65,7 +66,8 @@ Options:
 		Optimize int          `arg:"-O" help:"optimization level"`
 		Ids      []int64      `help:"Ids"`
 		Values   []float64    `help:"Values"`
-		Workers  int          `arg:"-w,env:WORKERS" help:"number of workers to start"`
+		Workers  int          `arg:"-w,env:WORKERS" help:"number of workers to start" default:"10"`
+		TestEnv  string       `arg:"-a,env:TEST_ENV"`
 		File     *NameDotName `arg:"-f" help:"File with mandatory extension"`
 	}
 	args.Name = "Foo Bar"

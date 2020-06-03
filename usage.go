@@ -101,7 +101,7 @@ func (p *Parser) writeUsageForCommand(w io.Writer, cmd *command) {
 	fmt.Fprint(w, "\n")
 }
 
-func printTwoCols(w io.Writer, left, help string, defaultVal string) {
+func printTwoCols(w io.Writer, left, help string, defaultVal string, envVal string) {
 	lhs := "  " + left
 	fmt.Fprint(w, lhs)
 	if help != "" {
@@ -112,8 +112,23 @@ func printTwoCols(w io.Writer, left, help string, defaultVal string) {
 		}
 		fmt.Fprint(w, help)
 	}
+
+	bracketsContent := []string{}
+
 	if defaultVal != "" {
-		fmt.Fprintf(w, " [default: %s]", defaultVal)
+		bracketsContent = append(bracketsContent,
+			fmt.Sprintf("default: %s", defaultVal),
+		)
+	}
+
+	if envVal != "" {
+		bracketsContent = append(bracketsContent,
+			fmt.Sprintf("env: %s", envVal),
+		)
+	}
+
+	if len(bracketsContent) > 0 {
+		fmt.Fprintf(w, " [%s]", strings.Join(bracketsContent, ", "))
 	}
 	fmt.Fprint(w, "\n")
 }
@@ -147,7 +162,7 @@ func (p *Parser) writeHelpForCommand(w io.Writer, cmd *command) {
 	if len(positionals) > 0 {
 		fmt.Fprint(w, "\nPositional arguments:\n")
 		for _, spec := range positionals {
-			printTwoCols(w, spec.placeholder, spec.help, "")
+			printTwoCols(w, spec.placeholder, spec.help, "", "")
 		}
 	}
 
@@ -194,7 +209,7 @@ func (p *Parser) writeHelpForCommand(w io.Writer, cmd *command) {
 	if len(cmd.subcommands) > 0 {
 		fmt.Fprint(w, "\nCommands:\n")
 		for _, subcmd := range cmd.subcommands {
-			printTwoCols(w, subcmd.name, subcmd.help, "")
+			printTwoCols(w, subcmd.name, subcmd.help, "", "")
 		}
 	}
 }
@@ -204,7 +219,7 @@ func (p *Parser) printOption(w io.Writer, spec *spec) {
 	if spec.short != "" {
 		left += ", " + synopsis(spec, "-"+spec.short)
 	}
-	printTwoCols(w, left, spec.help, spec.defaultVal)
+	printTwoCols(w, left, spec.help, spec.defaultVal, spec.env)
 }
 
 func synopsis(spec *spec, form string) string {
