@@ -292,70 +292,71 @@ func cmdFromStruct(name string, dest path, t reflect.Type) (*command, error) {
 
 		// Look at the tag
 		var isSubcommand bool // tracks whether this field is a subcommand
-		if tag != "" {
-			for _, key := range strings.Split(tag, ",") {
-				key = strings.TrimLeft(key, " ")
-				var value string
-				if pos := strings.Index(key, ":"); pos != -1 {
-					value = key[pos+1:]
-					key = key[:pos]
-				}
+		for _, key := range strings.Split(tag, ",") {
+			if key == "" {
+				continue
+			}
+			key = strings.TrimLeft(key, " ")
+			var value string
+			if pos := strings.Index(key, ":"); pos != -1 {
+				value = key[pos+1:]
+				key = key[:pos]
+			}
 
-				switch {
-				case strings.HasPrefix(key, "---"):
-					errs = append(errs, fmt.Sprintf("%s.%s: too many hyphens", t.Name(), field.Name))
-				case strings.HasPrefix(key, "--"):
-					spec.long = key[2:]
-				case strings.HasPrefix(key, "-"):
-					if len(key) != 2 {
-						errs = append(errs, fmt.Sprintf("%s.%s: short arguments must be one character only",
-							t.Name(), field.Name))
-						return false
-					}
-					spec.short = key[1:]
-				case key == "required":
-					if hasDefault {
-						errs = append(errs, fmt.Sprintf("%s.%s: 'required' cannot be used when a default value is specified",
-							t.Name(), field.Name))
-						return false
-					}
-					spec.required = true
-				case key == "positional":
-					spec.positional = true
-				case key == "separate":
-					spec.separate = true
-				case key == "help": // deprecated
-					spec.help = value
-				case key == "env":
-					// Use override name if provided
-					if value != "" {
-						spec.env = value
-					} else {
-						spec.env = strings.ToUpper(field.Name)
-					}
-				case key == "subcommand":
-					// decide on a name for the subcommand
-					cmdname := value
-					if cmdname == "" {
-						cmdname = strings.ToLower(field.Name)
-					}
-
-					// parse the subcommand recursively
-					subcmd, err := cmdFromStruct(cmdname, subdest, field.Type)
-					if err != nil {
-						errs = append(errs, err.Error())
-						return false
-					}
-
-					subcmd.parent = &cmd
-					subcmd.help = field.Tag.Get("help")
-
-					cmd.subcommands = append(cmd.subcommands, subcmd)
-					isSubcommand = true
-				default:
-					errs = append(errs, fmt.Sprintf("unrecognized tag '%s' on field %s", key, tag))
+			switch {
+			case strings.HasPrefix(key, "---"):
+				errs = append(errs, fmt.Sprintf("%s.%s: too many hyphens", t.Name(), field.Name))
+			case strings.HasPrefix(key, "--"):
+				spec.long = key[2:]
+			case strings.HasPrefix(key, "-"):
+				if len(key) != 2 {
+					errs = append(errs, fmt.Sprintf("%s.%s: short arguments must be one character only",
+						t.Name(), field.Name))
 					return false
 				}
+				spec.short = key[1:]
+			case key == "required":
+				if hasDefault {
+					errs = append(errs, fmt.Sprintf("%s.%s: 'required' cannot be used when a default value is specified",
+						t.Name(), field.Name))
+					return false
+				}
+				spec.required = true
+			case key == "positional":
+				spec.positional = true
+			case key == "separate":
+				spec.separate = true
+			case key == "help": // deprecated
+				spec.help = value
+			case key == "env":
+				// Use override name if provided
+				if value != "" {
+					spec.env = value
+				} else {
+					spec.env = strings.ToUpper(field.Name)
+				}
+			case key == "subcommand":
+				// decide on a name for the subcommand
+				cmdname := value
+				if cmdname == "" {
+					cmdname = strings.ToLower(field.Name)
+				}
+
+				// parse the subcommand recursively
+				subcmd, err := cmdFromStruct(cmdname, subdest, field.Type)
+				if err != nil {
+					errs = append(errs, err.Error())
+					return false
+				}
+
+				subcmd.parent = &cmd
+				subcmd.help = field.Tag.Get("help")
+
+				cmd.subcommands = append(cmd.subcommands, subcmd)
+				isSubcommand = true
+			default:
+				errs = append(errs, fmt.Sprintf("unrecognized tag '%s' on field %s", key, tag))
+				return false
 			}
 		}
 
