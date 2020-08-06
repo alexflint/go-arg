@@ -112,7 +112,7 @@ func Example_helpText() {
 		Output   []string `arg:"positional"`
 		Verbose  bool     `arg:"-v" help:"verbosity level"`
 		Dataset  string   `help:"dataset to use"`
-		Optimize int      `arg:"-O,help:optimization level"`
+		Optimize int      `arg:"-O,--optim" help:"optimization level"`
 	}
 
 	// This is only necessary when running inside golang's runnable example harness
@@ -121,7 +121,7 @@ func Example_helpText() {
 	MustParse(&args)
 
 	// output:
-	// Usage: example [--verbose] [--dataset DATASET] [--optimize OPTIMIZE] INPUT [OUTPUT [OUTPUT ...]]
+	// Usage: example [--verbose] [--dataset DATASET] [--optim OPTIM] INPUT [OUTPUT [OUTPUT ...]]
 	//
 	// Positional arguments:
 	//   INPUT
@@ -130,7 +130,7 @@ func Example_helpText() {
 	// Options:
 	//   --verbose, -v          verbosity level
 	//   --dataset DATASET      dataset to use
-	//   --optimize OPTIMIZE, -O OPTIMIZE
+	//   --optim OPTIM, -O OPTIM
 	//                          optimization level
 	//   --help, -h             display this help and exit
 }
