@@ -125,7 +125,7 @@ Workers: [1 99]
 var args struct {
 	Input    string   `arg:"positional"`
 	Output   []string `arg:"positional"`
-	Verbose  bool     `arg:"-v" help:"verbosity level"`
+	Verbose  bool     `arg:"-v,--verbose" help:"verbosity level"`
 	Dataset  string   `help:"dataset to use"`
 	Optimize int      `arg:"-O" help:"optimization level"`
 }
@@ -239,6 +239,29 @@ func main() {
 $ ./example --version
 someprogram 4.3.0
 ```
+
+### Overriding option names
+
+```go
+var args struct {
+	Short         string  `arg:"-s"`
+	Long          string  `arg:"--custom-long-option"`
+	ShortAndLong  string  `arg:"-x,--my-option"`
+}
+arg.MustParse(&args)
+```
+
+```shell
+$ ./example --help
+Usage: [--short SHORT] [--custom-long-option CUSTOM-LONG-OPTION] [--my-option MY-OPTION]
+
+Options:
+  --short SHORT, -s SHORT
+  --custom-long-option CUSTOM-LONG-OPTION
+  --my-option MY-OPTION, -x MY-OPTION
+  --help, -h             display this help and exit
+```
+
 
 ### Embedded structs
 
