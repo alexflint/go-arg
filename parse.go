@@ -48,6 +48,7 @@ func (p path) Child(f reflect.StructField) path {
 type spec struct {
 	dest        path
 	typ         reflect.Type
+	name        string // canonical name for the option
 	long        string
 	short       string
 	multiple    bool
@@ -280,6 +281,8 @@ func cmdFromStruct(name string, dest path, t reflect.Type) (*command, error) {
 			typ:  field.Type,
 		}
 
+		spec.name = spec.long
+
 		help, exists := field.Tag.Lookup("help")
 		if exists {
 			spec.help = help
@@ -308,6 +311,9 @@ func cmdFromStruct(name string, dest path, t reflect.Type) (*command, error) {
 				errs = append(errs, fmt.Sprintf("%s.%s: too many hyphens", t.Name(), field.Name))
 			case strings.HasPrefix(key, "--"):
 				spec.long = key[2:]
+				if spec.long != "" {
+					spec.name = spec.long
+				}
 			case strings.HasPrefix(key, "-"):
 				if len(key) != 2 {
 					errs = append(errs, fmt.Sprintf("%s.%s: short arguments must be one character only",
@@ -364,7 +370,7 @@ func cmdFromStruct(name string, dest path, t reflect.Type) (*command, error) {
 		if hasPlaceholder {
 			spec.placeholder = placeholder
 		} else {
-			spec.placeholder = strings.ToUpper(spec.long)
+			spec.placeholder = strings.ToUpper(spec.name)
 		}
 
 		// Check whether this field is supported. It's good to do this here rather than
@@ -617,13 +623,13 @@ func (p *Parser) process(args []string) error {
 		if spec.multiple {
 			err := setSlice(p.val(spec.dest), positionals, true)
 			if err != nil {
-				return fmt.Errorf("error processing %s: %v", spec.long, err)
+				return fmt.Errorf("error processing %s: %v", spec.name, err)
 			}
 			positionals = nil
 		} else {
 			err := scalar.ParseValue(p.val(spec.dest), positionals[0])
 			if err != nil {
-				return fmt.Errorf("error processing %s: %v", spec.long, err)
+				return fmt.Errorf("error processing %s: %v", spec.name, err)
 			}
 			positionals = positionals[1:]
 		}
@@ -638,8 +644,8 @@ func (p *Parser) process(args []string) error {
 			continue
 		}
 
-		name := spec.long
-		if !spec.positional {
+		name := spec.name
+		if spec.long != "" && !spec.positional {
 			name = "--" + spec.long
 		}
 

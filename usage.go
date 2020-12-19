@@ -36,12 +36,15 @@ func (p *Parser) WriteUsage(w io.Writer) {
 
 // writeUsageForCommand writes usage information for the given subcommand
 func (p *Parser) writeUsageForCommand(w io.Writer, cmd *command) {
-	var positionals, options []*spec
+	var positionals, longOptions, shortOptions []*spec
 	for _, spec := range cmd.specs {
-		if spec.positional {
+		switch {
+		case spec.positional:
 			positionals = append(positionals, spec)
-		} else {
-			options = append(options, spec)
+		case spec.long != "":
+			longOptions = append(longOptions, spec)
+		case spec.short != "":
+			shortOptions = append(shortOptions, spec)
 		}
 	}
 
@@ -64,7 +67,19 @@ func (p *Parser) writeUsageForCommand(w io.Writer, cmd *command) {
 	}
 
 	// write the option component of the usage message
-	for _, spec := range options {
+	for _, spec := range shortOptions {
+		// prefix with a space
+		fmt.Fprint(w, " ")
+		if !spec.required {
+			fmt.Fprint(w, "[")
+		}
+		fmt.Fprint(w, synopsis(spec, "-"+spec.short))
+		if !spec.required {
+			fmt.Fprint(w, "]")
+		}
+	}
+
+	for _, spec := range longOptions {
 		// prefix with a space
 		fmt.Fprint(w, " ")
 		if !spec.required {
@@ -215,10 +230,14 @@ func (p *Parser) writeHelpForCommand(w io.Writer, cmd *command) {
 }
 
 func (p *Parser) printOption(w io.Writer, spec *spec) {
-	left := synopsis(spec, "--"+spec.long)
-	if spec.short != "" {
-		left += ", " + synopsis(spec, "-"+spec.short)
+	text := make([]string, 0, 2)
+	if spec.long != "" {
+		text = append(text, synopsis(spec, "--"+spec.long))
 	}
+	if spec.short != "" {
+		text = append(text, synopsis(spec, "-"+spec.short))
+	}
+	left := strings.Join(text, ", ")
 	printTwoCols(w, left, spec.help, spec.defaultVal, spec.env)
 }
 

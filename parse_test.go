@@ -231,6 +231,18 @@ func TestPlaceholder(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+func TestNoLongName(t *testing.T) {
+	var args struct {
+		ShortOnly string `arg:"-s,--"`
+		EnvOnly   string `arg:"--,env"`
+	}
+	setenv(t, "ENVONLY", "TestVal")
+	err := parse("-s TestVal2", &args)
+	assert.NoError(t, err)
+	assert.Equal(t, "TestVal", args.EnvOnly)
+	assert.Equal(t, "TestVal2", args.ShortOnly)
+}
+
 func TestCaseSensitive(t *testing.T) {
 	var args struct {
 		Lower bool `arg:"-v"`
