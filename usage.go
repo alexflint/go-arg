@@ -117,6 +117,9 @@ func (p *Parser) writeUsageForCommand(w io.Writer, cmd *command) {
 }
 
 func printTwoCols(w io.Writer, left, help string, defaultVal string, envVal string) {
+	if left == "" {
+		return
+	}
 	lhs := "  " + left
 	fmt.Fprint(w, lhs)
 	if help != "" {

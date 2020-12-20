@@ -328,3 +328,23 @@ Options:
 	p.WriteHelp(&help)
 	assert.Equal(t, expectedHelp, help.String())
 }
+
+func TestUsageWithEnvOptions(t *testing.T) {
+	expectedHelp := `Usage: example [-s SHORT]
+
+Options:
+  -s SHORT [env: SHORT]
+  --help, -h             display this help and exit
+`
+	var args struct {
+		Short            string `arg:"--,-s,env"`
+		EnvOnly          string `arg:"--,env"`
+		EnvOnlyOverriden string `arg:"--,env:CUSTOM"`
+	}
+
+	p, err := NewParser(Config{Program: "example"}, &args)
+	assert.NoError(t, err)
+	var help bytes.Buffer
+	p.WriteHelp(&help)
+	assert.Equal(t, expectedHelp, help.String())
+}
