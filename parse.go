@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
+	"unicode"
 
 	scalar "github.com/alexflint/go-scalar"
 )
@@ -263,7 +264,7 @@ func cmdFromStruct(name string, dest path, t reflect.Type) (*command, error) {
 	walkFields(t, func(field reflect.StructField, t reflect.Type) bool {
 		// Check for the ignore switch in the tag
 		tag := field.Tag.Get("arg")
-		if tag == "-" {
+		if tag == "-" || (unicode.IsLetter(rune(field.Name[0])) && unicode.IsLower(rune(field.Name[0]))) {
 			return false
 		}
 
