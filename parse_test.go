@@ -1213,3 +1213,12 @@ func TestDefaultValuesNotAllowedWithSlice(t *testing.T) {
 	err := parse("", &args)
 	assert.EqualError(t, err, ".A: default values are not supported for slice fields")
 }
+
+func TestUnexportedFields(t *testing.T) {
+	var args struct {
+		a string
+	}
+
+	err := parse("", &args)
+	assert.Nil(t, err)
+}

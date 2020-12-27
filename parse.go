@@ -242,6 +242,14 @@ func NewParser(config Config, dests ...interface{}) (*Parser, error) {
 	return &p, nil
 }
 
+// isUnexportedField determines if a struct field is exported or unexported by its name
+func isUnexportedField(fieldName string) bool {
+	if len(fieldName) > 0 && unicode.IsLetter(rune(fieldName[0])) && unicode.IsLower(rune(fieldName[0])) {
+		return true
+	}
+	return false
+}
+
 func cmdFromStruct(name string, dest path, t reflect.Type) (*command, error) {
 	// commands can only be created from pointers to structs
 	if t.Kind() != reflect.Ptr {
@@ -264,7 +272,7 @@ func cmdFromStruct(name string, dest path, t reflect.Type) (*command, error) {
 	walkFields(t, func(field reflect.StructField, t reflect.Type) bool {
 		// Check for the ignore switch in the tag
 		tag := field.Tag.Get("arg")
-		if tag == "-" || (unicode.IsLetter(rune(field.Name[0])) && unicode.IsLower(rune(field.Name[0]))) {
+		if tag == "-" || isUnexportedField(field.Name) {
 			return false
 		}
 
