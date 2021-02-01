@@ -263,7 +263,7 @@ func cmdFromStruct(name string, dest path, t reflect.Type) (*command, error) {
 	walkFields(t, func(field reflect.StructField, t reflect.Type) bool {
 		// Check for the ignore switch in the tag
 		tag := field.Tag.Get("arg")
-		if tag == "-" {
+		if tag == "-" || !isExported(field.Name) {
 			return false
 		}
 
