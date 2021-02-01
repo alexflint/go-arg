@@ -3,6 +3,8 @@ package arg
 import (
 	"encoding"
 	"reflect"
+	"unicode"
+	"unicode/utf8"
 
 	scalar "github.com/alexflint/go-scalar"
 )
@@ -59,4 +61,10 @@ func isBoolean(t reflect.Type) bool {
 	default:
 		return false
 	}
+}
+
+// isExported returns true if the struct field name is exported
+func isExported(field string) bool {
+	r, _ := utf8.DecodeRuneInString(field) // returns RuneError for empty string or invalid UTF8
+	return unicode.IsLetter(r) && unicode.IsUpper(r)
 }
