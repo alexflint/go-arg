@@ -1225,3 +1225,12 @@ func TestDefaultValuesNotAllowedWithSlice(t *testing.T) {
 	err := parse("", &args)
 	assert.EqualError(t, err, ".A: default values are not supported for slice fields")
 }
+
+func TestUnexportedFieldsSkipped(t *testing.T) {
+	var args struct {
+		unexported struct{}
+	}
+
+	_, err := NewParser(Config{}, &args)
+	require.NoError(t, err)
+}

@@ -53,3 +53,10 @@ func TestCanParseTextUnmarshaler(t *testing.T) {
 	assertCanParse(t, reflect.TypeOf(su), true, false, true)
 	assertCanParse(t, reflect.TypeOf(&su), true, false, true)
 }
+
+func TestIsExported(t *testing.T) {
+	assert.True(t, isExported("Exported"))
+	assert.False(t, isExported("notExported"))
+	assert.False(t, isExported(""))
+	assert.False(t, isExported(string([]byte{255})))
+}
