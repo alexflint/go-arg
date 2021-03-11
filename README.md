@@ -16,6 +16,20 @@
 
 Declare command line arguments for your program by defining a struct.
 
+### Install
+
+```shell
+go get github.com/alexflint/go-arg
+```
+
+### Import Example (using an alias)
+
+```go
+import (
+    arg "github.com/alexflint/go-arg"
+)
+```
+
 ```go
 var args struct {
 	Foo string
