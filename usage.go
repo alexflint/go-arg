@@ -228,7 +228,3 @@ func synopsis(spec *spec, form string) string {
 	}
 	return form + " " + spec.placeholder
 }
-
-func ptrTo(s string) *string {
-	return &s
-}
