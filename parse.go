@@ -47,7 +47,7 @@ func (p path) Child(f reflect.StructField) path {
 // spec represents a command line option
 type spec struct {
 	dest        path
-	field       reflect.StructField // name of struct field from this this option was created
+	field       reflect.StructField // the struct field from which this option was created
 	long        string              // the --long form for this option, or empty if none
 	short       string              // the -s short form for this option, or empty if none
 	multiple    bool
