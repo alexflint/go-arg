@@ -309,3 +309,61 @@ Global options:
 	p.WriteHelp(&help)
 	assert.Equal(t, expectedHelp, help.String())
 }
+
+func TestUsageWithoutLongNames(t *testing.T) {
+	expectedHelp := `Usage: example [-a PLACEHOLDER] -b SHORTONLY2
+
+Options:
+  -a PLACEHOLDER         some help [default: some val]
+  -b SHORTONLY2          some help2
+  --help, -h             display this help and exit
+`
+	var args struct {
+		ShortOnly  string `arg:"-a,--" help:"some help" default:"some val" placeholder:"PLACEHOLDER"`
+		ShortOnly2 string `arg:"-b,--,required" help:"some help2"`
+	}
+	p, err := NewParser(Config{Program: "example"}, &args)
+	assert.NoError(t, err)
+	var help bytes.Buffer
+	p.WriteHelp(&help)
+	assert.Equal(t, expectedHelp, help.String())
+}
+
+func TestUsageWithShortFirst(t *testing.T) {
+	expectedHelp := `Usage: example [-c CAT] [--dog DOG]
+
+Options:
+  -c CAT
+  --dog DOG
+  --help, -h             display this help and exit
+`
+	var args struct {
+		Dog string
+		Cat string `arg:"-c,--"`
+	}
+	p, err := NewParser(Config{Program: "example"}, &args)
+	assert.NoError(t, err)
+	var help bytes.Buffer
+	p.WriteHelp(&help)
+	assert.Equal(t, expectedHelp, help.String())
+}
+
+func TestUsageWithEnvOptions(t *testing.T) {
+	expectedHelp := `Usage: example [-s SHORT]
+
+Options:
+  -s SHORT [env: SHORT]
+  --help, -h             display this help and exit
+`
+	var args struct {
+		Short            string `arg:"--,-s,env"`
+		EnvOnly          string `arg:"--,env"`
+		EnvOnlyOverriden string `arg:"--,env:CUSTOM"`
+	}
+
+	p, err := NewParser(Config{Program: "example"}, &args)
+	assert.NoError(t, err)
+	var help bytes.Buffer
+	p.WriteHelp(&help)
+	assert.Equal(t, expectedHelp, help.String())
+}

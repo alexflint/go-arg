@@ -244,21 +244,23 @@ someprogram 4.3.0
 
 ```go
 var args struct {
-	Short         string  `arg:"-s"`
-	Long          string  `arg:"--custom-long-option"`
-	ShortAndLong  string  `arg:"-x,--my-option"`
+	Short        string `arg:"-s"`
+	Long         string `arg:"--custom-long-option"`
+	ShortAndLong string `arg:"-x,--my-option"`
+	OnlyShort    string `arg:"-o,--"`
 }
 arg.MustParse(&args)
 ```
 
 ```shell
 $ ./example --help
-Usage: [--short SHORT] [--custom-long-option CUSTOM-LONG-OPTION] [--my-option MY-OPTION]
+Usage: example [-o ONLYSHORT] [--short SHORT] [--custom-long-option CUSTOM-LONG-OPTION] [--my-option MY-OPTION]
 
 Options:
   --short SHORT, -s SHORT
   --custom-long-option CUSTOM-LONG-OPTION
   --my-option MY-OPTION, -x MY-OPTION
+  -o ONLYSHORT
   --help, -h             display this help and exit
 ```
 

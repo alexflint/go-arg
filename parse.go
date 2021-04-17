@@ -47,9 +47,9 @@ func (p path) Child(f reflect.StructField) path {
 // spec represents a command line option
 type spec struct {
 	dest        path
-	typ         reflect.Type
-	long        string
-	short       string
+	field       reflect.StructField // the struct field from which this option was created
+	long        string              // the --long form for this option, or empty if none
+	short       string              // the -s short form for this option, or empty if none
 	multiple    bool
 	required    bool
 	positional  bool
@@ -275,9 +275,9 @@ func cmdFromStruct(name string, dest path, t reflect.Type) (*command, error) {
 		// duplicate the entire path to avoid slice overwrites
 		subdest := dest.Child(field)
 		spec := spec{
-			dest: subdest,
-			long: strings.ToLower(field.Name),
-			typ:  field.Type,
+			dest:  subdest,
+			field: field,
+			long:  strings.ToLower(field.Name),
 		}
 
 		help, exists := field.Tag.Lookup("help")
@@ -363,8 +363,10 @@ func cmdFromStruct(name string, dest path, t reflect.Type) (*command, error) {
 		placeholder, hasPlaceholder := field.Tag.Lookup("placeholder")
 		if hasPlaceholder {
 			spec.placeholder = placeholder
-		} else {
+		} else if spec.long != "" {
 			spec.placeholder = strings.ToUpper(spec.long)
+		} else {
+			spec.placeholder = strings.ToUpper(spec.field.Name)
 		}
 
 		// Check whether this field is supported. It's good to do this here rather than
@@ -592,7 +594,7 @@ func (p *Parser) process(args []string) error {
 			if i+1 == len(args) {
 				return fmt.Errorf("missing value for %s", arg)
 			}
-			if !nextIsNumeric(spec.typ, args[i+1]) && isFlag(args[i+1]) {
+			if !nextIsNumeric(spec.field.Type, args[i+1]) && isFlag(args[i+1]) {
 				return fmt.Errorf("missing value for %s", arg)
 			}
 			value = args[i+1]
@@ -617,13 +619,13 @@ func (p *Parser) process(args []string) error {
 		if spec.multiple {
 			err := setSlice(p.val(spec.dest), positionals, true)
 			if err != nil {
-				return fmt.Errorf("error processing %s: %v", spec.long, err)
+				return fmt.Errorf("error processing %s: %v", spec.field.Name, err)
 			}
 			positionals = nil
 		} else {
 			err := scalar.ParseValue(p.val(spec.dest), positionals[0])
 			if err != nil {
-				return fmt.Errorf("error processing %s: %v", spec.long, err)
+				return fmt.Errorf("error processing %s: %v", spec.field.Name, err)
 			}
 			positionals = positionals[1:]
 		}
@@ -638,8 +640,8 @@ func (p *Parser) process(args []string) error {
 			continue
 		}
 
-		name := spec.long
-		if !spec.positional {
+		name := strings.ToLower(spec.field.Name)
+		if spec.long != "" && !spec.positional {
 			name = "--" + spec.long
 		}
 
