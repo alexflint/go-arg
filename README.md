@@ -191,6 +191,7 @@ var args struct {
     Files     []string `arg:"-f,separate"`
     Databases []string `arg:"positional"`
 }
+arg.MustParse(&args)
 ```
 
 ```shell
@@ -198,6 +199,20 @@ var args struct {
 Commands: [cmd1 cmd2 cmd3]
 Files [file1 file2 file3]
 Databases [db1 db2 db3]
+```
+
+### Arguments with keys and values
+```go
+var args struct {
+	UserIDs map[string]int
+}
+arg.MustParse(&args)
+fmt.Println(args.UserIDs)
+```
+
+```shell
+./example --userids john=123 mary=456
+map[john:123 mary:456]
 ```
 
 ### Custom validation
