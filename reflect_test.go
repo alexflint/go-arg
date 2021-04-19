@@ -26,6 +26,7 @@ func TestCardinalityOf(t *testing.T) {
 	var unsupported1 struct{}
 	var unsupported2 []struct{}
 	var unsupported3 map[string]struct{}
+	var unsupported4 map[struct{}]string
 
 	assertCardinality(t, reflect.TypeOf(b), zero)
 	assertCardinality(t, reflect.TypeOf(i), one)
@@ -52,6 +53,8 @@ func TestCardinalityOf(t *testing.T) {
 	assertCardinality(t, reflect.TypeOf(&unsupported2), unsupported)
 	assertCardinality(t, reflect.TypeOf(unsupported3), unsupported)
 	assertCardinality(t, reflect.TypeOf(&unsupported3), unsupported)
+	assertCardinality(t, reflect.TypeOf(unsupported4), unsupported)
+	assertCardinality(t, reflect.TypeOf(&unsupported4), unsupported)
 }
 
 type implementsTextUnmarshaler struct{}
@@ -77,4 +80,12 @@ func TestIsExported(t *testing.T) {
 	assert.False(t, isExported("notExported"))
 	assert.False(t, isExported(""))
 	assert.False(t, isExported(string([]byte{255})))
+}
+
+func TestCardinalityString(t *testing.T) {
+	assert.Equal(t, "zero", zero.String())
+	assert.Equal(t, "one", one.String())
+	assert.Equal(t, "multiple", multiple.String())
+	assert.Equal(t, "unsupported", unsupported.String())
+	assert.Equal(t, "unknown(42)", cardinality(42).String())
 }
