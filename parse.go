@@ -50,13 +50,12 @@ type spec struct {
 	field       reflect.StructField // the struct field from which this option was created
 	long        string              // the --long form for this option, or empty if none
 	short       string              // the -s short form for this option, or empty if none
-	multiple    bool
-	required    bool
-	positional  bool
-	separate    bool
+	cardinality cardinality         // determines how many tokens will be present (possible values: zero, one, multiple)
+	required    bool                // if true, this option must be present on the command line
+	positional  bool                // if true, this option will be looked for in the positional flags
+	separate    bool                // if true,
 	help        string
 	env         string
-	boolean     bool
 	defaultVal  string // default value for this option
 	placeholder string // name of the data in help
 }
@@ -376,15 +375,15 @@ func cmdFromStruct(name string, dest path, t reflect.Type) (*command, error) {
 		if !isSubcommand {
 			cmd.specs = append(cmd.specs, &spec)
 
-			var parseable bool
-			//parseable, spec.boolean, spec.multiple = canParse(field.Type)
-			if !parseable {
+			var err error
+			spec.cardinality, err = cardinalityOf(field.Type)
+			if err != nil {
 				errs = append(errs, fmt.Sprintf("%s.%s: %s fields are not supported",
 					t.Name(), field.Name, field.Type.String()))
 				return false
 			}
-			if spec.multiple && hasDefault {
-				errs = append(errs, fmt.Sprintf("%s.%s: default values are not supported for slice fields",
+			if spec.cardinality == multiple && hasDefault {
+				errs = append(errs, fmt.Sprintf("%s.%s: default values are not supported for slice or map fields",
 					t.Name(), field.Name))
 				return false
 			}
@@ -442,7 +441,7 @@ func (p *Parser) captureEnvVars(specs []*spec, wasPresent map[*spec]bool) error 
 			continue
 		}
 
-		if spec.multiple {
+		if spec.cardinality == multiple {
 			// expect a CSV string in an environment
 			// variable in the case of multiple values
 			values, err := csv.NewReader(strings.NewReader(value)).Read()
@@ -453,7 +452,7 @@ func (p *Parser) captureEnvVars(specs []*spec, wasPresent map[*spec]bool) error 
 					err,
 				)
 			}
-			if err = setSlice(p.val(spec.dest), values, !spec.separate); err != nil {
+			if err = setSliceOrMap(p.val(spec.dest), values, !spec.separate); err != nil {
 				return fmt.Errorf(
 					"error processing environment variable %s with multiple values: %v",
 					spec.env,
@@ -563,7 +562,7 @@ func (p *Parser) process(args []string) error {
 		wasPresent[spec] = true
 
 		// deal with the case of multiple values
-		if spec.multiple {
+		if spec.cardinality == multiple {
 			var values []string
 			if value == "" {
 				for i+1 < len(args) && !isFlag(args[i+1]) && args[i+1] != "--" {
@@ -576,7 +575,7 @@ func (p *Parser) process(args []string) error {
 			} else {
 				values = append(values, value)
 			}
-			err := setSlice(p.val(spec.dest), values, !spec.separate)
+			err := setSliceOrMap(p.val(spec.dest), values, !spec.separate)
 			if err != nil {
 				return fmt.Errorf("error processing %s: %v", arg, err)
 			}
@@ -585,7 +584,7 @@ func (p *Parser) process(args []string) error {
 
 		// if it's a flag and it has no value then set the value to true
 		// use boolean because this takes account of TextUnmarshaler
-		if spec.boolean && value == "" {
+		if spec.cardinality == zero && value == "" {
 			value = "true"
 		}
 
@@ -616,8 +615,8 @@ func (p *Parser) process(args []string) error {
 			break
 		}
 		wasPresent[spec] = true
-		if spec.multiple {
-			err := setSlice(p.val(spec.dest), positionals, true)
+		if spec.cardinality == multiple {
+			err := setSliceOrMap(p.val(spec.dest), positionals, true)
 			if err != nil {
 				return fmt.Errorf("error processing %s: %v", spec.field.Name, err)
 			}

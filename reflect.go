@@ -12,31 +12,27 @@ import (
 
 var textUnmarshalerType = reflect.TypeOf([]encoding.TextUnmarshaler{}).Elem()
 
-// kind is used to track the various kinds of options:
-//  - regular is an ordinary option that will be parsed from a single token
-//  - binary is an option that will be true if present but does not expect an explicit value
-//  - sequence is an option that accepts multiple values and will end up in a slice
-//  - mapping is an option that acccepts multiple key=value strings and will end up in a map
-type kind int
+// cardinality tracks how many tokens are expected for a given spec
+//  - zero is a boolean, which does to expect any value
+//  - one is an ordinary option that will be parsed from a single token
+//  - multiple is a slice or map that can accept zero or more tokens
+type cardinality int
 
 const (
-	regular kind = iota
-	binary
-	sequence
-	mapping
+	zero cardinality = iota
+	one
+	multiple
 	unsupported
 )
 
-func (k kind) String() string {
+func (k cardinality) String() string {
 	switch k {
-	case regular:
-		return "regular"
-	case binary:
-		return "binary"
-	case sequence:
-		return "sequence"
-	case mapping:
-		return "mapping"
+	case zero:
+		return "zero"
+	case one:
+		return "one"
+	case multiple:
+		return "multiple"
 	case unsupported:
 		return "unsupported"
 	default:
@@ -44,13 +40,13 @@ func (k kind) String() string {
 	}
 }
 
-// kindOf returns true if the type can be parsed from a string
-func kindOf(t reflect.Type) (kind, error) {
+// cardinalityOf returns true if the type can be parsed from a string
+func cardinalityOf(t reflect.Type) (cardinality, error) {
 	if scalar.CanParse(t) {
 		if isBoolean(t) {
-			return binary, nil
+			return zero, nil
 		} else {
-			return regular, nil
+			return one, nil
 		}
 	}
 
@@ -65,7 +61,7 @@ func kindOf(t reflect.Type) (kind, error) {
 		if !scalar.CanParse(t.Elem()) {
 			return unsupported, fmt.Errorf("cannot parse into %v because we cannot parse into %v", t, t.Elem())
 		}
-		return sequence, nil
+		return multiple, nil
 	case reflect.Map:
 		if !scalar.CanParse(t.Key()) {
 			return unsupported, fmt.Errorf("cannot parse into %v because we cannot parse into the key type %v", t, t.Elem())
@@ -73,7 +69,7 @@ func kindOf(t reflect.Type) (kind, error) {
 		if !scalar.CanParse(t.Elem()) {
 			return unsupported, fmt.Errorf("cannot parse into %v because we cannot parse into the value type %v", t, t.Elem())
 		}
-		return mapping, nil
+		return multiple, nil
 	default:
 		return unsupported, fmt.Errorf("cannot parse into %v", t)
 	}

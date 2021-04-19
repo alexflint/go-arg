@@ -7,15 +7,15 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func assertKind(t *testing.T, typ reflect.Type, expected kind) {
-	actual, err := kindOf(typ)
-	assert.Equal(t, expected, actual, "expected %v to have kind %v but got %v", typ, expected, actual)
+func assertCardinality(t *testing.T, typ reflect.Type, expected cardinality) {
+	actual, err := cardinalityOf(typ)
+	assert.Equal(t, expected, actual, "expected %v to have cardinality %v but got %v", typ, expected, actual)
 	if expected == unsupported {
 		assert.Error(t, err)
 	}
 }
 
-func TestKindOf(t *testing.T) {
+func TestCardinalityOf(t *testing.T) {
 	var b bool
 	var i int
 	var s string
@@ -27,31 +27,31 @@ func TestKindOf(t *testing.T) {
 	var unsupported2 []struct{}
 	var unsupported3 map[string]struct{}
 
-	assertKind(t, reflect.TypeOf(b), binary)
-	assertKind(t, reflect.TypeOf(i), regular)
-	assertKind(t, reflect.TypeOf(s), regular)
-	assertKind(t, reflect.TypeOf(f), regular)
+	assertCardinality(t, reflect.TypeOf(b), zero)
+	assertCardinality(t, reflect.TypeOf(i), one)
+	assertCardinality(t, reflect.TypeOf(s), one)
+	assertCardinality(t, reflect.TypeOf(f), one)
 
-	assertKind(t, reflect.TypeOf(&b), binary)
-	assertKind(t, reflect.TypeOf(&s), regular)
-	assertKind(t, reflect.TypeOf(&i), regular)
-	assertKind(t, reflect.TypeOf(&f), regular)
+	assertCardinality(t, reflect.TypeOf(&b), zero)
+	assertCardinality(t, reflect.TypeOf(&s), one)
+	assertCardinality(t, reflect.TypeOf(&i), one)
+	assertCardinality(t, reflect.TypeOf(&f), one)
 
-	assertKind(t, reflect.TypeOf(bs), sequence)
-	assertKind(t, reflect.TypeOf(is), sequence)
+	assertCardinality(t, reflect.TypeOf(bs), multiple)
+	assertCardinality(t, reflect.TypeOf(is), multiple)
 
-	assertKind(t, reflect.TypeOf(&bs), sequence)
-	assertKind(t, reflect.TypeOf(&is), sequence)
+	assertCardinality(t, reflect.TypeOf(&bs), multiple)
+	assertCardinality(t, reflect.TypeOf(&is), multiple)
 
-	assertKind(t, reflect.TypeOf(m), mapping)
-	assertKind(t, reflect.TypeOf(&m), mapping)
+	assertCardinality(t, reflect.TypeOf(m), multiple)
+	assertCardinality(t, reflect.TypeOf(&m), multiple)
 
-	assertKind(t, reflect.TypeOf(unsupported1), unsupported)
-	assertKind(t, reflect.TypeOf(&unsupported1), unsupported)
-	assertKind(t, reflect.TypeOf(unsupported2), unsupported)
-	assertKind(t, reflect.TypeOf(&unsupported2), unsupported)
-	assertKind(t, reflect.TypeOf(unsupported3), unsupported)
-	assertKind(t, reflect.TypeOf(&unsupported3), unsupported)
+	assertCardinality(t, reflect.TypeOf(unsupported1), unsupported)
+	assertCardinality(t, reflect.TypeOf(&unsupported1), unsupported)
+	assertCardinality(t, reflect.TypeOf(unsupported2), unsupported)
+	assertCardinality(t, reflect.TypeOf(&unsupported2), unsupported)
+	assertCardinality(t, reflect.TypeOf(unsupported3), unsupported)
+	assertCardinality(t, reflect.TypeOf(&unsupported3), unsupported)
 }
 
 type implementsTextUnmarshaler struct{}
@@ -60,16 +60,16 @@ func (*implementsTextUnmarshaler) UnmarshalText(text []byte) error {
 	return nil
 }
 
-func TestCanParseTextUnmarshaler(t *testing.T) {
+func TestCardinalityTextUnmarshaler(t *testing.T) {
 	var x implementsTextUnmarshaler
 	var s []implementsTextUnmarshaler
 	var m []implementsTextUnmarshaler
-	assertKind(t, reflect.TypeOf(x), regular)
-	assertKind(t, reflect.TypeOf(&x), regular)
-	assertKind(t, reflect.TypeOf(s), sequence)
-	assertKind(t, reflect.TypeOf(&s), sequence)
-	assertKind(t, reflect.TypeOf(m), mapping)
-	assertKind(t, reflect.TypeOf(&m), mapping)
+	assertCardinality(t, reflect.TypeOf(x), one)
+	assertCardinality(t, reflect.TypeOf(&x), one)
+	assertCardinality(t, reflect.TypeOf(s), multiple)
+	assertCardinality(t, reflect.TypeOf(&s), multiple)
+	assertCardinality(t, reflect.TypeOf(m), multiple)
+	assertCardinality(t, reflect.TypeOf(&m), multiple)
 }
 
 func TestIsExported(t *testing.T) {

@@ -220,6 +220,14 @@ func TestLongFlag(t *testing.T) {
 	assert.Equal(t, "xyz", args.Foo)
 }
 
+func TestSlice(t *testing.T) {
+	var args struct {
+		Strings []string
+	}
+	err := parse("--strings a b c", &args)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"a", "b", "c"}, args.Strings)
+}
 func TestSliceOfBools(t *testing.T) {
 	var args struct {
 		B []bool
@@ -228,6 +236,18 @@ func TestSliceOfBools(t *testing.T) {
 	err := parse("--b true false true", &args)
 	require.NoError(t, err)
 	assert.Equal(t, []bool{true, false, true}, args.B)
+}
+
+func TestMap(t *testing.T) {
+	var args struct {
+		Values map[string]int
+	}
+	err := parse("--values a=1 b=2 c=3", &args)
+	require.NoError(t, err)
+	assert.Len(t, args.Values, 3)
+	assert.Equal(t, 1, args.Values["a"])
+	assert.Equal(t, 2, args.Values["b"])
+	assert.Equal(t, 3, args.Values["c"])
 }
 
 func TestPlaceholder(t *testing.T) {
@@ -1233,7 +1253,7 @@ func TestDefaultValuesNotAllowedWithSlice(t *testing.T) {
 	}
 
 	err := parse("", &args)
-	assert.EqualError(t, err, ".A: default values are not supported for slice fields")
+	assert.EqualError(t, err, ".A: default values are not supported for slice or map fields")
 }
 
 func TestUnexportedFieldsSkipped(t *testing.T) {

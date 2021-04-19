@@ -8,13 +8,32 @@ import (
 	scalar "github.com/alexflint/go-scalar"
 )
 
-// setSlice parses a sequence of strings and inserts them into a slice. If clear
-// is true then any values already in the slice are removed.
-func setSlice(dest reflect.Value, values []string, clear bool) error {
+// setSliceOrMap parses a sequence of strings into a slice or map. If clear is
+// true then any values already in the slice or map are first removed.
+func setSliceOrMap(dest reflect.Value, values []string, clear bool) error {
 	if !dest.CanSet() {
 		return fmt.Errorf("field is not writable")
 	}
 
+	t := dest.Type()
+	if t.Kind() == reflect.Ptr {
+		dest = dest.Elem()
+		t = t.Elem()
+	}
+
+	switch t.Kind() {
+	case reflect.Slice:
+		return setSlice(dest, values, clear)
+	case reflect.Map:
+		return setMap(dest, values, clear)
+	default:
+		return fmt.Errorf("setSliceOrMap cannot insert values into a %v", t)
+	}
+}
+
+// setSlice parses a sequence of strings and inserts them into a slice. If clear
+// is true then any values already in the slice are removed.
+func setSlice(dest reflect.Value, values []string, clear bool) error {
 	var ptr bool
 	elem := dest.Type().Elem()
 	if elem.Kind() == reflect.Ptr && !elem.Implements(textUnmarshalerType) {
@@ -44,10 +63,6 @@ func setSlice(dest reflect.Value, values []string, clear bool) error {
 // setMap parses a sequence of name=value strings and inserts them into a map.
 // If clear is true then any values already in the map are removed.
 func setMap(dest reflect.Value, values []string, clear bool) error {
-	if !dest.CanSet() {
-		return fmt.Errorf("field is not writable")
-	}
-
 	// determine the key and value type
 	var keyIsPtr bool
 	keyType := dest.Type().Key()
