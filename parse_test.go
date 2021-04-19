@@ -250,6 +250,30 @@ func TestMap(t *testing.T) {
 	assert.Equal(t, 3, args.Values["c"])
 }
 
+func TestMapPositional(t *testing.T) {
+	var args struct {
+		Values map[string]int `arg:"positional"`
+	}
+	err := parse("a=1 b=2 c=3", &args)
+	require.NoError(t, err)
+	assert.Len(t, args.Values, 3)
+	assert.Equal(t, 1, args.Values["a"])
+	assert.Equal(t, 2, args.Values["b"])
+	assert.Equal(t, 3, args.Values["c"])
+}
+
+func TestMapWithSeparate(t *testing.T) {
+	var args struct {
+		Values map[string]int `arg:"separate"`
+	}
+	err := parse("--values a=1 --values b=2 --values c=3", &args)
+	require.NoError(t, err)
+	assert.Len(t, args.Values, 3)
+	assert.Equal(t, 1, args.Values["a"])
+	assert.Equal(t, 2, args.Values["b"])
+	assert.Equal(t, 3, args.Values["c"])
+}
+
 func TestPlaceholder(t *testing.T) {
 	var args struct {
 		Input    string   `arg:"positional" placeholder:"SRC"`
@@ -716,6 +740,17 @@ func TestEnvironmentVariableSliceArgumentWrongType(t *testing.T) {
 	setenv(t, "FOO", "one,two")
 	err := Parse(&args)
 	assert.Error(t, err)
+}
+
+func TestEnvironmentVariableMap(t *testing.T) {
+	var args struct {
+		Foo map[int]string `arg:"env"`
+	}
+	setenv(t, "FOO", "1=one,99=ninetynine")
+	MustParse(&args)
+	assert.Len(t, args.Foo, 2)
+	assert.Equal(t, "one", args.Foo[1])
+	assert.Equal(t, "ninetynine", args.Foo[99])
 }
 
 func TestEnvironmentVariableIgnored(t *testing.T) {
