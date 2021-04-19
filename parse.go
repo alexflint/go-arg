@@ -53,11 +53,11 @@ type spec struct {
 	cardinality cardinality         // determines how many tokens will be present (possible values: zero, one, multiple)
 	required    bool                // if true, this option must be present on the command line
 	positional  bool                // if true, this option will be looked for in the positional flags
-	separate    bool                // if true,
-	help        string
-	env         string
-	defaultVal  string // default value for this option
-	placeholder string // name of the data in help
+	separate    bool                // if true, each slice and map entry will have its own --flag
+	help        string              // the help text for this option
+	env         string              // the name of the environment variable for this option, or empty for none
+	defaultVal  string              // default value for this option
+	placeholder string              // name of the data in help
 }
 
 // command represents a named subcommand, or the top-level command
