@@ -702,37 +702,6 @@ func (p *Parser) val(dest path) reflect.Value {
 	return v
 }
 
-// parse a value as the appropriate type and store it in the struct
-func setSlice(dest reflect.Value, values []string, trunc bool) error {
-	if !dest.CanSet() {
-		return fmt.Errorf("field is not writable")
-	}
-
-	var ptr bool
-	elem := dest.Type().Elem()
-	if elem.Kind() == reflect.Ptr && !elem.Implements(textUnmarshalerType) {
-		ptr = true
-		elem = elem.Elem()
-	}
-
-	// Truncate the dest slice in case default values exist
-	if trunc && !dest.IsNil() {
-		dest.SetLen(0)
-	}
-
-	for _, s := range values {
-		v := reflect.New(elem)
-		if err := scalar.ParseValue(v.Elem(), s); err != nil {
-			return err
-		}
-		if !ptr {
-			v = v.Elem()
-		}
-		dest.Set(reflect.Append(dest, v))
-	}
-	return nil
-}
-
 // findOption finds an option from its name, or returns null if no spec is found
 func findOption(specs []*spec, name string) *spec {
 	for _, spec := range specs {
