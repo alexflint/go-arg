@@ -377,7 +377,7 @@ func cmdFromStruct(name string, dest path, t reflect.Type) (*command, error) {
 			cmd.specs = append(cmd.specs, &spec)
 
 			var parseable bool
-			parseable, spec.boolean, spec.multiple = canParse(field.Type)
+			//parseable, spec.boolean, spec.multiple = canParse(field.Type)
 			if !parseable {
 				errs = append(errs, fmt.Sprintf("%s.%s: %s fields are not supported",
 					t.Name(), field.Name, field.Type.String()))
@@ -728,7 +728,7 @@ func findSubcommand(cmds []*command, name string) *command {
 // isZero returns true if v contains the zero value for its type
 func isZero(v reflect.Value) bool {
 	t := v.Type()
-	if t.Kind() == reflect.Slice {
+	if t.Kind() == reflect.Slice || t.Kind() == reflect.Map {
 		return v.IsNil()
 	}
 	if !t.Comparable() {

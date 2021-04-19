@@ -220,6 +220,16 @@ func TestLongFlag(t *testing.T) {
 	assert.Equal(t, "xyz", args.Foo)
 }
 
+func TestSliceOfBools(t *testing.T) {
+	var args struct {
+		B []bool
+	}
+
+	err := parse("--b true false true", &args)
+	require.NoError(t, err)
+	assert.Equal(t, []bool{true, false, true}, args.B)
+}
+
 func TestPlaceholder(t *testing.T) {
 	var args struct {
 		Input    string   `arg:"positional" placeholder:"SRC"`

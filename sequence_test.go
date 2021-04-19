@@ -79,3 +79,11 @@ func TestSetMapTextUnmarshaller(t *testing.T) {
 	assert.Equal(t, &textUnmarshaler{2}, m[textUnmarshaler{2}])
 	assert.Equal(t, &textUnmarshaler{1}, m[textUnmarshaler{3}])
 }
+
+func TestSetMapMalformed(t *testing.T) {
+	// textUnmarshaler is a struct that captures the length of the string passed to it
+	var m map[string]string
+	entries := []string{"missing_equals_sign"}
+	err := setMap(reflect.ValueOf(&m).Elem(), entries, true)
+	assert.Error(t, err)
+}

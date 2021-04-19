@@ -2,6 +2,7 @@ package arg
 
 import (
 	"encoding"
+	"fmt"
 	"reflect"
 	"unicode"
 	"unicode/utf8"
@@ -11,42 +12,71 @@ import (
 
 var textUnmarshalerType = reflect.TypeOf([]encoding.TextUnmarshaler{}).Elem()
 
-// canParse returns true if the type can be parsed from a string
-func canParse(t reflect.Type) (parseable, boolean, multiple bool) {
-	parseable = scalar.CanParse(t)
-	boolean = isBoolean(t)
-	if parseable {
-		return
+// kind is used to track the various kinds of options:
+//  - regular is an ordinary option that will be parsed from a single token
+//  - binary is an option that will be true if present but does not expect an explicit value
+//  - sequence is an option that accepts multiple values and will end up in a slice
+//  - mapping is an option that acccepts multiple key=value strings and will end up in a map
+type kind int
+
+const (
+	regular kind = iota
+	binary
+	sequence
+	mapping
+	unsupported
+)
+
+func (k kind) String() string {
+	switch k {
+	case regular:
+		return "regular"
+	case binary:
+		return "binary"
+	case sequence:
+		return "sequence"
+	case mapping:
+		return "mapping"
+	case unsupported:
+		return "unsupported"
+	default:
+		return fmt.Sprintf("unknown(%d)", int(k))
+	}
+}
+
+// kindOf returns true if the type can be parsed from a string
+func kindOf(t reflect.Type) (kind, error) {
+	if scalar.CanParse(t) {
+		if isBoolean(t) {
+			return binary, nil
+		} else {
+			return regular, nil
+		}
 	}
 
-	// Look inside pointer types
+	// look inside pointer types
 	if t.Kind() == reflect.Ptr {
 		t = t.Elem()
 	}
-	// Look inside slice types
-	if t.Kind() == reflect.Slice {
-		multiple = true
-		t = t.Elem()
-	}
 
-	parseable = scalar.CanParse(t)
-	boolean = isBoolean(t)
-	if parseable {
-		return
+	// look inside slice and map types
+	switch t.Kind() {
+	case reflect.Slice:
+		if !scalar.CanParse(t.Elem()) {
+			return unsupported, fmt.Errorf("cannot parse into %v because we cannot parse into %v", t, t.Elem())
+		}
+		return sequence, nil
+	case reflect.Map:
+		if !scalar.CanParse(t.Key()) {
+			return unsupported, fmt.Errorf("cannot parse into %v because we cannot parse into the key type %v", t, t.Elem())
+		}
+		if !scalar.CanParse(t.Elem()) {
+			return unsupported, fmt.Errorf("cannot parse into %v because we cannot parse into the value type %v", t, t.Elem())
+		}
+		return mapping, nil
+	default:
+		return unsupported, fmt.Errorf("cannot parse into %v", t)
 	}
-
-	// Look inside pointer types (again, in case of []*Type)
-	if t.Kind() == reflect.Ptr {
-		t = t.Elem()
-	}
-
-	parseable = scalar.CanParse(t)
-	boolean = isBoolean(t)
-	if parseable {
-		return
-	}
-
-	return false, false, false
 }
 
 // isBoolean returns true if the type can be parsed from a single string
