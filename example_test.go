@@ -95,15 +95,18 @@ func Example_mappings() {
 	// output: map[john:123 mary:456]
 }
 
-type commaSeparated map[string]string
+type commaSeparated struct {
+	M map[string]string
+}
 
-func (c commaSeparated) UnmarshalText(b []byte) error {
+func (c *commaSeparated) UnmarshalText(b []byte) error {
+	c.M = make(map[string]string)
 	for _, part := range strings.Split(string(b), ",") {
 		pos := strings.Index(part, "=")
 		if pos == -1 {
 			return fmt.Errorf("error parsing %q, expected format key=value", part)
 		}
-		c[part[:pos]] = part[pos+1:]
+		c.M[part[:pos]] = part[pos+1:]
 	}
 	return nil
 }
@@ -111,13 +114,13 @@ func (c commaSeparated) UnmarshalText(b []byte) error {
 // This example demonstrates arguments with keys and values separated by commas
 func Example_mappingWithCommas() {
 	// The args you would pass in on the command line
-	os.Args = split("./example --m one=two,three=four")
+	os.Args = split("./example --values one=two,three=four")
 
 	var args struct {
-		M commaSeparated
+		Values commaSeparated
 	}
 	MustParse(&args)
-	fmt.Println(args.M)
+	fmt.Println(args.Values.M)
 	// output: map[one:two three:four]
 }
 
