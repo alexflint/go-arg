@@ -50,15 +50,14 @@ type spec struct {
 	field       reflect.StructField // the struct field from which this option was created
 	long        string              // the --long form for this option, or empty if none
 	short       string              // the -s short form for this option, or empty if none
-	multiple    bool
-	required    bool
-	positional  bool
-	separate    bool
-	help        string
-	env         string
-	boolean     bool
-	defaultVal  string // default value for this option
-	placeholder string // name of the data in help
+	cardinality cardinality         // determines how many tokens will be present (possible values: zero, one, multiple)
+	required    bool                // if true, this option must be present on the command line
+	positional  bool                // if true, this option will be looked for in the positional flags
+	separate    bool                // if true, each slice and map entry will have its own --flag
+	help        string              // the help text for this option
+	env         string              // the name of the environment variable for this option, or empty for none
+	defaultVal  string              // default value for this option
+	placeholder string              // name of the data in help
 }
 
 // command represents a named subcommand, or the top-level command
@@ -376,15 +375,15 @@ func cmdFromStruct(name string, dest path, t reflect.Type) (*command, error) {
 		if !isSubcommand {
 			cmd.specs = append(cmd.specs, &spec)
 
-			var parseable bool
-			parseable, spec.boolean, spec.multiple = canParse(field.Type)
-			if !parseable {
+			var err error
+			spec.cardinality, err = cardinalityOf(field.Type)
+			if err != nil {
 				errs = append(errs, fmt.Sprintf("%s.%s: %s fields are not supported",
 					t.Name(), field.Name, field.Type.String()))
 				return false
 			}
-			if spec.multiple && hasDefault {
-				errs = append(errs, fmt.Sprintf("%s.%s: default values are not supported for slice fields",
+			if spec.cardinality == multiple && hasDefault {
+				errs = append(errs, fmt.Sprintf("%s.%s: default values are not supported for slice or map fields",
 					t.Name(), field.Name))
 				return false
 			}
@@ -442,7 +441,7 @@ func (p *Parser) captureEnvVars(specs []*spec, wasPresent map[*spec]bool) error 
 			continue
 		}
 
-		if spec.multiple {
+		if spec.cardinality == multiple {
 			// expect a CSV string in an environment
 			// variable in the case of multiple values
 			values, err := csv.NewReader(strings.NewReader(value)).Read()
@@ -453,7 +452,7 @@ func (p *Parser) captureEnvVars(specs []*spec, wasPresent map[*spec]bool) error 
 					err,
 				)
 			}
-			if err = setSlice(p.val(spec.dest), values, !spec.separate); err != nil {
+			if err = setSliceOrMap(p.val(spec.dest), values, !spec.separate); err != nil {
 				return fmt.Errorf(
 					"error processing environment variable %s with multiple values: %v",
 					spec.env,
@@ -563,7 +562,7 @@ func (p *Parser) process(args []string) error {
 		wasPresent[spec] = true
 
 		// deal with the case of multiple values
-		if spec.multiple {
+		if spec.cardinality == multiple {
 			var values []string
 			if value == "" {
 				for i+1 < len(args) && !isFlag(args[i+1]) && args[i+1] != "--" {
@@ -576,7 +575,7 @@ func (p *Parser) process(args []string) error {
 			} else {
 				values = append(values, value)
 			}
-			err := setSlice(p.val(spec.dest), values, !spec.separate)
+			err := setSliceOrMap(p.val(spec.dest), values, !spec.separate)
 			if err != nil {
 				return fmt.Errorf("error processing %s: %v", arg, err)
 			}
@@ -585,7 +584,7 @@ func (p *Parser) process(args []string) error {
 
 		// if it's a flag and it has no value then set the value to true
 		// use boolean because this takes account of TextUnmarshaler
-		if spec.boolean && value == "" {
+		if spec.cardinality == zero && value == "" {
 			value = "true"
 		}
 
@@ -616,8 +615,8 @@ func (p *Parser) process(args []string) error {
 			break
 		}
 		wasPresent[spec] = true
-		if spec.multiple {
-			err := setSlice(p.val(spec.dest), positionals, true)
+		if spec.cardinality == multiple {
+			err := setSliceOrMap(p.val(spec.dest), positionals, true)
 			if err != nil {
 				return fmt.Errorf("error processing %s: %v", spec.field.Name, err)
 			}
@@ -702,37 +701,6 @@ func (p *Parser) val(dest path) reflect.Value {
 	return v
 }
 
-// parse a value as the appropriate type and store it in the struct
-func setSlice(dest reflect.Value, values []string, trunc bool) error {
-	if !dest.CanSet() {
-		return fmt.Errorf("field is not writable")
-	}
-
-	var ptr bool
-	elem := dest.Type().Elem()
-	if elem.Kind() == reflect.Ptr && !elem.Implements(textUnmarshalerType) {
-		ptr = true
-		elem = elem.Elem()
-	}
-
-	// Truncate the dest slice in case default values exist
-	if trunc && !dest.IsNil() {
-		dest.SetLen(0)
-	}
-
-	for _, s := range values {
-		v := reflect.New(elem)
-		if err := scalar.ParseValue(v.Elem(), s); err != nil {
-			return err
-		}
-		if !ptr {
-			v = v.Elem()
-		}
-		dest.Set(reflect.Append(dest, v))
-	}
-	return nil
-}
-
 // findOption finds an option from its name, or returns null if no spec is found
 func findOption(specs []*spec, name string) *spec {
 	for _, spec := range specs {
@@ -759,7 +727,7 @@ func findSubcommand(cmds []*command, name string) *command {
 // isZero returns true if v contains the zero value for its type
 func isZero(v reflect.Value) bool {
 	t := v.Type()
-	if t.Kind() == reflect.Slice {
+	if t.Kind() == reflect.Slice || t.Kind() == reflect.Map {
 		return v.IsNil()
 	}
 	if !t.Comparable() {

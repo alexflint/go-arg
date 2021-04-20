@@ -82,6 +82,19 @@ func Example_multipleValues() {
 	// output: Fetching the following IDs from localhost: [1 2 3]
 }
 
+// This example demonstrates arguments with keys and values
+func Example_mappings() {
+	// The args you would pass in on the command line
+	os.Args = split("./example --userids john=123 mary=456")
+
+	var args struct {
+		UserIDs map[string]int
+	}
+	MustParse(&args)
+	fmt.Println(args.UserIDs)
+	// output: map[john:123 mary:456]
+}
+
 // This eample demonstrates multiple value arguments that can be mixed with
 // other arguments.
 func Example_multipleMixed() {

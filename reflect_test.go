@@ -7,36 +7,54 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func assertCanParse(t *testing.T, typ reflect.Type, parseable, boolean, multiple bool) {
-	p, b, m := canParse(typ)
-	assert.Equal(t, parseable, p, "expected %v to have parseable=%v but was %v", typ, parseable, p)
-	assert.Equal(t, boolean, b, "expected %v to have boolean=%v but was %v", typ, boolean, b)
-	assert.Equal(t, multiple, m, "expected %v to have multiple=%v but was %v", typ, multiple, m)
+func assertCardinality(t *testing.T, typ reflect.Type, expected cardinality) {
+	actual, err := cardinalityOf(typ)
+	assert.Equal(t, expected, actual, "expected %v to have cardinality %v but got %v", typ, expected, actual)
+	if expected == unsupported {
+		assert.Error(t, err)
+	}
 }
 
-func TestCanParse(t *testing.T) {
+func TestCardinalityOf(t *testing.T) {
 	var b bool
 	var i int
 	var s string
 	var f float64
 	var bs []bool
 	var is []int
+	var m map[string]int
+	var unsupported1 struct{}
+	var unsupported2 []struct{}
+	var unsupported3 map[string]struct{}
+	var unsupported4 map[struct{}]string
 
-	assertCanParse(t, reflect.TypeOf(b), true, true, false)
-	assertCanParse(t, reflect.TypeOf(i), true, false, false)
-	assertCanParse(t, reflect.TypeOf(s), true, false, false)
-	assertCanParse(t, reflect.TypeOf(f), true, false, false)
+	assertCardinality(t, reflect.TypeOf(b), zero)
+	assertCardinality(t, reflect.TypeOf(i), one)
+	assertCardinality(t, reflect.TypeOf(s), one)
+	assertCardinality(t, reflect.TypeOf(f), one)
 
-	assertCanParse(t, reflect.TypeOf(&b), true, true, false)
-	assertCanParse(t, reflect.TypeOf(&s), true, false, false)
-	assertCanParse(t, reflect.TypeOf(&i), true, false, false)
-	assertCanParse(t, reflect.TypeOf(&f), true, false, false)
+	assertCardinality(t, reflect.TypeOf(&b), zero)
+	assertCardinality(t, reflect.TypeOf(&s), one)
+	assertCardinality(t, reflect.TypeOf(&i), one)
+	assertCardinality(t, reflect.TypeOf(&f), one)
 
-	assertCanParse(t, reflect.TypeOf(bs), true, true, true)
-	assertCanParse(t, reflect.TypeOf(&bs), true, true, true)
+	assertCardinality(t, reflect.TypeOf(bs), multiple)
+	assertCardinality(t, reflect.TypeOf(is), multiple)
 
-	assertCanParse(t, reflect.TypeOf(is), true, false, true)
-	assertCanParse(t, reflect.TypeOf(&is), true, false, true)
+	assertCardinality(t, reflect.TypeOf(&bs), multiple)
+	assertCardinality(t, reflect.TypeOf(&is), multiple)
+
+	assertCardinality(t, reflect.TypeOf(m), multiple)
+	assertCardinality(t, reflect.TypeOf(&m), multiple)
+
+	assertCardinality(t, reflect.TypeOf(unsupported1), unsupported)
+	assertCardinality(t, reflect.TypeOf(&unsupported1), unsupported)
+	assertCardinality(t, reflect.TypeOf(unsupported2), unsupported)
+	assertCardinality(t, reflect.TypeOf(&unsupported2), unsupported)
+	assertCardinality(t, reflect.TypeOf(unsupported3), unsupported)
+	assertCardinality(t, reflect.TypeOf(&unsupported3), unsupported)
+	assertCardinality(t, reflect.TypeOf(unsupported4), unsupported)
+	assertCardinality(t, reflect.TypeOf(&unsupported4), unsupported)
 }
 
 type implementsTextUnmarshaler struct{}
@@ -45,13 +63,16 @@ func (*implementsTextUnmarshaler) UnmarshalText(text []byte) error {
 	return nil
 }
 
-func TestCanParseTextUnmarshaler(t *testing.T) {
-	var u implementsTextUnmarshaler
-	var su []implementsTextUnmarshaler
-	assertCanParse(t, reflect.TypeOf(u), true, false, false)
-	assertCanParse(t, reflect.TypeOf(&u), true, false, false)
-	assertCanParse(t, reflect.TypeOf(su), true, false, true)
-	assertCanParse(t, reflect.TypeOf(&su), true, false, true)
+func TestCardinalityTextUnmarshaler(t *testing.T) {
+	var x implementsTextUnmarshaler
+	var s []implementsTextUnmarshaler
+	var m []implementsTextUnmarshaler
+	assertCardinality(t, reflect.TypeOf(x), one)
+	assertCardinality(t, reflect.TypeOf(&x), one)
+	assertCardinality(t, reflect.TypeOf(s), multiple)
+	assertCardinality(t, reflect.TypeOf(&s), multiple)
+	assertCardinality(t, reflect.TypeOf(m), multiple)
+	assertCardinality(t, reflect.TypeOf(&m), multiple)
 }
 
 func TestIsExported(t *testing.T) {
@@ -59,4 +80,12 @@ func TestIsExported(t *testing.T) {
 	assert.False(t, isExported("notExported"))
 	assert.False(t, isExported(""))
 	assert.False(t, isExported(string([]byte{255})))
+}
+
+func TestCardinalityString(t *testing.T) {
+	assert.Equal(t, "zero", zero.String())
+	assert.Equal(t, "one", one.String())
+	assert.Equal(t, "multiple", multiple.String())
+	assert.Equal(t, "unsupported", unsupported.String())
+	assert.Equal(t, "unknown(42)", cardinality(42).String())
 }

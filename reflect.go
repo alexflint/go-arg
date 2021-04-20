@@ -2,6 +2,7 @@ package arg
 
 import (
 	"encoding"
+	"fmt"
 	"reflect"
 	"unicode"
 	"unicode/utf8"
@@ -11,42 +12,67 @@ import (
 
 var textUnmarshalerType = reflect.TypeOf([]encoding.TextUnmarshaler{}).Elem()
 
-// canParse returns true if the type can be parsed from a string
-func canParse(t reflect.Type) (parseable, boolean, multiple bool) {
-	parseable = scalar.CanParse(t)
-	boolean = isBoolean(t)
-	if parseable {
-		return
+// cardinality tracks how many tokens are expected for a given spec
+//  - zero is a boolean, which does to expect any value
+//  - one is an ordinary option that will be parsed from a single token
+//  - multiple is a slice or map that can accept zero or more tokens
+type cardinality int
+
+const (
+	zero cardinality = iota
+	one
+	multiple
+	unsupported
+)
+
+func (k cardinality) String() string {
+	switch k {
+	case zero:
+		return "zero"
+	case one:
+		return "one"
+	case multiple:
+		return "multiple"
+	case unsupported:
+		return "unsupported"
+	default:
+		return fmt.Sprintf("unknown(%d)", int(k))
+	}
+}
+
+// cardinalityOf returns true if the type can be parsed from a string
+func cardinalityOf(t reflect.Type) (cardinality, error) {
+	if scalar.CanParse(t) {
+		if isBoolean(t) {
+			return zero, nil
+		} else {
+			return one, nil
+		}
 	}
 
-	// Look inside pointer types
+	// look inside pointer types
 	if t.Kind() == reflect.Ptr {
 		t = t.Elem()
 	}
-	// Look inside slice types
-	if t.Kind() == reflect.Slice {
-		multiple = true
-		t = t.Elem()
-	}
 
-	parseable = scalar.CanParse(t)
-	boolean = isBoolean(t)
-	if parseable {
-		return
+	// look inside slice and map types
+	switch t.Kind() {
+	case reflect.Slice:
+		if !scalar.CanParse(t.Elem()) {
+			return unsupported, fmt.Errorf("cannot parse into %v because %v not supported", t, t.Elem())
+		}
+		return multiple, nil
+	case reflect.Map:
+		if !scalar.CanParse(t.Key()) {
+			return unsupported, fmt.Errorf("cannot parse into %v because key type %v not supported", t, t.Elem())
+		}
+		if !scalar.CanParse(t.Elem()) {
+			return unsupported, fmt.Errorf("cannot parse into %v because value type %v not supported", t, t.Elem())
+		}
+		return multiple, nil
+	default:
+		return unsupported, fmt.Errorf("cannot parse into %v", t)
 	}
-
-	// Look inside pointer types (again, in case of []*Type)
-	if t.Kind() == reflect.Ptr {
-		t = t.Elem()
-	}
-
-	parseable = scalar.CanParse(t)
-	boolean = isBoolean(t)
-	if parseable {
-		return
-	}
-
-	return false, false, false
 }
 
 // isBoolean returns true if the type can be parsed from a single string

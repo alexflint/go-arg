@@ -95,7 +95,7 @@ func (p *Parser) writeUsageForCommand(w io.Writer, cmd *command) {
 	for _, spec := range positionals {
 		// prefix with a space
 		fmt.Fprint(w, " ")
-		if spec.multiple {
+		if spec.cardinality == multiple {
 			if !spec.required {
 				fmt.Fprint(w, "[")
 			}
@@ -213,16 +213,16 @@ func (p *Parser) writeHelpForCommand(w io.Writer, cmd *command) {
 
 	// write the list of built in options
 	p.printOption(w, &spec{
-		boolean: true,
-		long:    "help",
-		short:   "h",
-		help:    "display this help and exit",
+		cardinality: zero,
+		long:        "help",
+		short:       "h",
+		help:        "display this help and exit",
 	})
 	if p.version != "" {
 		p.printOption(w, &spec{
-			boolean: true,
-			long:    "version",
-			help:    "display version and exit",
+			cardinality: zero,
+			long:        "version",
+			help:        "display version and exit",
 		})
 	}
 
@@ -249,7 +249,7 @@ func (p *Parser) printOption(w io.Writer, spec *spec) {
 }
 
 func synopsis(spec *spec, form string) string {
-	if spec.boolean {
+	if spec.cardinality == zero {
 		return form
 	}
 	return form + " " + spec.placeholder
