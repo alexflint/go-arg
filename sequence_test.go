@@ -127,3 +127,26 @@ func TestSetMapMalformed(t *testing.T) {
 	err := setMap(reflect.ValueOf(&m).Elem(), entries, true)
 	assert.Error(t, err)
 }
+
+func TestSetSliceOrMapErrors(t *testing.T) {
+	var err error
+	var dest reflect.Value
+
+	// converting a slice to a reflect.Value in this way will make it read only
+	var cannotSet []int
+	dest = reflect.ValueOf(cannotSet)
+	err = setSliceOrMap(dest, nil, false)
+	assert.Error(t, err)
+
+	// check what happens when we pass in something that is not a slice or a map
+	var notSliceOrMap string
+	dest = reflect.ValueOf(&notSliceOrMap).Elem()
+	err = setSliceOrMap(dest, nil, false)
+	assert.Error(t, err)
+
+	// check what happens when we pass in a pointer to something that is not a slice or a map
+	var stringPtr *string
+	dest = reflect.ValueOf(&stringPtr).Elem()
+	err = setSliceOrMap(dest, nil, false)
+	assert.Error(t, err)
+}
