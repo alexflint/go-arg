@@ -11,7 +11,11 @@ import (
 const colWidth = 25
 
 // to allow monkey patching in tests
-var stderr = os.Stderr
+var (
+	stdout io.Writer = os.Stdout
+	stderr io.Writer = os.Stderr
+	osExit           = os.Exit
+)
 
 // Fail prints usage information to stderr and exits with non-zero status
 func (p *Parser) Fail(msg string) {

@@ -1,6 +1,7 @@
 package arg
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -46,6 +47,17 @@ func TestMinimalSubcommand(t *testing.T) {
 	assert.NotNil(t, args.List)
 	assert.Equal(t, args.List, p.Subcommand())
 	assert.Equal(t, []string{"list"}, p.SubcommandNames())
+}
+
+func TestSubcommandNamesBeforeParsing(t *testing.T) {
+	type listCmd struct{}
+	var args struct {
+		List *listCmd `arg:"subcommand"`
+	}
+	p, err := NewParser(Config{}, &args)
+	require.NoError(t, err)
+	assert.Nil(t, p.Subcommand())
+	assert.Nil(t, p.SubcommandNames())
 }
 
 func TestNoSuchSubcommand(t *testing.T) {
@@ -176,6 +188,36 @@ func TestSubcommandsWithOptions(t *testing.T) {
 		assert.NotNil(t, args.Get)
 		assert.Nil(t, args.List)
 		assert.Equal(t, args.Get.Name, "test")
+	}
+}
+
+func TestSubcommandsWithEnvVars(t *testing.T) {
+	type getCmd struct {
+		Name string `arg:"env"`
+	}
+	type listCmd struct {
+		Limit int `arg:"env"`
+	}
+	type cmd struct {
+		Verbose bool
+		Get     *getCmd  `arg:"subcommand"`
+		List    *listCmd `arg:"subcommand"`
+	}
+
+	{
+		var args cmd
+		setenv(t, "LIMIT", "123")
+		err := parse("list", &args)
+		require.NoError(t, err)
+		require.NotNil(t, args.List)
+		assert.Equal(t, 123, args.List.Limit)
+	}
+
+	{
+		var args cmd
+		setenv(t, "LIMIT", "not_an_integer")
+		err := parse("list", &args)
+		assert.Error(t, err)
 	}
 }
 
@@ -352,4 +394,20 @@ func TestSubcommandsWithMultiplePositionals(t *testing.T) {
 		assert.Equal(t, []string{"item1", "item2"}, args.Get.Items)
 		assert.Equal(t, 5, args.Limit)
 	}
+}
+
+func TestValForNilStruct(t *testing.T) {
+	type subcmd struct{}
+	var cmd struct {
+		Sub *subcmd `arg:"subcommand"`
+	}
+
+	p, err := NewParser(Config{}, &cmd)
+	require.NoError(t, err)
+
+	typ := reflect.TypeOf(cmd)
+	subField, _ := typ.FieldByName("Sub")
+
+	v := p.val(path{fields: []reflect.StructField{subField, subField}})
+	assert.False(t, v.IsValid())
 }

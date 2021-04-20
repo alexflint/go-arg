@@ -94,3 +94,15 @@ func isExported(field string) bool {
 	r, _ := utf8.DecodeRuneInString(field) // returns RuneError for empty string or invalid UTF8
 	return unicode.IsLetter(r) && unicode.IsUpper(r)
 }
+
+// isZero returns true if v contains the zero value for its type
+func isZero(v reflect.Value) bool {
+	t := v.Type()
+	if t.Kind() == reflect.Slice || t.Kind() == reflect.Map {
+		return v.IsNil()
+	}
+	if !t.Comparable() {
+		return false
+	}
+	return v.Interface() == reflect.Zero(t).Interface()
+}
