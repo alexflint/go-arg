@@ -45,9 +45,8 @@ func cardinalityOf(t reflect.Type) (cardinality, error) {
 	if scalar.CanParse(t) {
 		if isBoolean(t) {
 			return zero, nil
-		} else {
-			return one, nil
 		}
+		return one, nil
 	}
 
 	// look inside pointer types
