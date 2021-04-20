@@ -33,9 +33,10 @@ func (n *NameDotName) MarshalText() (text []byte, err error) {
 }
 
 func TestWriteUsage(t *testing.T) {
-	expectedUsage := "Usage: example [--name NAME] [--value VALUE] [--verbose] [--dataset DATASET] [--optimize OPTIMIZE] [--ids IDS] [--values VALUES] [--workers WORKERS] [--testenv TESTENV] [--file FILE] INPUT [OUTPUT [OUTPUT ...]]\n"
+	expectedUsage := "Usage: example [--name NAME] [--value VALUE] [--verbose] [--dataset DATASET] [--optimize OPTIMIZE] [--ids IDS] [--values VALUES] [--workers WORKERS] [--testenv TESTENV] [--file FILE] INPUT [OUTPUT [OUTPUT ...]]"
 
-	expectedHelp := `Usage: example [--name NAME] [--value VALUE] [--verbose] [--dataset DATASET] [--optimize OPTIMIZE] [--ids IDS] [--values VALUES] [--workers WORKERS] [--testenv TESTENV] [--file FILE] INPUT [OUTPUT [OUTPUT ...]]
+	expectedHelp := `
+Usage: example [--name NAME] [--value VALUE] [--verbose] [--dataset DATASET] [--optimize OPTIMIZE] [--ids IDS] [--values VALUES] [--workers WORKERS] [--testenv TESTENV] [--file FILE] INPUT [OUTPUT [OUTPUT ...]]
 
 Positional arguments:
   INPUT
@@ -56,6 +57,7 @@ Options:
   --file FILE, -f FILE   File with mandatory extension [default: scratch.txt]
   --help, -h             display this help and exit
 `
+
 	var args struct {
 		Input    string       `arg:"positional"`
 		Output   []string     `arg:"positional" help:"list of outputs"`
@@ -79,13 +81,13 @@ Options:
 
 	os.Args[0] = "example"
 
-	var usage bytes.Buffer
-	p.WriteUsage(&usage)
-	assert.Equal(t, expectedUsage, usage.String())
-
 	var help bytes.Buffer
 	p.WriteHelp(&help)
-	assert.Equal(t, expectedHelp, help.String())
+	assert.Equal(t, expectedHelp[1:], help.String())
+
+	var usage bytes.Buffer
+	p.WriteUsage(&usage)
+	assert.Equal(t, expectedUsage, strings.TrimSpace(usage.String()))
 }
 
 type MyEnum int
@@ -99,7 +101,10 @@ func (n *MyEnum) MarshalText() ([]byte, error) {
 }
 
 func TestUsageWithDefaults(t *testing.T) {
-	expectedHelp := `Usage: example [--label LABEL] [--content CONTENT]
+	expectedUsage := "Usage: example [--label LABEL] [--content CONTENT]"
+
+	expectedHelp := `
+Usage: example [--label LABEL] [--content CONTENT]
 
 Options:
   --label LABEL [default: cat]
@@ -118,7 +123,11 @@ Options:
 
 	var help bytes.Buffer
 	p.WriteHelp(&help)
-	assert.Equal(t, expectedHelp, help.String())
+	assert.Equal(t, expectedHelp[1:], help.String())
+
+	var usage bytes.Buffer
+	p.WriteUsage(&usage)
+	assert.Equal(t, expectedUsage, strings.TrimSpace(usage.String()))
 }
 
 func TestUsageCannotMarshalToString(t *testing.T) {
@@ -132,7 +141,10 @@ func TestUsageCannotMarshalToString(t *testing.T) {
 }
 
 func TestUsageLongPositionalWithHelp_legacyForm(t *testing.T) {
-	expectedHelp := `Usage: example VERYLONGPOSITIONALWITHHELP
+	expectedUsage := "Usage: example VERYLONGPOSITIONALWITHHELP"
+
+	expectedHelp := `
+Usage: example VERYLONGPOSITIONALWITHHELP
 
 Positional arguments:
   VERYLONGPOSITIONALWITHHELP
@@ -145,17 +157,23 @@ Options:
 		VeryLongPositionalWithHelp string `arg:"positional,help:this positional argument is very long but cannot include commas"`
 	}
 
-	p, err := NewParser(Config{}, &args)
+	p, err := NewParser(Config{Program: "example"}, &args)
 	require.NoError(t, err)
 
-	os.Args[0] = "example"
 	var help bytes.Buffer
 	p.WriteHelp(&help)
-	assert.Equal(t, expectedHelp, help.String())
+	assert.Equal(t, expectedHelp[1:], help.String())
+
+	var usage bytes.Buffer
+	p.WriteUsage(&usage)
+	assert.Equal(t, expectedUsage, strings.TrimSpace(usage.String()))
 }
 
 func TestUsageLongPositionalWithHelp_newForm(t *testing.T) {
-	expectedHelp := `Usage: example VERYLONGPOSITIONALWITHHELP
+	expectedUsage := "Usage: example VERYLONGPOSITIONALWITHHELP"
+
+	expectedHelp := `
+Usage: example VERYLONGPOSITIONALWITHHELP
 
 Positional arguments:
   VERYLONGPOSITIONALWITHHELP
@@ -168,17 +186,23 @@ Options:
 		VeryLongPositionalWithHelp string `arg:"positional" help:"this positional argument is very long, and includes: commas, colons etc"`
 	}
 
-	p, err := NewParser(Config{}, &args)
+	p, err := NewParser(Config{Program: "example"}, &args)
 	require.NoError(t, err)
 
-	os.Args[0] = "example"
 	var help bytes.Buffer
 	p.WriteHelp(&help)
-	assert.Equal(t, expectedHelp, help.String())
+	assert.Equal(t, expectedHelp[1:], help.String())
+
+	var usage bytes.Buffer
+	p.WriteUsage(&usage)
+	assert.Equal(t, expectedUsage, strings.TrimSpace(usage.String()))
 }
 
 func TestUsageWithProgramName(t *testing.T) {
-	expectedHelp := `Usage: myprogram
+	expectedUsage := "Usage: myprogram"
+
+	expectedHelp := `
+Usage: myprogram
 
 Options:
   --help, -h             display this help and exit
@@ -190,9 +214,14 @@ Options:
 	require.NoError(t, err)
 
 	os.Args[0] = "example"
+
 	var help bytes.Buffer
 	p.WriteHelp(&help)
-	assert.Equal(t, expectedHelp, help.String())
+	assert.Equal(t, expectedHelp[1:], help.String())
+
+	var usage bytes.Buffer
+	p.WriteUsage(&usage)
+	assert.Equal(t, expectedUsage, strings.TrimSpace(usage.String()))
 }
 
 type versioned struct{}
@@ -203,7 +232,10 @@ func (versioned) Version() string {
 }
 
 func TestUsageWithVersion(t *testing.T) {
-	expectedHelp := `example 3.2.1
+	expectedUsage := "example 3.2.1\nUsage: example"
+
+	expectedHelp := `
+example 3.2.1
 Usage: example
 
 Options:
@@ -216,12 +248,11 @@ Options:
 
 	var help bytes.Buffer
 	p.WriteHelp(&help)
-	actual := help.String()
-	if expectedHelp != actual {
-		t.Logf("Expected:\n%s", expectedHelp)
-		t.Logf("Actual:\n%s", actual)
-		t.Fail()
-	}
+	assert.Equal(t, expectedHelp[1:], help.String())
+
+	var usage bytes.Buffer
+	p.WriteUsage(&usage)
+	assert.Equal(t, expectedUsage, strings.TrimSpace(usage.String()))
 }
 
 type described struct{}
@@ -232,7 +263,10 @@ func (described) Description() string {
 }
 
 func TestUsageWithDescription(t *testing.T) {
-	expectedHelp := `this program does this and that
+	expectedUsage := "Usage: example"
+
+	expectedHelp := `
+this program does this and that
 Usage: example
 
 Options:
@@ -244,16 +278,18 @@ Options:
 
 	var help bytes.Buffer
 	p.WriteHelp(&help)
-	actual := help.String()
-	if expectedHelp != actual {
-		t.Logf("Expected:\n%s", expectedHelp)
-		t.Logf("Actual:\n%s", actual)
-		t.Fail()
-	}
+	assert.Equal(t, expectedHelp[1:], help.String())
+
+	var usage bytes.Buffer
+	p.WriteUsage(&usage)
+	assert.Equal(t, expectedUsage, strings.TrimSpace(usage.String()))
 }
 
 func TestRequiredMultiplePositionals(t *testing.T) {
-	expectedHelp := `Usage: example REQUIREDMULTIPLE [REQUIREDMULTIPLE ...]
+	expectedUsage := "Usage: example REQUIREDMULTIPLE [REQUIREDMULTIPLE ...]"
+
+	expectedHelp := `
+Usage: example REQUIREDMULTIPLE [REQUIREDMULTIPLE ...]
 
 Positional arguments:
   REQUIREDMULTIPLE       required multiple positional
@@ -270,11 +306,18 @@ Options:
 
 	var help bytes.Buffer
 	p.WriteHelp(&help)
-	assert.Equal(t, expectedHelp, help.String())
+	assert.Equal(t, expectedHelp[1:], help.String())
+
+	var usage bytes.Buffer
+	p.WriteUsage(&usage)
+	assert.Equal(t, expectedUsage, strings.TrimSpace(usage.String()))
 }
 
 func TestUsageWithNestedSubcommands(t *testing.T) {
-	expectedHelp := `Usage: example child nested [--enable] OUTPUT
+	expectedUsage := "Usage: example child nested [--enable] OUTPUT"
+
+	expectedHelp := `
+Usage: example child nested [--enable] OUTPUT
 
 Positional arguments:
   OUTPUT
@@ -307,11 +350,18 @@ Global options:
 
 	var help bytes.Buffer
 	p.WriteHelp(&help)
-	assert.Equal(t, expectedHelp, help.String())
+	assert.Equal(t, expectedHelp[1:], help.String())
+
+	var usage bytes.Buffer
+	p.WriteUsage(&usage)
+	assert.Equal(t, expectedUsage, strings.TrimSpace(usage.String()))
 }
 
 func TestUsageWithoutLongNames(t *testing.T) {
-	expectedHelp := `Usage: example [-a PLACEHOLDER] -b SHORTONLY2
+	expectedUsage := "Usage: example [-a PLACEHOLDER] -b SHORTONLY2"
+
+	expectedHelp := `
+Usage: example [-a PLACEHOLDER] -b SHORTONLY2
 
 Options:
   -a PLACEHOLDER         some help [default: some val]
@@ -324,13 +374,21 @@ Options:
 	}
 	p, err := NewParser(Config{Program: "example"}, &args)
 	assert.NoError(t, err)
+
 	var help bytes.Buffer
 	p.WriteHelp(&help)
-	assert.Equal(t, expectedHelp, help.String())
+	assert.Equal(t, expectedHelp[1:], help.String())
+
+	var usage bytes.Buffer
+	p.WriteUsage(&usage)
+	assert.Equal(t, expectedUsage, strings.TrimSpace(usage.String()))
 }
 
 func TestUsageWithShortFirst(t *testing.T) {
-	expectedHelp := `Usage: example [-c CAT] [--dog DOG]
+	expectedUsage := "Usage: example [-c CAT] [--dog DOG]"
+
+	expectedHelp := `
+Usage: example [-c CAT] [--dog DOG]
 
 Options:
   -c CAT
@@ -343,13 +401,21 @@ Options:
 	}
 	p, err := NewParser(Config{Program: "example"}, &args)
 	assert.NoError(t, err)
+
 	var help bytes.Buffer
 	p.WriteHelp(&help)
-	assert.Equal(t, expectedHelp, help.String())
+	assert.Equal(t, expectedHelp[1:], help.String())
+
+	var usage bytes.Buffer
+	p.WriteUsage(&usage)
+	assert.Equal(t, expectedUsage, strings.TrimSpace(usage.String()))
 }
 
 func TestUsageWithEnvOptions(t *testing.T) {
-	expectedHelp := `Usage: example [-s SHORT]
+	expectedUsage := "Usage: example [-s SHORT]"
+
+	expectedHelp := `
+Usage: example [-s SHORT]
 
 Options:
   -s SHORT [env: SHORT]
@@ -363,7 +429,42 @@ Options:
 
 	p, err := NewParser(Config{Program: "example"}, &args)
 	assert.NoError(t, err)
+
 	var help bytes.Buffer
 	p.WriteHelp(&help)
-	assert.Equal(t, expectedHelp, help.String())
+	assert.Equal(t, expectedHelp[1:], help.String())
+
+	var usage bytes.Buffer
+	p.WriteUsage(&usage)
+	assert.Equal(t, expectedUsage, strings.TrimSpace(usage.String()))
+}
+
+func TestFail(t *testing.T) {
+	originalStderr := stderr
+	originalExit := osExit
+	defer func() {
+		stderr = originalStderr
+		osExit = originalExit
+	}()
+
+	var b bytes.Buffer
+	stderr = &b
+
+	var exitCode int
+	osExit = func(code int) { exitCode = code }
+
+	expectedStdout := `
+Usage: example [--foo FOO]
+error: something went wrong
+`
+
+	var args struct {
+		Foo int
+	}
+	p, err := NewParser(Config{Program: "example"}, &args)
+	require.NoError(t, err)
+	p.Fail("something went wrong")
+
+	assert.Equal(t, expectedStdout[1:], b.String())
+	assert.Equal(t, -1, exitCode)
 }

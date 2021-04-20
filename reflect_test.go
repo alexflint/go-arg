@@ -89,3 +89,24 @@ func TestCardinalityString(t *testing.T) {
 	assert.Equal(t, "unsupported", unsupported.String())
 	assert.Equal(t, "unknown(42)", cardinality(42).String())
 }
+
+func TestIsZero(t *testing.T) {
+	var zero int
+	var notZero = 3
+	var nilSlice []int
+	var nonNilSlice = []int{1, 2, 3}
+	var nilMap map[string]string
+	var nonNilMap = map[string]string{"foo": "bar"}
+	var uncomparable = func() {}
+
+	assert.True(t, isZero(reflect.ValueOf(zero)))
+	assert.False(t, isZero(reflect.ValueOf(notZero)))
+
+	assert.True(t, isZero(reflect.ValueOf(nilSlice)))
+	assert.False(t, isZero(reflect.ValueOf(nonNilSlice)))
+
+	assert.True(t, isZero(reflect.ValueOf(nilMap)))
+	assert.False(t, isZero(reflect.ValueOf(nonNilMap)))
+
+	assert.False(t, isZero(reflect.ValueOf(uncomparable)))
+}

@@ -13,9 +13,6 @@ import (
 	scalar "github.com/alexflint/go-scalar"
 )
 
-// to enable monkey-patching during tests
-var osExit = os.Exit
-
 // path represents a sequence of steps to find the output location for an
 // argument or subcommand in the final destination struct
 type path struct {
@@ -80,7 +77,7 @@ var ErrVersion = errors.New("version requested by user")
 func MustParse(dest ...interface{}) *Parser {
 	p, err := NewParser(Config{}, dest...)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Fprintln(stdout, err)
 		osExit(-1)
 		return nil // just in case osExit was monkey-patched
 	}
@@ -88,10 +85,10 @@ func MustParse(dest ...interface{}) *Parser {
 	err = p.Parse(flags())
 	switch {
 	case err == ErrHelp:
-		p.writeHelpForCommand(os.Stdout, p.lastCmd)
+		p.writeHelpForCommand(stdout, p.lastCmd)
 		osExit(0)
 	case err == ErrVersion:
-		fmt.Println(p.version)
+		fmt.Fprintln(stdout, p.version)
 		osExit(0)
 	case err != nil:
 		p.failWithCommand(err.Error(), p.lastCmd)
@@ -688,15 +685,7 @@ func (p *Parser) val(dest path) reflect.Value {
 			v = v.Elem()
 		}
 
-		next := v.FieldByIndex(field.Index)
-		if !next.IsValid() {
-			// it is appropriate to panic here because this can only happen due to
-			// an internal bug in this library (since we construct the path ourselves
-			// by reflecting on the same struct)
-			panic(fmt.Errorf("error resolving path %v: %v has no field named %v",
-				dest.fields, v.Type(), field))
-		}
-		v = next
+		v = v.FieldByIndex(field.Index)
 	}
 	return v
 }
@@ -722,16 +711,4 @@ func findSubcommand(cmds []*command, name string) *command {
 		}
 	}
 	return nil
-}
-
-// isZero returns true if v contains the zero value for its type
-func isZero(v reflect.Value) bool {
-	t := v.Type()
-	if t.Kind() == reflect.Slice || t.Kind() == reflect.Map {
-		return v.IsNil()
-	}
-	if !t.Comparable() {
-		return false
-	}
-	return v.Interface() == reflect.Zero(t).Interface()
 }

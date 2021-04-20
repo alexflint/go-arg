@@ -1,6 +1,7 @@
 package arg
 
 import (
+	"bytes"
 	"net"
 	"net/mail"
 	"os"
@@ -461,7 +462,7 @@ func TestMissingValueAtEnd(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestMissingValueInMIddle(t *testing.T) {
+func TestMissingValueInMiddle(t *testing.T) {
 	var args struct {
 		Foo string
 		Bar string
@@ -544,6 +545,14 @@ func TestNoMoreOptions(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "", args.Foo)
 	assert.Equal(t, []string{"abc", "--foo", "xyz"}, args.Bar)
+}
+
+func TestNoMoreOptionsBeforeHelp(t *testing.T) {
+	var args struct {
+		Foo int
+	}
+	err := parse("not_an_integer -- --help", &args)
+	assert.NotEqual(t, ErrHelp, err)
 }
 
 func TestHelpFlag(t *testing.T) {
@@ -1298,4 +1307,71 @@ func TestUnexportedFieldsSkipped(t *testing.T) {
 
 	_, err := NewParser(Config{}, &args)
 	require.NoError(t, err)
+}
+
+func TestMustParseInvalidParser(t *testing.T) {
+	originalExit := osExit
+	originalStdout := stdout
+	defer func() {
+		osExit = originalExit
+		stdout = originalStdout
+	}()
+
+	var exitCode int
+	osExit = func(code int) { exitCode = code }
+	stdout = &bytes.Buffer{}
+
+	var args struct {
+		CannotParse struct{}
+	}
+	parser := MustParse(&args)
+	assert.Nil(t, parser)
+	assert.Equal(t, -1, exitCode)
+}
+
+func TestMustParsePrintsHelp(t *testing.T) {
+	originalExit := osExit
+	originalStdout := stdout
+	originalArgs := os.Args
+	defer func() {
+		osExit = originalExit
+		stdout = originalStdout
+		os.Args = originalArgs
+	}()
+
+	var exitCode *int
+	osExit = func(code int) { exitCode = &code }
+	os.Args = []string{"someprogram", "--help"}
+	stdout = &bytes.Buffer{}
+
+	var args struct{}
+	parser := MustParse(&args)
+	assert.NotNil(t, parser)
+	require.NotNil(t, exitCode)
+	assert.Equal(t, 0, *exitCode)
+}
+
+func TestMustParsePrintsVersion(t *testing.T) {
+	originalExit := osExit
+	originalStdout := stdout
+	originalArgs := os.Args
+	defer func() {
+		osExit = originalExit
+		stdout = originalStdout
+		os.Args = originalArgs
+	}()
+
+	var exitCode *int
+	osExit = func(code int) { exitCode = &code }
+	os.Args = []string{"someprogram", "--version"}
+
+	var b bytes.Buffer
+	stdout = &b
+
+	var args versioned
+	parser := MustParse(&args)
+	require.NotNil(t, parser)
+	require.NotNil(t, exitCode)
+	assert.Equal(t, 0, *exitCode)
+	assert.Equal(t, "example 3.2.1\n", b.String())
 }
