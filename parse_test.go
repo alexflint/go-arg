@@ -721,6 +721,15 @@ func TestEnvironmentVariableSliceArgumentString(t *testing.T) {
 	assert.Equal(t, []string{"bar", "baz, qux"}, args.Foo)
 }
 
+func TestEnvironmentVariableSliceEmpty(t *testing.T) {
+	var args struct {
+		Foo []string `arg:"env"`
+	}
+	_, err := parseWithEnv("", []string{`FOO=`}, &args)
+	require.NoError(t, err)
+	assert.Len(t, args.Foo, 0)
+}
+
 func TestEnvironmentVariableSliceArgumentInteger(t *testing.T) {
 	var args struct {
 		Foo []int `arg:"env"`
@@ -773,6 +782,15 @@ func TestEnvironmentVariableMap(t *testing.T) {
 	assert.Len(t, args.Foo, 2)
 	assert.Equal(t, "one", args.Foo[1])
 	assert.Equal(t, "ninetynine", args.Foo[99])
+}
+
+func TestEnvironmentVariableEmptyMap(t *testing.T) {
+	var args struct {
+		Foo map[int]string `arg:"env"`
+	}
+	_, err := parseWithEnv("", []string{`FOO=`}, &args)
+	require.NoError(t, err)
+	assert.Len(t, args.Foo, 0)
 }
 
 func TestEnvironmentVariableIgnored(t *testing.T) {
