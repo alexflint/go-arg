@@ -441,13 +441,17 @@ func (p *Parser) captureEnvVars(specs []*spec, wasPresent map[*spec]bool) error 
 		if spec.cardinality == multiple {
 			// expect a CSV string in an environment
 			// variable in the case of multiple values
-			values, err := csv.NewReader(strings.NewReader(value)).Read()
-			if err != nil {
-				return fmt.Errorf(
-					"error reading a CSV string from environment variable %s with multiple values: %v",
-					spec.env,
-					err,
-				)
+			var values []string
+			var err error
+			if len(strings.TrimSpace(value)) > 0 {
+				values, err = csv.NewReader(strings.NewReader(value)).Read()
+				if err != nil {
+					return fmt.Errorf(
+						"error reading a CSV string from environment variable %s with multiple values: %v",
+						spec.env,
+						err,
+					)
+				}
 			}
 			if err = setSliceOrMap(p.val(spec.dest), values, !spec.separate); err != nil {
 				return fmt.Errorf(
