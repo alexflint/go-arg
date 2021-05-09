@@ -310,9 +310,6 @@ func (p *Parser) lookupCommand(path ...string) (*command, error) {
 			}
 		}
 		if found == nil {
-			if cmd.name == "" {
-				return nil, fmt.Errorf("%q is not a top-level subcommand", name)
-			}
 			return nil, fmt.Errorf("%q is not a subcommand of %s", name, cmd.name)
 		}
 		cmd = found
