@@ -19,12 +19,27 @@ var (
 
 // Fail prints usage information to stderr and exits with non-zero status
 func (p *Parser) Fail(msg string) {
-	p.failWithCommand(msg, p.cmd)
+	p.failWithSubcommand(msg, p.cmd)
 }
 
-// failWithCommand prints usage information for the given subcommand to stderr and exits with non-zero status
-func (p *Parser) failWithCommand(msg string, cmd *command) {
-	p.writeUsageForCommand(stderr, cmd)
+// FailSubcommand prints usage information for a specified subcommand to stderr,
+// then exits with non-zero status. To write usage information for a top-level
+// subcommand, provide just the name of that subcommand. To write usage
+// information for a subcommand that is nested under another subcommand, provide
+// a sequence of subcommand names starting with the top-level subcommand and so
+// on down the tree.
+func (p *Parser) FailSubcommand(msg string, subcommand ...string) error {
+	cmd, err := p.lookupCommand(subcommand...)
+	if err != nil {
+		return err
+	}
+	p.failWithSubcommand(msg, cmd)
+	return nil
+}
+
+// failWithSubcommand prints usage information for the given subcommand to stderr and exits with non-zero status
+func (p *Parser) failWithSubcommand(msg string, cmd *command) {
+	p.writeUsageForSubcommand(stderr, cmd)
 	fmt.Fprintln(stderr, "error:", msg)
 	osExit(-1)
 }
@@ -35,11 +50,25 @@ func (p *Parser) WriteUsage(w io.Writer) {
 	if p.lastCmd != nil {
 		cmd = p.lastCmd
 	}
-	p.writeUsageForCommand(w, cmd)
+	p.writeUsageForSubcommand(w, cmd)
 }
 
-// writeUsageForCommand writes usage information for the given subcommand
-func (p *Parser) writeUsageForCommand(w io.Writer, cmd *command) {
+// WriteUsageForSubcommand writes the usage information for a specified
+// subcommand. To write usage information for a top-level subcommand, provide
+// just the name of that subcommand. To write usage information for a subcommand
+// that is nested under another subcommand, provide a sequence of subcommand
+// names starting with the top-level subcommand and so on down the tree.
+func (p *Parser) WriteUsageForSubcommand(w io.Writer, subcommand ...string) error {
+	cmd, err := p.lookupCommand(subcommand...)
+	if err != nil {
+		return err
+	}
+	p.writeUsageForSubcommand(w, cmd)
+	return nil
+}
+
+// writeUsageForSubcommand writes usage information for the given subcommand
+func (p *Parser) writeUsageForSubcommand(w io.Writer, cmd *command) {
 	var positionals, longOptions, shortOptions []*spec
 	for _, spec := range cmd.specs {
 		switch {
@@ -158,11 +187,25 @@ func (p *Parser) WriteHelp(w io.Writer) {
 	if p.lastCmd != nil {
 		cmd = p.lastCmd
 	}
-	p.writeHelpForCommand(w, cmd)
+	p.writeHelpForSubcommand(w, cmd)
+}
+
+// WriteHelpForSubcommand writes the usage string followed by the full help
+// string for a specified subcommand. To write help for a top-level subcommand,
+// provide just the name of that subcommand. To write help for a subcommand that
+// is nested under another subcommand, provide a sequence of subcommand names
+// starting with the top-level subcommand and so on down the tree.
+func (p *Parser) WriteHelpForSubcommand(w io.Writer, subcommand ...string) error {
+	cmd, err := p.lookupCommand(subcommand...)
+	if err != nil {
+		return err
+	}
+	p.writeHelpForSubcommand(w, cmd)
+	return nil
 }
 
 // writeHelp writes the usage string for the given subcommand
-func (p *Parser) writeHelpForCommand(w io.Writer, cmd *command) {
+func (p *Parser) writeHelpForSubcommand(w io.Writer, cmd *command) {
 	var positionals, longOptions, shortOptions []*spec
 	for _, spec := range cmd.specs {
 		switch {
@@ -178,7 +221,7 @@ func (p *Parser) writeHelpForCommand(w io.Writer, cmd *command) {
 	if p.description != "" {
 		fmt.Fprintln(w, p.description)
 	}
-	p.writeUsageForCommand(w, cmd)
+	p.writeUsageForSubcommand(w, cmd)
 
 	// write the list of positionals
 	if len(positionals) > 0 {
@@ -250,6 +293,31 @@ func (p *Parser) printOption(w io.Writer, spec *spec) {
 	if len(ways) > 0 {
 		printTwoCols(w, strings.Join(ways, ", "), spec.help, spec.defaultVal, spec.env)
 	}
+}
+
+// lookupCommand finds a subcommand based on a sequence of subcommand names. The
+// first string should be a top-level subcommand, the next should be a child
+// subcommand of that subcommand, and so on. If no strings are given then the
+// root command is returned. If no such subcommand exists then an error is
+// returned.
+func (p *Parser) lookupCommand(path ...string) (*command, error) {
+	cmd := p.cmd
+	for _, name := range path {
+		var found *command
+		for _, child := range cmd.subcommands {
+			if child.name == name {
+				found = child
+			}
+		}
+		if found == nil {
+			if cmd.name == "" {
+				return nil, fmt.Errorf("%q is not a top-level subcommand", name)
+			}
+			return nil, fmt.Errorf("%q is not a subcommand of %s", name, cmd.name)
+		}
+		cmd = found
+	}
+	return cmd, nil
 }
 
 func synopsis(spec *spec, form string) string {
