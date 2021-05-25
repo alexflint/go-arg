@@ -1095,6 +1095,29 @@ func TestEmbeddedWithDuplicateField2(t *testing.T) {
 	assert.Equal(t, "", args.U.A)
 }
 
+func TestUnexportedEmbedded(t *testing.T) {
+	type embeddedArgs struct {
+		Foo string
+	}
+	var args struct {
+		embeddedArgs
+	}
+	err := parse("--foo bar", &args)
+	require.NoError(t, err)
+	assert.Equal(t, "bar", args.Foo)
+}
+
+func TestIgnoredEmbedded(t *testing.T) {
+	type embeddedArgs struct {
+		Foo string
+	}
+	var args struct {
+		embeddedArgs `arg:"-"`
+	}
+	err := parse("--foo bar", &args)
+	require.Error(t, err)
+}
+
 func TestEmptyArgs(t *testing.T) {
 	origArgs := os.Args
 
