@@ -352,9 +352,45 @@ Global options:
 	p.WriteHelp(&help)
 	assert.Equal(t, expectedHelp[1:], help.String())
 
+	var help2 bytes.Buffer
+	p.WriteHelpForSubcommand(&help2, "child", "nested")
+	assert.Equal(t, expectedHelp[1:], help2.String())
+
 	var usage bytes.Buffer
 	p.WriteUsage(&usage)
 	assert.Equal(t, expectedUsage, strings.TrimSpace(usage.String()))
+
+	var usage2 bytes.Buffer
+	p.WriteUsageForSubcommand(&usage2, "child", "nested")
+	assert.Equal(t, expectedUsage, strings.TrimSpace(usage2.String()))
+}
+
+func TestNonexistentSubcommand(t *testing.T) {
+	var args struct {
+		sub *struct{} `arg:"subcommand"`
+	}
+	p, err := NewParser(Config{}, &args)
+	require.NoError(t, err)
+
+	var b bytes.Buffer
+
+	err = p.WriteUsageForSubcommand(&b, "does_not_exist")
+	assert.Error(t, err)
+
+	err = p.WriteHelpForSubcommand(&b, "does_not_exist")
+	assert.Error(t, err)
+
+	err = p.FailSubcommand("something went wrong", "does_not_exist")
+	assert.Error(t, err)
+
+	err = p.WriteUsageForSubcommand(&b, "sub", "does_not_exist")
+	assert.Error(t, err)
+
+	err = p.WriteHelpForSubcommand(&b, "sub", "does_not_exist")
+	assert.Error(t, err)
+
+	err = p.FailSubcommand("something went wrong", "sub", "does_not_exist")
+	assert.Error(t, err)
 }
 
 func TestUsageWithoutLongNames(t *testing.T) {
@@ -464,6 +500,38 @@ error: something went wrong
 	p, err := NewParser(Config{Program: "example"}, &args)
 	require.NoError(t, err)
 	p.Fail("something went wrong")
+
+	assert.Equal(t, expectedStdout[1:], b.String())
+	assert.Equal(t, -1, exitCode)
+}
+
+func TestFailSubcommand(t *testing.T) {
+	originalStderr := stderr
+	originalExit := osExit
+	defer func() {
+		stderr = originalStderr
+		osExit = originalExit
+	}()
+
+	var b bytes.Buffer
+	stderr = &b
+
+	var exitCode int
+	osExit = func(code int) { exitCode = code }
+
+	expectedStdout := `
+Usage: example sub
+error: something went wrong
+`
+
+	var args struct {
+		Sub *struct{} `arg:"subcommand"`
+	}
+	p, err := NewParser(Config{Program: "example"}, &args)
+	require.NoError(t, err)
+
+	err = p.FailSubcommand("something went wrong", "sub")
+	require.NoError(t, err)
 
 	assert.Equal(t, expectedStdout[1:], b.String())
 	assert.Equal(t, -1, exitCode)
