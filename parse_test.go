@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"net/mail"
+	"net/url"
 	"os"
 	"strings"
 	"testing"
@@ -959,6 +960,24 @@ func TestPtrToIP(t *testing.T) {
 	err := parse("--host 192.168.0.1", &args)
 	require.NoError(t, err)
 	assert.Equal(t, "192.168.0.1", args.Host.String())
+}
+
+func TestURL(t *testing.T) {
+	var args struct {
+		URL url.URL
+	}
+	err := parse("--url https://example.com/get?item=xyz", &args)
+	require.NoError(t, err)
+	assert.Equal(t, "https://example.com/get?item=xyz", args.URL.String())
+}
+
+func TestPtrToURL(t *testing.T) {
+	var args struct {
+		URL *url.URL
+	}
+	err := parse("--url http://example.com/#xyz", &args)
+	require.NoError(t, err)
+	assert.Equal(t, "http://example.com/#xyz", args.URL.String())
 }
 
 func TestIPSlice(t *testing.T) {

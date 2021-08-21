@@ -308,6 +308,22 @@ func main() {
 
 As usual, any field tagged with `arg:"-"` is ignored.
 
+### Supported types
+
+The following types may be used as arguments:
+- built-in integer types: `int, int8, int16, int32, int64, byte, rune`
+- built-in floating point types: `float32, float64`
+- strings
+- booleans
+- URLs represented as `url.URL`
+- time durations represented as `time.Duration`
+- email addresses represented as `mail.Address`
+- MAC addresses represented as `net.HardwareAddr`
+- pointers to any of the above
+- slices of any of the above
+- maps using any of the above as keys and values
+- any type that implements `encoding.TextUnmarshaler`
+
 ### Custom parsing
 
 Implement `encoding.TextUnmarshaler` to define your own parsing logic.
