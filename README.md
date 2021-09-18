@@ -169,6 +169,17 @@ arg.Foo = "abc"
 arg.MustParse(&args)
 ```
 
+### Combining command line options, environment variables, and default values
+
+You can combine command line arguments, environment variables, and default values. Command line arguments take precedence over environment variables, which take precedence over default values. This means that we check whether a certain option was provided on the command line, then if not, we check for an environment variable (only if an `env` tag was provided), then if none is found, we check for a `default` tag containing a default value.
+
+```go
+var args struct {
+    Test  string `arg:"-t,env:TEST" default:"something"`
+}
+arg.MustParse(&args)
+```
+
 ### Arguments with multiple values
 ```go
 var args struct {
