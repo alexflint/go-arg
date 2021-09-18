@@ -158,19 +158,6 @@ var args struct {
 arg.MustParse(&args)
 ```
 
-### Priority
-
-You can use both command line arguments and environmental variables at the same time.
-The priority is as follows: <b>command line arguments</b> -> if empty we check <b>environmental variables</b> -> and then we use <b>default values</b>
-
-```go
-var args struct {
-    Command  string `arg:"-c,env:COMMAND" help:"Command to execute" default:"remove"`
-    File     string `arg:"-f,env:FILE_NAME"`
-}
-arg.MustParse(&args)
-```
-
 ### Default values (before v1.2)
 
 ```go
@@ -179,6 +166,17 @@ var args struct {
 	Bar bool
 }
 arg.Foo = "abc"
+arg.MustParse(&args)
+```
+
+### Combining command line options, environment variables, and default values
+
+You can combine command line arguments, environment variables, and default values. Command line arguments take precedence over environment variables, which take precedence over default values. This means that we check whether a certain option was provided on the command line, then if not, we check for an environment variable (only if an `env` tag was provided), then if none is found, we check for a `default` tag containing a default value.
+
+```go
+var args struct {
+    Test  string `arg:"-t,env:TEST" default:"something"`
+}
 arg.MustParse(&args)
 ```
 
