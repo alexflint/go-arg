@@ -2,8 +2,12 @@ package arg
 
 import (
 	"fmt"
+	"net"
+	"net/mail"
+	"net/url"
 	"os"
 	"strings"
+	"time"
 )
 
 func split(s string) []string {
@@ -469,4 +473,35 @@ func Example_subcommand() {
 
 	// output:
 	// commit requested with message "what-this-commit-is-about"
+}
+
+func Example_allSupportedTypes() {
+	// These are the args you would pass in on the command line
+	os.Args = []string{}
+
+	var args struct {
+		Bool     bool
+		Byte     byte
+		Rune     rune
+		Int      int
+		Int8     int8
+		Int16    int16
+		Int32    int32
+		Int64    int64
+		Float32  float32
+		Float64  float64
+		String   string
+		Duration time.Duration
+		URL      url.URL
+		Email    mail.Address
+		MAC      net.HardwareAddr
+	}
+
+	// go-arg supports each of the types above, as well as pointers to any of
+	// the above and slices of any of the above. It also supports any types that
+	// implements encoding.TextUnmarshaler.
+
+	MustParse(&args)
+
+	// output:
 }

@@ -169,6 +169,17 @@ arg.Foo = "abc"
 arg.MustParse(&args)
 ```
 
+### Combining command line options, environment variables, and default values
+
+You can combine command line arguments, environment variables, and default values. Command line arguments take precedence over environment variables, which take precedence over default values. This means that we check whether a certain option was provided on the command line, then if not, we check for an environment variable (only if an `env` tag was provided), then if none is found, we check for a `default` tag containing a default value.
+
+```go
+var args struct {
+    Test  string `arg:"-t,env:TEST" default:"something"`
+}
+arg.MustParse(&args)
+```
+
 ### Arguments with multiple values
 ```go
 var args struct {
@@ -307,6 +318,22 @@ func main() {
 ```
 
 As usual, any field tagged with `arg:"-"` is ignored.
+
+### Supported types
+
+The following types may be used as arguments:
+- built-in integer types: `int, int8, int16, int32, int64, byte, rune`
+- built-in floating point types: `float32, float64`
+- strings
+- booleans
+- URLs represented as `url.URL`
+- time durations represented as `time.Duration`
+- email addresses represented as `mail.Address`
+- MAC addresses represented as `net.HardwareAddr`
+- pointers to any of the above
+- slices of any of the above
+- maps using any of the above as keys and values
+- any type that implements `encoding.TextUnmarshaler`
 
 ### Custom parsing
 

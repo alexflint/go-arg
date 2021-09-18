@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"net/mail"
+	"net/url"
 	"os"
 	"strings"
 	"testing"
@@ -961,6 +962,24 @@ func TestPtrToIP(t *testing.T) {
 	assert.Equal(t, "192.168.0.1", args.Host.String())
 }
 
+func TestURL(t *testing.T) {
+	var args struct {
+		URL url.URL
+	}
+	err := parse("--url https://example.com/get?item=xyz", &args)
+	require.NoError(t, err)
+	assert.Equal(t, "https://example.com/get?item=xyz", args.URL.String())
+}
+
+func TestPtrToURL(t *testing.T) {
+	var args struct {
+		URL *url.URL
+	}
+	err := parse("--url http://example.com/#xyz", &args)
+	require.NoError(t, err)
+	assert.Equal(t, "http://example.com/#xyz", args.URL.String())
+}
+
 func TestIPSlice(t *testing.T) {
 	var args struct {
 		Host []net.IP
@@ -1093,6 +1112,29 @@ func TestEmbeddedWithDuplicateField2(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "xyz", args.T.A)
 	assert.Equal(t, "", args.U.A)
+}
+
+func TestUnexportedEmbedded(t *testing.T) {
+	type embeddedArgs struct {
+		Foo string
+	}
+	var args struct {
+		embeddedArgs
+	}
+	err := parse("--foo bar", &args)
+	require.NoError(t, err)
+	assert.Equal(t, "bar", args.Foo)
+}
+
+func TestIgnoredEmbedded(t *testing.T) {
+	type embeddedArgs struct {
+		Foo string
+	}
+	var args struct {
+		embeddedArgs `arg:"-"`
+	}
+	err := parse("--foo bar", &args)
+	require.Error(t, err)
 }
 
 func TestEmptyArgs(t *testing.T) {

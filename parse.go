@@ -257,15 +257,22 @@ func cmdFromStruct(name string, dest path, t reflect.Type) (*command, error) {
 
 	var errs []string
 	walkFields(t, func(field reflect.StructField, t reflect.Type) bool {
-		// Check for the ignore switch in the tag
+		// check for the ignore switch in the tag
 		tag := field.Tag.Get("arg")
-		if tag == "-" || !isExported(field.Name) {
+		if tag == "-" {
 			return false
 		}
 
-		// If this is an embedded struct then recurse into its fields
+		// if this is an embedded struct then recurse into its fields, even if
+		// it is unexported, because exported fields on unexported embedded
+		// structs are still writable
 		if field.Anonymous && field.Type.Kind() == reflect.Struct {
 			return true
+		}
+
+		// ignore any other unexported field
+		if !isExported(field.Name) {
+			return false
 		}
 
 		// duplicate the entire path to avoid slice overwrites
