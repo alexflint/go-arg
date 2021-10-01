@@ -218,7 +218,15 @@ func (p *Parser) writeHelpForSubcommand(w io.Writer, cmd *command) {
 		}
 	}
 
-	if p.description != "" {
+	var description string
+	if v := p.val(cmd.dest); v.IsValid() && !isZero(v) {
+		if d, ok := v.Interface().(Described); ok {
+			description = d.Description()
+		}
+	}
+	if description != "" {
+		fmt.Fprintln(w, description)
+	} else if p.description != "" {
 		fmt.Fprintln(w, p.description)
 	}
 	p.writeUsageForSubcommand(w, cmd)

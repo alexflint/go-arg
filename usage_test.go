@@ -317,6 +317,7 @@ func TestUsageWithNestedSubcommands(t *testing.T) {
 	expectedUsage := "Usage: example child nested [--enable] OUTPUT"
 
 	expectedHelp := `
+this program does this and that
 Usage: example child nested [--enable] OUTPUT
 
 Positional arguments:
@@ -336,6 +337,7 @@ Global options:
 		Child   *struct {
 			Values []float64 `help:"Values"`
 			Nested *struct {
+				described
 				Enable bool
 				Output string `arg:"positional,required"`
 			} `arg:"subcommand:nested"`
