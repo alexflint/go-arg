@@ -203,6 +203,14 @@ func TestRequired(t *testing.T) {
 	require.Error(t, err, "--foo is required")
 }
 
+func TestRequiredWithEnv(t *testing.T) {
+	var args struct {
+		Foo string `arg:"required,env:FOO"`
+	}
+	err := parse("", &args)
+	require.Error(t, err, "--foo is required (or environment variable FOO)")
+}
+
 func TestShortFlag(t *testing.T) {
 	var args struct {
 		Foo string `arg:"-f"`

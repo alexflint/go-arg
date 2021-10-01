@@ -653,7 +653,11 @@ func (p *Parser) process(args []string) error {
 		}
 
 		if spec.required {
-			return fmt.Errorf("%s is required", name)
+			msg := fmt.Sprintf("%s is required", name)
+			if spec.env != "" {
+				msg += " (or environment variable " + spec.env + ")"
+			}
+			return errors.New(msg)
 		}
 		if spec.defaultVal != "" {
 			err := scalar.ParseValue(p.val(spec.dest), spec.defaultVal)
