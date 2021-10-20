@@ -677,6 +677,42 @@ func TestEnvironmentVariable(t *testing.T) {
 	assert.Equal(t, "bar", args.Foo)
 }
 
+func TestEnvironmentVariableInt(t *testing.T) {
+	var args struct {
+		Foo int `arg:"env"`
+	}
+	_, err := parseWithEnv("", []string{"FOO=12"}, &args)
+	require.NoError(t, err)
+	assert.Equal(t, 12, args.Foo)
+}
+
+func TestEnvironmentVariableFloat32(t *testing.T) {
+	var args struct {
+		Foo float32 `arg:"env"`
+	}
+	_, err := parseWithEnv("", []string{"FOO=12.12"}, &args)
+	require.NoError(t, err)
+	assert.Equal(t, float32(12.12), args.Foo)
+}
+
+func TestEnvironmentVariableFloat64(t *testing.T) {
+	var args struct {
+		Foo float64 `arg:"env"`
+	}
+	_, err := parseWithEnv("", []string{"FOO=12.12"}, &args)
+	require.NoError(t, err)
+	assert.Equal(t, 12.12, args.Foo)
+}
+
+func TestEnvironmentVariableBool(t *testing.T) {
+	var args struct {
+		Foo bool `arg:"env"`
+	}
+	_, err := parseWithEnv("", []string{"FOO=true"}, &args)
+	require.NoError(t, err)
+	assert.Equal(t, true, args.Foo)
+}
+
 func TestEnvironmentVariableNotPresent(t *testing.T) {
 	var args struct {
 		NotPresent string `arg:"env"`
@@ -684,6 +720,42 @@ func TestEnvironmentVariableNotPresent(t *testing.T) {
 	_, err := parseWithEnv("", nil, &args)
 	require.NoError(t, err)
 	assert.Equal(t, "", args.NotPresent)
+}
+
+func TestEnvironmentVariableIntValueNotPresent(t *testing.T) {
+	var args struct {
+		Foo int `arg:"env"`
+	}
+	_, err := parseWithEnv("", []string{`FOO=`}, &args)
+	require.NoError(t, err)
+	assert.Equal(t, 0, args.Foo)
+}
+
+func TestEnvironmentVariableFloat32ValueNotPresent(t *testing.T) {
+	var args struct {
+		Foo float32 `arg:"env"`
+	}
+	_, err := parseWithEnv("", []string{`FOO=`}, &args)
+	require.NoError(t, err)
+	assert.Equal(t, float32(0.0), args.Foo)
+}
+
+func TestEnvironmentVariableFloat64ValueNotPresent(t *testing.T) {
+	var args struct {
+		Foo float64 `arg:"env"`
+	}
+	_, err := parseWithEnv("", []string{`FOO=`}, &args)
+	require.NoError(t, err)
+	assert.Equal(t, 0.0, args.Foo)
+}
+
+func TestEnvironmentVariableBoolValueNotPresent(t *testing.T) {
+	var args struct {
+		Foo bool `arg:"env"`
+	}
+	_, err := parseWithEnv("", []string{`FOO=`}, &args)
+	require.NoError(t, err)
+	assert.Equal(t, false, args.Foo)
 }
 
 func TestEnvironmentVariableOverrideName(t *testing.T) {
