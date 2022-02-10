@@ -154,7 +154,7 @@ func Example_helpText() {
 	os.Args = split("./example --help")
 
 	var args struct {
-		Input    string   `arg:"positional"`
+		Input    string   `arg:"positional,required"`
 		Output   []string `arg:"positional"`
 		Verbose  bool     `arg:"-v" help:"verbosity level"`
 		Dataset  string   `help:"dataset to use"`
@@ -188,7 +188,7 @@ func Example_helpPlaceholder() {
 	os.Args = split("./example --help")
 
 	var args struct {
-		Input    string   `arg:"positional" placeholder:"SRC"`
+		Input    string   `arg:"positional,required" placeholder:"SRC"`
 		Output   []string `arg:"positional" placeholder:"DST"`
 		Optimize int      `arg:"-O" help:"optimization level" placeholder:"LEVEL"`
 		MaxJobs  int      `arg:"-j" help:"maximum number of simultaneous jobs" placeholder:"N"`
@@ -259,7 +259,7 @@ func Example_helpTextWhenUsingSubcommand() {
 	os.Args = split("./example get --help")
 
 	type getCmd struct {
-		Item string `arg:"positional" help:"item to fetch"`
+		Item string `arg:"positional,required" help:"item to fetch"`
 	}
 
 	type listCmd struct {
@@ -389,7 +389,7 @@ func Example_errorText() {
 	os.Args = split("./example --optimize INVALID")
 
 	var args struct {
-		Input    string   `arg:"positional"`
+		Input    string   `arg:"positional,required"`
 		Output   []string `arg:"positional"`
 		Verbose  bool     `arg:"-v" help:"verbosity level"`
 		Dataset  string   `help:"dataset to use"`

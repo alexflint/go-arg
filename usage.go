@@ -124,22 +124,32 @@ func (p *Parser) writeUsageForSubcommand(w io.Writer, cmd *command) {
 		}
 	}
 
-	// write the positional component of the usage message
+	// When we parse positionals, we check that:
+	//  1. required positionals come before non-required positionals
+	//  2. there is at most one multiple-value positional
+	//  3. if there is a multiple-value positional then it comes after all other positionals
+	// Here we merely print the usage string, so we do not explicitly re-enforce those rules
+
+	// write the positionals in following form:
+	//    REQUIRED1 REQUIRED2
+	//    REQUIRED1 REQUIRED2 [OPTIONAL1 [OPTIONAL2]]
+	//    REQUIRED1 REQUIRED2 REPEATED [REPEATED ...]
+	//    REQUIRED1 REQUIRED2 [REPEATEDOPTIONAL [REPEATEDOPTIONAL ...]]
+	//    REQUIRED1 REQUIRED2 [OPTIONAL1 [REPEATEDOPTIONAL [REPEATEDOPTIONAL ...]]]
+	var closeBrackets int
 	for _, spec := range positionals {
-		// prefix with a space
 		fmt.Fprint(w, " ")
+		if !spec.required {
+			fmt.Fprint(w, "[")
+			closeBrackets += 1
+		}
 		if spec.cardinality == multiple {
-			if !spec.required {
-				fmt.Fprint(w, "[")
-			}
 			fmt.Fprintf(w, "%s [%s ...]", spec.placeholder, spec.placeholder)
-			if !spec.required {
-				fmt.Fprint(w, "]")
-			}
 		} else {
 			fmt.Fprint(w, spec.placeholder)
 		}
 	}
+	fmt.Fprint(w, strings.Repeat("]", closeBrackets))
 
 	// if the program supports subcommands, give a hint to the user about their existence
 	if len(cmd.subcommands) > 0 {

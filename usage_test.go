@@ -59,7 +59,7 @@ Options:
 `
 
 	var args struct {
-		Input    string       `arg:"positional"`
+		Input    string       `arg:"positional,required"`
 		Output   []string     `arg:"positional" help:"list of outputs"`
 		Name     string       `help:"name to use"`
 		Value    int          `help:"secret value"`
@@ -141,10 +141,10 @@ func TestUsageCannotMarshalToString(t *testing.T) {
 }
 
 func TestUsageLongPositionalWithHelp_legacyForm(t *testing.T) {
-	expectedUsage := "Usage: example VERYLONGPOSITIONALWITHHELP"
+	expectedUsage := "Usage: example [VERYLONGPOSITIONALWITHHELP]"
 
 	expectedHelp := `
-Usage: example VERYLONGPOSITIONALWITHHELP
+Usage: example [VERYLONGPOSITIONALWITHHELP]
 
 Positional arguments:
   VERYLONGPOSITIONALWITHHELP
@@ -170,10 +170,10 @@ Options:
 }
 
 func TestUsageLongPositionalWithHelp_newForm(t *testing.T) {
-	expectedUsage := "Usage: example VERYLONGPOSITIONALWITHHELP"
+	expectedUsage := "Usage: example [VERYLONGPOSITIONALWITHHELP]"
 
 	expectedHelp := `
-Usage: example VERYLONGPOSITIONALWITHHELP
+Usage: example [VERYLONGPOSITIONALWITHHELP]
 
 Positional arguments:
   VERYLONGPOSITIONALWITHHELP
@@ -285,8 +285,74 @@ Options:
 	assert.Equal(t, expectedUsage, strings.TrimSpace(usage.String()))
 }
 
+func TestUsageForRequiredPositionals(t *testing.T) {
+	expectedUsage := "Usage: example REQUIRED1 REQUIRED2\n"
+	var args struct {
+		Required1 string `arg:"positional,required"`
+		Required2 string `arg:"positional,required"`
+	}
+
+	p, err := NewParser(Config{Program: "example"}, &args)
+	require.NoError(t, err)
+
+	var usage bytes.Buffer
+	p.WriteUsage(&usage)
+	assert.Equal(t, expectedUsage, usage.String())
+}
+
+func TestUsageForMixedPositionals(t *testing.T) {
+	expectedUsage := "Usage: example REQUIRED1 REQUIRED2 [OPTIONAL1 [OPTIONAL2]]\n"
+	var args struct {
+		Required1 string `arg:"positional,required"`
+		Required2 string `arg:"positional,required"`
+		Optional1 string `arg:"positional"`
+		Optional2 string `arg:"positional"`
+	}
+
+	p, err := NewParser(Config{Program: "example"}, &args)
+	require.NoError(t, err)
+
+	var usage bytes.Buffer
+	p.WriteUsage(&usage)
+	assert.Equal(t, expectedUsage, usage.String())
+}
+
+func TestUsageForRepeatedPositionals(t *testing.T) {
+	expectedUsage := "Usage: example REQUIRED1 REQUIRED2 REPEATED [REPEATED ...]\n"
+	var args struct {
+		Required1 string   `arg:"positional,required"`
+		Required2 string   `arg:"positional,required"`
+		Repeated  []string `arg:"positional,required"`
+	}
+
+	p, err := NewParser(Config{Program: "example"}, &args)
+	require.NoError(t, err)
+
+	var usage bytes.Buffer
+	p.WriteUsage(&usage)
+	assert.Equal(t, expectedUsage, usage.String())
+}
+
+func TestUsageForMixedAndRepeatedPositionals(t *testing.T) {
+	expectedUsage := "Usage: example REQUIRED1 REQUIRED2 [OPTIONAL1 [OPTIONAL2 [REPEATED [REPEATED ...]]]]\n"
+	var args struct {
+		Required1 string   `arg:"positional,required"`
+		Required2 string   `arg:"positional,required"`
+		Optional1 string   `arg:"positional"`
+		Optional2 string   `arg:"positional"`
+		Repeated  []string `arg:"positional"`
+	}
+
+	p, err := NewParser(Config{Program: "example"}, &args)
+	require.NoError(t, err)
+
+	var usage bytes.Buffer
+	p.WriteUsage(&usage)
+	assert.Equal(t, expectedUsage, usage.String())
+}
+
 func TestRequiredMultiplePositionals(t *testing.T) {
-	expectedUsage := "Usage: example REQUIREDMULTIPLE [REQUIREDMULTIPLE ...]"
+	expectedUsage := "Usage: example REQUIREDMULTIPLE [REQUIREDMULTIPLE ...]\n"
 
 	expectedHelp := `
 Usage: example REQUIREDMULTIPLE [REQUIREDMULTIPLE ...]
@@ -301,7 +367,7 @@ Options:
 		RequiredMultiple []string `arg:"positional,required" help:"required multiple positional"`
 	}
 
-	p, err := NewParser(Config{}, &args)
+	p, err := NewParser(Config{Program: "example"}, &args)
 	require.NoError(t, err)
 
 	var help bytes.Buffer
@@ -310,7 +376,7 @@ Options:
 
 	var usage bytes.Buffer
 	p.WriteUsage(&usage)
-	assert.Equal(t, expectedUsage, strings.TrimSpace(usage.String()))
+	assert.Equal(t, expectedUsage, usage.String())
 }
 
 func TestUsageWithNestedSubcommands(t *testing.T) {
