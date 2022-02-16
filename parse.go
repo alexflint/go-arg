@@ -237,6 +237,12 @@ func NewParser(config Config, dests ...interface{}) (*Parser, error) {
 	return &p, nil
 }
 
+func (p *Parser) GetArgumentSpecs() []*Spec {
+	argSpecs := make([]*Spec, 0, len(p.cmd.specs))
+	argSpecs = append(argSpecs, p.cmd.specs...)
+	return argSpecs
+}
+
 func cmdFromStruct(name string, dest path, t reflect.Type) (*command, error) {
 	// commands can only be created from pointers to structs
 	if t.Kind() != reflect.Ptr {
