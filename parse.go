@@ -41,8 +41,8 @@ func (p path) Child(f reflect.StructField) path {
 	}
 }
 
-// spec represents a command line option
-type spec struct {
+// Spec represents a command line option
+type Spec struct {
 	dest        path
 	field       reflect.StructField // the struct field from which this option was created
 	long        string              // the --long form for this option, or empty if none
@@ -62,7 +62,7 @@ type command struct {
 	name        string
 	help        string
 	dest        path
-	specs       []*spec
+	specs       []*Spec
 	subcommands []*command
 	parent      *command
 }
@@ -277,7 +277,7 @@ func cmdFromStruct(name string, dest path, t reflect.Type) (*command, error) {
 
 		// duplicate the entire path to avoid slice overwrites
 		subdest := dest.Child(field)
-		spec := spec{
+		spec := Spec{
 			dest:  subdest,
 			field: field,
 			long:  strings.ToLower(field.Name),
@@ -434,7 +434,7 @@ func (p *Parser) Parse(args []string) error {
 }
 
 // process environment vars for the given arguments
-func (p *Parser) captureEnvVars(specs []*spec, wasPresent map[*spec]bool) error {
+func (p *Parser) captureEnvVars(specs []*Spec, wasPresent map[*Spec]bool) error {
 	for _, spec := range specs {
 		if spec.env == "" {
 			continue
@@ -482,14 +482,14 @@ func (p *Parser) captureEnvVars(specs []*spec, wasPresent map[*spec]bool) error 
 // the underlying struct field
 func (p *Parser) process(args []string) error {
 	// track the options we have seen
-	wasPresent := make(map[*spec]bool)
+	wasPresent := make(map[*Spec]bool)
 
 	// union of specs for the chain of subcommands encountered so far
 	curCmd := p.cmd
 	p.lastCmd = curCmd
 
 	// make a copy of the specs because we will add to this list each time we expand a subcommand
-	specs := make([]*spec, len(curCmd.specs))
+	specs := make([]*Spec, len(curCmd.specs))
 	copy(specs, curCmd.specs)
 
 	// deal with environment vars
@@ -706,7 +706,7 @@ func (p *Parser) val(dest path) reflect.Value {
 }
 
 // findOption finds an option from its name, or returns null if no spec is found
-func findOption(specs []*spec, name string) *spec {
+func findOption(specs []*Spec, name string) *Spec {
 	for _, spec := range specs {
 		if spec.positional {
 			continue
