@@ -57,6 +57,38 @@ type Spec struct {
 	placeholder string              // name of the data in help
 }
 
+func (s Spec) LongName() string {
+	return s.long
+}
+
+func (s Spec) ShortName() string {
+	return s.short
+}
+
+func (s Spec) IsRequired() bool {
+	return s.required
+}
+
+func (s Spec) IsPositional() bool {
+	return s.positional
+}
+
+func (s Spec) IsSeparate() bool {
+	return s.separate
+}
+
+func (s Spec) Help() string {
+	return s.help
+}
+
+func (s Spec) DefaultVal() string {
+	return s.defaultVal
+}
+
+func (s Spec) Placeholder() string {
+	return s.placeholder
+}
+
 // command represents a named subcommand, or the top-level command
 type command struct {
 	name        string
