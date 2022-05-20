@@ -496,3 +496,19 @@ func Example_allSupportedTypes() {
 
 	// output:
 }
+
+func Example_envVarOnly() {
+	os.Args = split("./example")
+	_ = os.Setenv("NUM_WORKERS", "my_key")
+
+	defer os.Unsetenv("NUM_WORKERS")
+
+	var args struct {
+		AuthKey string `arg:"-,--,env:NUM_WORKERS"`
+	}
+
+	MustParse(&args)
+
+	fmt.Println(args.AuthKey)
+	// output: my_key
+}

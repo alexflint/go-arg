@@ -360,11 +360,6 @@ func cmdFromStruct(name string, dest path, t reflect.Type) (*command, error) {
 			case strings.HasPrefix(key, "--"):
 				spec.long = key[2:]
 			case strings.HasPrefix(key, "-"):
-				if len(key) != 2 {
-					errs = append(errs, fmt.Sprintf("%s.%s: short arguments must be one character only",
-						t.Name(), field.Name))
-					return false
-				}
 				spec.short = key[1:]
 			case key == "required":
 				spec.required = true
