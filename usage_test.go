@@ -646,3 +646,32 @@ Options:
 	p.WriteHelp(&help)
 	assert.Equal(t, expectedHelp[1:], help.String())
 }
+
+func TestFailEnvOnly(t *testing.T) {
+	expectedUsage := "Usage: AUTH_KEY=auth_key_value example [--arg ARG]"
+
+	expectedHelp := `
+Usage: AUTH_KEY=auth_key_value example [--arg ARG]
+
+Options:
+  --arg ARG, -a ARG [env: MY_ARG]
+  --help, -h             display this help and exit
+
+Environment variables:
+  AUTH_KEY
+`
+	var args struct {
+		ArgParam string `arg:"-a,--arg,env:MY_ARG"`
+		AuthKey  string `arg:"-,--,env:AUTH_KEY"`
+	}
+	p, err := NewParser(Config{Program: "example"}, &args)
+	assert.NoError(t, err)
+
+	var help bytes.Buffer
+	p.WriteHelp(&help)
+	assert.Equal(t, expectedHelp[1:], help.String())
+
+	var usage bytes.Buffer
+	p.WriteUsage(&usage)
+	assert.Equal(t, expectedUsage, strings.TrimSpace(usage.String()))
+}

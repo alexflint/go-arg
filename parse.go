@@ -656,7 +656,7 @@ func (p *Parser) process(args []string) error {
 		// lookup the spec for this option (note that the "specs" slice changes as
 		// we expand subcommands so it is better not to use a map)
 		spec := findOption(specs, opt)
-		if spec == nil {
+		if spec == nil || opt == "" {
 			return fmt.Errorf("unknown argument %s", arg)
 		}
 		wasPresent[spec] = true
