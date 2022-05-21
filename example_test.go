@@ -504,7 +504,7 @@ func Example_envVarOnly() {
 	defer os.Unsetenv("AUTH_KEY")
 
 	var args struct {
-		AuthKey string `arg:"-,--,env:AUTH_KEY"`
+		AuthKey string `arg:"--,env:AUTH_KEY"`
 	}
 
 	MustParse(&args)
@@ -517,7 +517,7 @@ func Example_envVarOnlyShouldIgnoreFlag() {
 	os.Args = split("./example --=my_key")
 
 	var args struct {
-		AuthKey string `arg:"-,--,env:AUTH_KEY"`
+		AuthKey string `arg:"--,env:AUTH_KEY"`
 	}
 
 	err := Parse(&args)
@@ -530,7 +530,7 @@ func Example_envVarOnlyShouldIgnoreShortFlag() {
 	os.Args = split("./example -=my_key")
 
 	var args struct {
-		AuthKey string `arg:"-,--,env:AUTH_KEY"`
+		AuthKey string `arg:"--,env:AUTH_KEY"`
 	}
 
 	err := Parse(&args)

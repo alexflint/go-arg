@@ -544,14 +544,18 @@ Options:
 }
 
 func TestUsageWithEnvOptions(t *testing.T) {
-	expectedUsage := "Usage: example [-s SHORT]"
+	expectedUsage := "Usage: [CUSTOM=custom_value] [ENVONLY=envonly_value] example [-s SHORT]"
 
 	expectedHelp := `
-Usage: example [-s SHORT]
+Usage: [CUSTOM=custom_value] [ENVONLY=envonly_value] example [-s SHORT]
 
 Options:
   -s SHORT [env: SHORT]
   --help, -h             display this help and exit
+
+Environment variables:
+  ENVONLY
+  CUSTOM
 `
 	var args struct {
 		Short            string `arg:"--,-s,env"`
@@ -648,10 +652,10 @@ Options:
 }
 
 func TestFailEnvOnly(t *testing.T) {
-	expectedUsage := "Usage: AUTH_KEY=auth_key_value example [--arg ARG]"
+	expectedUsage := "Usage: [AUTH_KEY=auth_key_value] example [--arg ARG]"
 
 	expectedHelp := `
-Usage: AUTH_KEY=auth_key_value example [--arg ARG]
+Usage: [AUTH_KEY=auth_key_value] example [--arg ARG]
 
 Options:
   --arg ARG, -a ARG [env: MY_ARG]
@@ -662,7 +666,7 @@ Environment variables:
 `
 	var args struct {
 		ArgParam string `arg:"-a,--arg,env:MY_ARG"`
-		AuthKey  string `arg:"-,--,env:AUTH_KEY"`
+		AuthKey  string `arg:"--,env:AUTH_KEY"`
 	}
 	p, err := NewParser(Config{Program: "example"}, &args)
 	assert.NoError(t, err)
