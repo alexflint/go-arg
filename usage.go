@@ -92,9 +92,10 @@ func (p *Parser) writeUsageForSubcommand(w io.Writer, cmd *command) {
 		ancestors = append(ancestors, ancestor.name)
 		ancestor = ancestor.parent
 	}
+	// Print environment only variables
 	for _, spec := range cmd.specs {
 		if spec.short == "" && spec.long == "" {
-			ancestors = append(ancestors, spec.env+"="+strings.ToLower(spec.env)+"_value")
+			ancestors = append(ancestors, "["+spec.env+"="+strings.ToLower(spec.env)+"_value"+"]")
 		}
 	}
 
@@ -291,7 +292,7 @@ func (p *Parser) writeHelpForSubcommand(w io.Writer, cmd *command) {
 	}
 
 	// write the list of environment only variables
-	if len(shortOptions)+len(longOptions) > 0 || cmd.parent == nil {
+	if len(envOnlyOptions) > 0 {
 		fmt.Fprint(w, "\nEnvironment variables:\n")
 		for _, spec := range envOnlyOptions {
 			p.printEnvOnlyVar(w, spec)
