@@ -531,7 +531,7 @@ func (p *Parser) process(args []string) error {
 
 			// instantiate the field to point to a new struct
 			v := p.val(subcmd.dest)
-			if !p.config.IgnoreDefault || v.IsNil() {
+			if v.IsNil() {
 				v.Set(reflect.New(v.Type().Elem())) // we already checked that all subcommands are struct pointers
 			}
 
