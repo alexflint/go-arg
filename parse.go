@@ -208,18 +208,41 @@ func NewParser(config Config, dests ...interface{}) (*Parser, error) {
 			return nil, err
 		}
 
-		// add nonzero field values as defaults
+		// for backwards compatibility, add nonzero field values as defaults
 		for _, spec := range cmd.specs {
-			if v := p.val(spec.dest); v.IsValid() && !isZero(v) {
-				if defaultVal, ok := v.Interface().(encoding.TextMarshaler); ok {
-					str, err := defaultVal.MarshalText()
-					if err != nil {
-						return nil, fmt.Errorf("%v: error marshaling default value to string: %v", spec.dest, err)
-					}
-					spec.defaultVal = string(str)
-				} else {
-					spec.defaultVal = fmt.Sprintf("%v", v)
+			// do not read default when UnmarshalText is implemented but not MarshalText
+			if isTextUnmarshaler(spec.field.Type) && !isTextMarshaler(spec.field.Type) {
+				continue
+			}
+
+			// do not process types that require multiple values
+			cardinality, _ := cardinalityOf(spec.field.Type)
+			if cardinality != one {
+				continue
+			}
+
+			// get the value
+			v := p.val(spec.dest)
+			if !v.IsValid() {
+				continue
+			}
+
+			// if MarshalText is implemented then use that
+			if m, ok := v.Interface().(encoding.TextMarshaler); ok {
+				if v.IsNil() {
+					continue
 				}
+				s, err := m.MarshalText()
+				if err != nil {
+					return nil, fmt.Errorf("%v: error marshaling default value to string: %v", spec.dest, err)
+				}
+				spec.defaultVal = string(s)
+				continue
+			}
+
+			// finally, use the value as a default if it is non-zero
+			if !isZero(v) {
+				spec.defaultVal = fmt.Sprintf("%v", v)
 			}
 		}
 

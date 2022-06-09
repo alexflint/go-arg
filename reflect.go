@@ -10,7 +10,10 @@ import (
 	scalar "github.com/alexflint/go-scalar"
 )
 
-var textUnmarshalerType = reflect.TypeOf([]encoding.TextUnmarshaler{}).Elem()
+var (
+	textMarshalerType   = reflect.TypeOf([]encoding.TextMarshaler{}).Elem()
+	textUnmarshalerType = reflect.TypeOf([]encoding.TextUnmarshaler{}).Elem()
+)
 
 // cardinality tracks how many tokens are expected for a given spec
 //  - zero is a boolean, which does to expect any value
@@ -74,10 +77,10 @@ func cardinalityOf(t reflect.Type) (cardinality, error) {
 	}
 }
 
-// isBoolean returns true if the type can be parsed from a single string
+// isBoolean returns true if the type is a boolean or a pointer to a boolean
 func isBoolean(t reflect.Type) bool {
 	switch {
-	case t.Implements(textUnmarshalerType):
+	case isTextUnmarshaler(t):
 		return false
 	case t.Kind() == reflect.Bool:
 		return true
@@ -86,6 +89,16 @@ func isBoolean(t reflect.Type) bool {
 	default:
 		return false
 	}
+}
+
+// isTextMarshaler returns true if the type or its pointer implements encoding.TextMarshaler
+func isTextMarshaler(t reflect.Type) bool {
+	return t.Implements(textMarshalerType) || reflect.PtrTo(t).Implements(textMarshalerType)
+}
+
+// isTextUnmarshaler returns true if the type or its pointer implements encoding.TextUnmarshaler
+func isTextUnmarshaler(t reflect.Type) bool {
+	return t.Implements(textUnmarshalerType) || reflect.PtrTo(t).Implements(textUnmarshalerType)
 }
 
 // isExported returns true if the struct field name is exported

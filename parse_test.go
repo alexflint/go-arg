@@ -2,6 +2,7 @@ package arg
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"net"
 	"net/mail"
@@ -1455,4 +1456,69 @@ func TestMustParsePrintsVersion(t *testing.T) {
 	require.NotNil(t, exitCode)
 	assert.Equal(t, 0, *exitCode)
 	assert.Equal(t, "example 3.2.1\n", b.String())
+}
+
+type jsonMap struct {
+	val map[string]string
+}
+
+func (v *jsonMap) UnmarshalText(data []byte) error {
+	return json.Unmarshal(data, &v.val)
+}
+
+func TestTextUnmarshallerEmpty(t *testing.T) {
+	// based on https://github.com/alexflint/go-arg/issues/184
+	var args struct {
+		Config jsonMap `arg:"--config"`
+	}
+
+	err := parse("", &args)
+	require.NoError(t, err)
+	assert.Empty(t, args.Config)
+}
+
+func TestTextUnmarshallerEmptyPointer(t *testing.T) {
+	// a slight variant on https://github.com/alexflint/go-arg/issues/184
+	var args struct {
+		Config *jsonMap `arg:"--config"`
+	}
+
+	err := parse("", &args)
+	require.NoError(t, err)
+	assert.Nil(t, args.Config)
+}
+
+// similar to the above but also implements MarshalText
+type jsonMap2[T any] struct {
+	val T
+}
+
+func (v *jsonMap2[T]) MarshalText(data []byte) error {
+	return json.Unmarshal(data, &v.val)
+}
+
+func (v *jsonMap2[T]) UnmarshalText(data []byte) error {
+	return json.Unmarshal(data, &v.val)
+}
+
+func TestTextMarshallerUnmarshallerEmpty(t *testing.T) {
+	// based on https://github.com/alexflint/go-arg/issues/184
+	var args struct {
+		Config jsonMap2[map[string]string] `arg:"--config"`
+	}
+
+	err := parse("", &args)
+	require.NoError(t, err)
+	assert.Empty(t, args.Config)
+}
+
+func TestTextMarshallerUnmarshallerEmptyPointer(t *testing.T) {
+	// a slight variant on https://github.com/alexflint/go-arg/issues/184
+	var args struct {
+		Config *jsonMap2[map[string]string] `arg:"--config"`
+	}
+
+	err := parse("", &args)
+	require.NoError(t, err)
+	assert.Nil(t, args.Config)
 }

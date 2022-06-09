@@ -50,7 +50,7 @@ Options:
   --optimize OPTIMIZE, -O OPTIMIZE
                          optimization level
   --ids IDS              Ids
-  --values VALUES        Values [default: [3.14 42 256]]
+  --values VALUES        Values
   --workers WORKERS, -w WORKERS
                          number of workers to start [default: 10, env: WORKERS]
   --testenv TESTENV, -a TESTENV [env: TEST_ENV]
@@ -74,7 +74,6 @@ Options:
 	}
 	args.Name = "Foo Bar"
 	args.Value = 42
-	args.Values = []float64{3.14, 42, 256}
 	args.File = &NameDotName{"scratch", "txt"}
 	p, err := NewParser(Config{Program: "example"}, &args)
 	require.NoError(t, err)
