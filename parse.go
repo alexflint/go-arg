@@ -121,6 +121,10 @@ type Config struct {
 
 	// IgnoreEnv instructs the library not to read environment variables
 	IgnoreEnv bool
+
+	// IgnoreDefault instructs the library not to reset the variables to the
+	// default values, including pointers to sub commands
+	IgnoreDefault bool
 }
 
 // Parser represents a set of command line options with destination values
@@ -527,7 +531,9 @@ func (p *Parser) process(args []string) error {
 
 			// instantiate the field to point to a new struct
 			v := p.val(subcmd.dest)
-			v.Set(reflect.New(v.Type().Elem())) // we already checked that all subcommands are struct pointers
+			if v.IsNil() {
+				v.Set(reflect.New(v.Type().Elem())) // we already checked that all subcommands are struct pointers
+			}
 
 			// add the new options to the set of allowed options
 			specs = append(specs, subcmd.specs...)
@@ -659,7 +665,7 @@ func (p *Parser) process(args []string) error {
 			}
 			return errors.New(msg)
 		}
-		if spec.defaultVal != "" {
+		if !p.config.IgnoreDefault && spec.defaultVal != "" {
 			err := scalar.ParseValue(p.val(spec.dest), spec.defaultVal)
 			if err != nil {
 				return fmt.Errorf("error processing default value for %s: %v", name, err)

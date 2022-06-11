@@ -816,6 +816,19 @@ func TestEnvironmentVariableIgnored(t *testing.T) {
 	assert.Equal(t, "", args.Foo)
 }
 
+func TestDefaultValuesIgnored(t *testing.T) {
+	var args struct {
+		Foo string `default:"bad"`
+	}
+
+	p, err := NewParser(Config{IgnoreDefault: true}, &args)
+	require.NoError(t, err)
+
+	err = p.Parse(nil)
+	assert.NoError(t, err)
+	assert.Equal(t, "", args.Foo)
+}
+
 func TestEnvironmentVariableInSubcommandIgnored(t *testing.T) {
 	var args struct {
 		Sub *struct {
