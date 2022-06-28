@@ -69,7 +69,7 @@ func (p *Parser) WriteUsageForSubcommand(w io.Writer, subcommand ...string) erro
 
 // writeUsageForSubcommand writes usage information for the given subcommand
 func (p *Parser) writeUsageForSubcommand(w io.Writer, cmd *command) {
-	var positionals, longOptions, shortOptions []*spec
+	var positionals, longOptions, shortOptions []*Spec
 	for _, spec := range cmd.specs {
 		switch {
 		case spec.positional:
@@ -216,7 +216,7 @@ func (p *Parser) WriteHelpForSubcommand(w io.Writer, subcommand ...string) error
 
 // writeHelp writes the usage string for the given subcommand
 func (p *Parser) writeHelpForSubcommand(w io.Writer, cmd *command) {
-	var positionals, longOptions, shortOptions []*spec
+	var positionals, longOptions, shortOptions []*Spec
 	for _, spec := range cmd.specs {
 		switch {
 		case spec.positional:
@@ -253,7 +253,7 @@ func (p *Parser) writeHelpForSubcommand(w io.Writer, cmd *command) {
 	}
 
 	// obtain a flattened list of options from all ancestors
-	var globals []*spec
+	var globals []*Spec
 	ancestor := cmd.parent
 	for ancestor != nil {
 		globals = append(globals, ancestor.specs...)
@@ -269,14 +269,14 @@ func (p *Parser) writeHelpForSubcommand(w io.Writer, cmd *command) {
 	}
 
 	// write the list of built in options
-	p.printOption(w, &spec{
+	p.printOption(w, &Spec{
 		cardinality: zero,
 		long:        "help",
 		short:       "h",
 		help:        "display this help and exit",
 	})
 	if p.version != "" {
-		p.printOption(w, &spec{
+		p.printOption(w, &Spec{
 			cardinality: zero,
 			long:        "version",
 			help:        "display version and exit",
@@ -292,7 +292,7 @@ func (p *Parser) writeHelpForSubcommand(w io.Writer, cmd *command) {
 	}
 }
 
-func (p *Parser) printOption(w io.Writer, spec *spec) {
+func (p *Parser) printOption(w io.Writer, spec *Spec) {
 	ways := make([]string, 0, 2)
 	if spec.long != "" {
 		ways = append(ways, synopsis(spec, "--"+spec.long))
@@ -327,7 +327,7 @@ func (p *Parser) lookupCommand(path ...string) (*command, error) {
 	return cmd, nil
 }
 
-func synopsis(spec *spec, form string) string {
+func synopsis(spec *Spec, form string) string {
 	if spec.cardinality == zero {
 		return form
 	}

@@ -1469,3 +1469,56 @@ func TestMustParsePrintsVersion(t *testing.T) {
 	assert.Equal(t, 0, *exitCode)
 	assert.Equal(t, "example 3.2.1\n", b.String())
 }
+
+func TestSpecValues(t *testing.T) {
+	var args struct {
+		A string `arg:"positional,required" placeholder:"X"`
+		B bool   `arg:"positional" default:"true"`
+		C int    `arg:"-c,--c-arg"`
+		D string `arg:"-D,separate" help:"d-separate-args"`
+	}
+	parser, err := NewParser(Config{}, &args)
+	assert.NoError(t, err)
+	argSpecs := parser.GetArgumentSpecs()
+	assert.Len(t, argSpecs, 4)
+
+	argSpec := argSpecs[0]
+	assert.Equal(t, "a", argSpec.LongName())
+	assert.Equal(t, "", argSpec.ShortName())
+	assert.Equal(t, true, argSpec.IsRequired())
+	assert.Equal(t, true, argSpec.IsPositional())
+	assert.Equal(t, false, argSpec.IsSeparate())
+	assert.Equal(t, "", argSpec.Help())
+	assert.Equal(t, "", argSpec.DefaultVal())
+	assert.Equal(t, "X", argSpec.Placeholder())
+
+	argSpec = argSpecs[1]
+	assert.Equal(t, "b", argSpec.LongName())
+	assert.Equal(t, "", argSpec.ShortName())
+	assert.Equal(t, false, argSpec.IsRequired())
+	assert.Equal(t, true, argSpec.IsPositional())
+	assert.Equal(t, false, argSpec.IsSeparate())
+	assert.Equal(t, "", argSpec.Help())
+	assert.Equal(t, "true", argSpec.DefaultVal())
+	assert.Equal(t, "B", argSpec.Placeholder())
+
+	argSpec = argSpecs[2]
+	assert.Equal(t, "c-arg", argSpec.LongName())
+	assert.Equal(t, "c", argSpec.ShortName())
+	assert.Equal(t, false, argSpec.IsRequired())
+	assert.Equal(t, false, argSpec.IsPositional())
+	assert.Equal(t, false, argSpec.IsSeparate())
+	assert.Equal(t, "", argSpec.Help())
+	assert.Equal(t, "", argSpec.DefaultVal())
+	assert.Equal(t, "C-ARG", argSpec.Placeholder())
+
+	argSpec = argSpecs[3]
+	assert.Equal(t, "d", argSpec.LongName())
+	assert.Equal(t, "D", argSpec.ShortName())
+	assert.Equal(t, false, argSpec.IsRequired())
+	assert.Equal(t, false, argSpec.IsPositional())
+	assert.Equal(t, true, argSpec.IsSeparate())
+	assert.Equal(t, "d-separate-args", argSpec.Help())
+	assert.Equal(t, "", argSpec.DefaultVal())
+	assert.Equal(t, "D", argSpec.Placeholder())
+}
