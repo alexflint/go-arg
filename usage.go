@@ -290,6 +290,10 @@ func (p *Parser) writeHelpForSubcommand(w io.Writer, cmd *command) {
 			printTwoCols(w, subcmd.name, subcmd.help, "", "")
 		}
 	}
+
+	if p.epilogue != "" {
+		fmt.Fprintln(w, "\n"+p.epilogue)
+	}
 }
 
 func (p *Parser) printOption(w io.Writer, spec *spec) {
