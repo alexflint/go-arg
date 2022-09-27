@@ -134,6 +134,7 @@ type Parser struct {
 	config      Config
 	version     string
 	description string
+	epilogue    string
 
 	// the following field changes during processing of command line arguments
 	lastCmd *command
@@ -153,6 +154,14 @@ type Described interface {
 	// Description returns the string that will be printed on a line by itself
 	// at the top of the help message.
 	Description() string
+}
+
+// Epilogued is the interface that the destination struct should implement to
+// add an epilogue string at the bottom of the help message.
+type Epilogued interface {
+	// Epilogue returns the string that will be printed on a line by itself
+	// at the end of the help message.
+	Epilogue() string
 }
 
 // walkFields calls a function for each field of a struct, recursively expanding struct fields.
@@ -235,6 +244,9 @@ func NewParser(config Config, dests ...interface{}) (*Parser, error) {
 		}
 		if dest, ok := dest.(Described); ok {
 			p.description = dest.Description()
+		}
+		if dest, ok := dest.(Epilogued); ok {
+			p.epilogue = dest.Epilogue()
 		}
 	}
 
