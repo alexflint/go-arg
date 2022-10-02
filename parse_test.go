@@ -95,6 +95,21 @@ func TestInt(t *testing.T) {
 	assert.EqualValues(t, 8, *args.Ptr)
 }
 
+func TestHexOctBin(t *testing.T) {
+	var args struct {
+		Hex int
+		Oct int
+		Bin int
+		Underscored int
+	}
+	err := parse("--hex 0xA --oct 0o10 --bin 0b101 --underscored 123_456", &args)
+	require.NoError(t, err)
+	assert.EqualValues(t, 10, args.Hex)
+	assert.EqualValues(t, 8, args.Oct)
+	assert.EqualValues(t, 5, args.Bin)
+	assert.EqualValues(t, 123456, args.Underscored)
+}
+
 func TestNegativeInt(t *testing.T) {
 	var args struct {
 		Foo int
