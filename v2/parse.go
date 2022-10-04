@@ -247,7 +247,7 @@ func (p *Parser) processOptions(args []string, overwrite bool) ([]string, error)
 			}
 
 			// store the values into the slice or map
-			err := setSliceOrMap(p.val(arg.dest), values, !arg.separate)
+			err := setSliceOrMap(p.val(arg.dest), values)
 			if err != nil {
 				return nil, fmt.Errorf("error processing %s: %v", token, err)
 			}
@@ -312,7 +312,7 @@ func (p *Parser) processPositionals(positionals []string, overwrite bool) error 
 		}
 		if arg.cardinality == multiple {
 			if !p.seen[arg] || overwrite {
-				err := setSliceOrMap(p.val(arg.dest), positionals, true)
+				err := setSliceOrMap(p.val(arg.dest), positionals)
 				if err != nil {
 					return fmt.Errorf("error processing %s: %v", arg.field.Name, err)
 				}
@@ -385,19 +385,20 @@ func (p *Parser) processEnvironment(environ []string, overwrite bool) error {
 			if len(strings.TrimSpace(value)) > 0 {
 				values, err = csv.NewReader(strings.NewReader(value)).Read()
 				if err != nil {
-					return fmt.Errorf(
-						"error reading a CSV string from environment variable %s with multiple values: %v",
-						arg.env,
-						err,
-					)
+					return fmt.Errorf("error reading a CSV string from environment variable %s : %v", arg.env, err)
 				}
 			}
-			if err = setSliceOrMap(p.val(arg.dest), values, !arg.separate); err != nil {
-				return fmt.Errorf(
-					"error processing environment variable %s with multiple values: %v",
-					arg.env,
-					err,
-				)
+
+			if arg.separate {
+				if err = setSliceOrMap(p.val(arg.dest), values); err != nil {
+					return fmt.Errorf("error processing environment variable %s: %v", arg.env, err)
+				}
+			} else {
+				for _, s := range values {
+					if err = appendToSliceOrMap(p.val(arg.dest), s); err != nil {
+						return fmt.Errorf("error processing environment variable %s: %v", arg.env, err)
+					}
+				}
 			}
 		} else {
 			if err := scalar.ParseValue(p.val(arg.dest), value); err != nil {

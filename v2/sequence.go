@@ -8,9 +8,9 @@ import (
 	scalar "github.com/alexflint/go-scalar"
 )
 
-// setSliceOrMap parses a sequence of strings into a slice or map. If clear is
-// true then any values already in the slice or map are first removed.
-func setSliceOrMap(dest reflect.Value, values []string, clear bool) error {
+// setSliceOrMap parses a sequence of strings into a slice or map. The slice or
+// map is always cleared first.
+func setSliceOrMap(dest reflect.Value, values []string) error {
 	if !dest.CanSet() {
 		return fmt.Errorf("field is not writable")
 	}
@@ -23,17 +23,17 @@ func setSliceOrMap(dest reflect.Value, values []string, clear bool) error {
 
 	switch t.Kind() {
 	case reflect.Slice:
-		return setSlice(dest, values, clear)
+		return setSlice(dest, values)
 	case reflect.Map:
-		return setMap(dest, values, clear)
+		return setMap(dest, values)
 	default:
 		return fmt.Errorf("cannot insert multiple values into a %v", t)
 	}
 }
 
-// setSlice parses a sequence of strings and inserts them into a slice. If clear
-// is true then any values already in the slice are removed.
-func setSlice(dest reflect.Value, values []string, clear bool) error {
+// setSlice parses a sequence of strings and inserts them into a slice. The
+// slice is cleared first.
+func setSlice(dest reflect.Value, values []string) error {
 	var ptr bool
 	elem := dest.Type().Elem()
 	if elem.Kind() == reflect.Ptr && !elem.Implements(textUnmarshalerType) {
@@ -42,7 +42,7 @@ func setSlice(dest reflect.Value, values []string, clear bool) error {
 	}
 
 	// clear the slice in case default values exist
-	if clear && !dest.IsNil() {
+	if !dest.IsNil() {
 		dest.SetLen(0)
 	}
 
@@ -61,8 +61,8 @@ func setSlice(dest reflect.Value, values []string, clear bool) error {
 }
 
 // setMap parses a sequence of name=value strings and inserts them into a map.
-// If clear is true then any values already in the map are removed.
-func setMap(dest reflect.Value, values []string, clear bool) error {
+// The map is always cleared first.
+func setMap(dest reflect.Value, values []string) error {
 	// determine the key and value type
 	var keyIsPtr bool
 	keyType := dest.Type().Key()
@@ -79,7 +79,7 @@ func setMap(dest reflect.Value, values []string, clear bool) error {
 	}
 
 	// clear the slice in case default values exist
-	if clear && !dest.IsNil() {
+	if !dest.IsNil() {
 		for _, k := range dest.MapKeys() {
 			dest.SetMapIndex(k, reflect.Value{})
 		}
