@@ -805,18 +805,25 @@ func TestEnvironmentVariableIgnored(t *testing.T) {
 	assert.Equal(t, "", args.Foo)
 }
 
-// func TestDefaultValuesIgnored(t *testing.T) {
-// 	var args struct {
-// 		Foo string `default:"bad"`
-// 	}
+func TestDefaultValuesIgnored(t *testing.T) {
+	var args struct {
+		Foo string `default:"bad"`
+	}
 
-// 	p, err := NewParser(Config{IgnoreDefault: true}, &args)
-// 	require.NoError(t, err)
+	// just checking that default values are not automatically applied
+	// in ProcessCommandLine or ProcessEnvironment
 
-// 	err = p.Parse(nil)
-// 	assert.NoError(t, err)
-// 	assert.Equal(t, "", args.Foo)
-// }
+	p, err := NewParser(Config{}, &args)
+	require.NoError(t, err)
+
+	err = p.ProcessCommandLine(nil)
+	assert.NoError(t, err)
+
+	err = p.ProcessEnvironment(nil)
+	assert.NoError(t, err)
+
+	assert.Equal(t, "", args.Foo)
+}
 
 func TestEnvironmentVariableInSubcommand(t *testing.T) {
 	var args struct {
