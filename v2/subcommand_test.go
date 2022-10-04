@@ -206,8 +206,7 @@ func TestSubcommandsWithEnvVars(t *testing.T) {
 
 	{
 		var args cmd
-		setenv(t, "LIMIT", "123")
-		err := parse("list", &args)
+		_, err := parseWithEnv(&args, "list", "LIMIT=123")
 		require.NoError(t, err)
 		require.NotNil(t, args.List)
 		assert.Equal(t, 123, args.List.Limit)
@@ -215,8 +214,7 @@ func TestSubcommandsWithEnvVars(t *testing.T) {
 
 	{
 		var args cmd
-		setenv(t, "LIMIT", "not_an_integer")
-		err := parse("list", &args)
+		_, err := parseWithEnv(&args, "list", "LIMIT=not_an_integer")
 		assert.Error(t, err)
 	}
 }

@@ -443,19 +443,11 @@ Global options:
 	p, err := NewParser(Config{}, &args)
 	require.NoError(t, err)
 
-	_ = p.Parse([]string{"child", "nested", "value"})
-
-	var help bytes.Buffer
-	p.WriteHelp(&help)
-	assert.Equal(t, expectedHelp[1:], help.String())
+	_ = p.Parse([]string{"child", "nested", "value"}, nil)
 
 	var help2 bytes.Buffer
 	p.WriteHelpForSubcommand(&help2, "child", "nested")
 	assert.Equal(t, expectedHelp[1:], help2.String())
-
-	var usage bytes.Buffer
-	p.WriteUsage(&usage)
-	assert.Equal(t, expectedUsage, strings.TrimSpace(usage.String()))
 
 	var usage2 bytes.Buffer
 	p.WriteUsageForSubcommand(&usage2, "child", "nested")

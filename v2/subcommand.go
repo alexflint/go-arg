@@ -7,22 +7,22 @@ package arg
 // no command line arguments have been processed by this parser then it
 // returns nil.
 func (p *Parser) Subcommand() interface{} {
-	if p.lastCmd == nil || p.lastCmd.parent == nil {
+	if p.leaf == nil || p.leaf.parent == nil {
 		return nil
 	}
-	return p.val(p.lastCmd.dest).Interface()
+	return p.val(p.leaf.dest).Interface()
 }
 
 // SubcommandNames returns the sequence of subcommands specified by the
 // user. If no subcommands were given then it returns an empty slice.
 func (p *Parser) SubcommandNames() []string {
-	if p.lastCmd == nil {
+	if p.leaf == nil {
 		return nil
 	}
 
 	// make a list of ancestor commands
 	var ancestors []string
-	cur := p.lastCmd
+	cur := p.leaf
 	for cur.parent != nil { // we want to exclude the root
 		ancestors = append(ancestors, cur.name)
 		cur = cur.parent

@@ -38,19 +38,15 @@ func (p *Parser) FailSubcommand(msg string, subcommand ...string) error {
 }
 
 // failWithSubcommand prints usage information for the given subcommand to stderr and exits with non-zero status
-func (p *Parser) failWithSubcommand(msg string, cmd *command) {
+func (p *Parser) failWithSubcommand(msg string, cmd *Command) {
 	p.writeUsageForSubcommand(stderr, cmd)
 	fmt.Fprintln(stderr, "error:", msg)
 	osExit(-1)
 }
 
-// WriteUsage writes usage information to the given writer
+// WriteUsage writes usage information for the top-level command
 func (p *Parser) WriteUsage(w io.Writer) {
-	cmd := p.cmd
-	if p.lastCmd != nil {
-		cmd = p.lastCmd
-	}
-	p.writeUsageForSubcommand(w, cmd)
+	p.writeUsageForSubcommand(w, p.cmd)
 }
 
 // WriteUsageForSubcommand writes the usage information for a specified
@@ -68,16 +64,16 @@ func (p *Parser) WriteUsageForSubcommand(w io.Writer, subcommand ...string) erro
 }
 
 // writeUsageForSubcommand writes usage information for the given subcommand
-func (p *Parser) writeUsageForSubcommand(w io.Writer, cmd *command) {
-	var positionals, longOptions, shortOptions []*spec
-	for _, spec := range cmd.specs {
+func (p *Parser) writeUsageForSubcommand(w io.Writer, cmd *Command) {
+	var positionals, longOptions, shortOptions []*Argument
+	for _, arg := range cmd.args {
 		switch {
-		case spec.positional:
-			positionals = append(positionals, spec)
-		case spec.long != "":
-			longOptions = append(longOptions, spec)
-		case spec.short != "":
-			shortOptions = append(shortOptions, spec)
+		case arg.positional:
+			positionals = append(positionals, arg)
+		case arg.long != "":
+			longOptions = append(longOptions, arg)
+		case arg.short != "":
+			shortOptions = append(shortOptions, arg)
 		}
 	}
 
@@ -100,26 +96,26 @@ func (p *Parser) writeUsageForSubcommand(w io.Writer, cmd *command) {
 	}
 
 	// write the option component of the usage message
-	for _, spec := range shortOptions {
+	for _, arg := range shortOptions {
 		// prefix with a space
 		fmt.Fprint(w, " ")
-		if !spec.required {
+		if !arg.required {
 			fmt.Fprint(w, "[")
 		}
-		fmt.Fprint(w, synopsis(spec, "-"+spec.short))
-		if !spec.required {
+		fmt.Fprint(w, synopsis(arg, "-"+arg.short))
+		if !arg.required {
 			fmt.Fprint(w, "]")
 		}
 	}
 
-	for _, spec := range longOptions {
+	for _, arg := range longOptions {
 		// prefix with a space
 		fmt.Fprint(w, " ")
-		if !spec.required {
+		if !arg.required {
 			fmt.Fprint(w, "[")
 		}
-		fmt.Fprint(w, synopsis(spec, "--"+spec.long))
-		if !spec.required {
+		fmt.Fprint(w, synopsis(arg, "--"+arg.long))
+		if !arg.required {
 			fmt.Fprint(w, "]")
 		}
 	}
@@ -137,16 +133,16 @@ func (p *Parser) writeUsageForSubcommand(w io.Writer, cmd *command) {
 	//    REQUIRED1 REQUIRED2 [REPEATEDOPTIONAL [REPEATEDOPTIONAL ...]]
 	//    REQUIRED1 REQUIRED2 [OPTIONAL1 [REPEATEDOPTIONAL [REPEATEDOPTIONAL ...]]]
 	var closeBrackets int
-	for _, spec := range positionals {
+	for _, arg := range positionals {
 		fmt.Fprint(w, " ")
-		if !spec.required {
+		if !arg.required {
 			fmt.Fprint(w, "[")
 			closeBrackets += 1
 		}
-		if spec.cardinality == multiple {
-			fmt.Fprintf(w, "%s [%s ...]", spec.placeholder, spec.placeholder)
+		if arg.cardinality == multiple {
+			fmt.Fprintf(w, "%s [%s ...]", arg.placeholder, arg.placeholder)
 		} else {
-			fmt.Fprint(w, spec.placeholder)
+			fmt.Fprint(w, arg.placeholder)
 		}
 	}
 	fmt.Fprint(w, strings.Repeat("]", closeBrackets))
@@ -191,13 +187,9 @@ func printTwoCols(w io.Writer, left, help string, defaultVal string, envVal stri
 	fmt.Fprint(w, "\n")
 }
 
-// WriteHelp writes the usage string followed by the full help string for each option
+// WriteHelp writes the usage string for the top-level command
 func (p *Parser) WriteHelp(w io.Writer) {
-	cmd := p.cmd
-	if p.lastCmd != nil {
-		cmd = p.lastCmd
-	}
-	p.writeHelpForSubcommand(w, cmd)
+	p.writeHelpForSubcommand(w, p.cmd)
 }
 
 // WriteHelpForSubcommand writes the usage string followed by the full help
@@ -215,68 +207,68 @@ func (p *Parser) WriteHelpForSubcommand(w io.Writer, subcommand ...string) error
 }
 
 // writeHelp writes the usage string for the given subcommand
-func (p *Parser) writeHelpForSubcommand(w io.Writer, cmd *command) {
-	var positionals, longOptions, shortOptions []*spec
-	for _, spec := range cmd.specs {
+func (p *Parser) writeHelpForSubcommand(w io.Writer, cmd *Command) {
+	var positionals, longOptions, shortOptions []*Argument
+	for _, arg := range cmd.args {
 		switch {
-		case spec.positional:
-			positionals = append(positionals, spec)
-		case spec.long != "":
-			longOptions = append(longOptions, spec)
-		case spec.short != "":
-			shortOptions = append(shortOptions, spec)
+		case arg.positional:
+			positionals = append(positionals, arg)
+		case arg.long != "":
+			longOptions = append(longOptions, arg)
+		case arg.short != "":
+			shortOptions = append(shortOptions, arg)
 		}
 	}
 
-	if p.description != "" {
-		fmt.Fprintln(w, p.description)
+	if p.prologue != "" {
+		fmt.Fprintln(w, p.prologue)
 	}
 	p.writeUsageForSubcommand(w, cmd)
 
 	// write the list of positionals
 	if len(positionals) > 0 {
 		fmt.Fprint(w, "\nPositional arguments:\n")
-		for _, spec := range positionals {
-			printTwoCols(w, spec.placeholder, spec.help, "", "")
+		for _, arg := range positionals {
+			printTwoCols(w, arg.placeholder, arg.help, "", "")
 		}
 	}
 
 	// write the list of options with the short-only ones first to match the usage string
 	if len(shortOptions)+len(longOptions) > 0 || cmd.parent == nil {
 		fmt.Fprint(w, "\nOptions:\n")
-		for _, spec := range shortOptions {
-			p.printOption(w, spec)
+		for _, arg := range shortOptions {
+			p.printOption(w, arg)
 		}
-		for _, spec := range longOptions {
-			p.printOption(w, spec)
+		for _, arg := range longOptions {
+			p.printOption(w, arg)
 		}
 	}
 
 	// obtain a flattened list of options from all ancestors
-	var globals []*spec
+	var globals []*Argument
 	ancestor := cmd.parent
 	for ancestor != nil {
-		globals = append(globals, ancestor.specs...)
+		globals = append(globals, ancestor.args...)
 		ancestor = ancestor.parent
 	}
 
 	// write the list of global options
 	if len(globals) > 0 {
 		fmt.Fprint(w, "\nGlobal options:\n")
-		for _, spec := range globals {
-			p.printOption(w, spec)
+		for _, arg := range globals {
+			p.printOption(w, arg)
 		}
 	}
 
 	// write the list of built in options
-	p.printOption(w, &spec{
+	p.printOption(w, &Argument{
 		cardinality: zero,
 		long:        "help",
 		short:       "h",
 		help:        "display this help and exit",
 	})
 	if p.version != "" {
-		p.printOption(w, &spec{
+		p.printOption(w, &Argument{
 			cardinality: zero,
 			long:        "version",
 			help:        "display version and exit",
@@ -296,16 +288,16 @@ func (p *Parser) writeHelpForSubcommand(w io.Writer, cmd *command) {
 	}
 }
 
-func (p *Parser) printOption(w io.Writer, spec *spec) {
+func (p *Parser) printOption(w io.Writer, arg *Argument) {
 	ways := make([]string, 0, 2)
-	if spec.long != "" {
-		ways = append(ways, synopsis(spec, "--"+spec.long))
+	if arg.long != "" {
+		ways = append(ways, synopsis(arg, "--"+arg.long))
 	}
-	if spec.short != "" {
-		ways = append(ways, synopsis(spec, "-"+spec.short))
+	if arg.short != "" {
+		ways = append(ways, synopsis(arg, "-"+arg.short))
 	}
 	if len(ways) > 0 {
-		printTwoCols(w, strings.Join(ways, ", "), spec.help, spec.defaultVal, spec.env)
+		printTwoCols(w, strings.Join(ways, ", "), arg.help, arg.defaultVal, arg.env)
 	}
 }
 
@@ -314,10 +306,10 @@ func (p *Parser) printOption(w io.Writer, spec *spec) {
 // subcommand of that subcommand, and so on. If no strings are given then the
 // root command is returned. If no such subcommand exists then an error is
 // returned.
-func (p *Parser) lookupCommand(path ...string) (*command, error) {
+func (p *Parser) lookupCommand(path ...string) (*Command, error) {
 	cmd := p.cmd
 	for _, name := range path {
-		var found *command
+		var found *Command
 		for _, child := range cmd.subcommands {
 			if child.name == name {
 				found = child
@@ -331,9 +323,9 @@ func (p *Parser) lookupCommand(path ...string) (*command, error) {
 	return cmd, nil
 }
 
-func synopsis(spec *spec, form string) string {
-	if spec.cardinality == zero {
+func synopsis(arg *Argument, form string) string {
+	if arg.cardinality == zero {
 		return form
 	}
-	return form + " " + spec.placeholder
+	return form + " " + arg.placeholder
 }
