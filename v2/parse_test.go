@@ -251,6 +251,16 @@ func TestSlice(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, []string{"a", "b", "c"}, args.Strings)
 }
+
+func TestSliceWithEqualsSign(t *testing.T) {
+	var args struct {
+		Strings []string
+	}
+	_, err := parse(&args, "--strings=test")
+	require.NoError(t, err)
+	assert.Equal(t, []string{"test"}, args.Strings)
+}
+
 func TestSliceOfBools(t *testing.T) {
 	var args struct {
 		B []bool
