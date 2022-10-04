@@ -38,6 +38,7 @@ func TestString(t *testing.T) {
 	_, err := parse(&args, "--foo bar --ptr baz")
 	require.NoError(t, err)
 	assert.Equal(t, "bar", args.Foo)
+	require.NotNil(t, args.Ptr)
 	assert.Equal(t, "baz", *args.Ptr)
 }
 

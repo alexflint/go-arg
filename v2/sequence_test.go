@@ -150,3 +150,7 @@ func TestSetSliceOrMapErrors(t *testing.T) {
 	err = setSliceOrMap(dest, nil, false)
 	assert.Error(t, err)
 }
+
+// check that we can accumulate "separate" args across env, cmdline, map, and defaults
+
+// check what happens if we have a required arg with a default value

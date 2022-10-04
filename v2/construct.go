@@ -176,7 +176,7 @@ func cmdFromStruct(name string, dest path, t reflect.Type) (*Command, error) {
 			return false
 		}
 
-		// duplicate the entire path to avoid slice overwrites
+		// create a new destination path for this field
 		subdest := dest.Child(field)
 		arg := Argument{
 			dest:  subdest,
