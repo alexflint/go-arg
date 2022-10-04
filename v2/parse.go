@@ -102,7 +102,11 @@ func (p *Parser) Parse(args, env []string) error {
 // never overwrites arguments previously seen in a call to any Process*
 // function.
 func (p *Parser) ProcessCommandLine(args []string) error {
-	positionals, err := p.ProcessOptions(args)
+	if len(args) == 0 {
+		return nil
+	}
+
+	positionals, err := p.ProcessOptions(args[1:])
 	if err != nil {
 		return err
 	}
@@ -112,7 +116,11 @@ func (p *Parser) ProcessCommandLine(args []string) error {
 // OverwriteWithCommandLine is like ProcessCommandLine but it overwrites
 // any previously seen values.
 func (p *Parser) OverwriteWithCommandLine(args []string) error {
-	positionals, err := p.OverwriteWithOptions(args)
+	if len(args) == 0 {
+		return nil
+	}
+
+	positionals, err := p.OverwriteWithOptions(args[1:])
 	if err != nil {
 		return err
 	}
@@ -121,10 +129,8 @@ func (p *Parser) OverwriteWithCommandLine(args []string) error {
 
 // ProcessOptions processes options but not positionals from the
 // command line. Positionals are returned and can be passed to
-// ProcessPositionals. This function ignores the first element of args,
-// which is assumed to be the program name itself. Arguments seen
-// in a previous call to any Process* or OverwriteWith* functions
-// are ignored.
+// ProcessPositionals. Arguments seen in a previous call to any
+// Process* or OverwriteWith* functions are ignored.
 func (p *Parser) ProcessOptions(args []string) ([]string, error) {
 	return p.processOptions(args, false)
 }
@@ -136,19 +142,15 @@ func (p *Parser) OverwriteWithOptions(args []string) ([]string, error) {
 }
 
 func (p *Parser) processOptions(args []string, overwrite bool) ([]string, error) {
+	// note that p.cmd.args has already been copied into p.accessible in NewParser
+
 	// union of args for the chain of subcommands encountered so far
 	p.leaf = p.cmd
-
-	// we will add to this list each time we expand a subcommand
-	p.accumulatedArgs = make([]*Argument, len(p.leaf.args))
-	copy(p.accumulatedArgs, p.leaf.args)
-
-	// process each string from the command line
 	var allpositional bool
 	var positionals []string
 
 	// must use explicit for loop, not range, because we manipulate i inside the loop
-	for i := 1; i < len(args); i++ {
+	for i := 0; i < len(args); i++ {
 		token := args[i]
 
 		// the "--" token indicates that all further tokens should be treated as positionals
@@ -178,7 +180,7 @@ func (p *Parser) processOptions(args []string, overwrite bool) ([]string, error)
 			}
 
 			// add the new options to the set of allowed options
-			p.accumulatedArgs = append(p.accumulatedArgs, subcmd.args...)
+			p.accessible = append(p.accessible, subcmd.args...)
 			p.leaf = subcmd
 			continue
 		}
@@ -201,7 +203,7 @@ func (p *Parser) processOptions(args []string, overwrite bool) ([]string, error)
 
 		// look up the arg for this option (note that the "args" slice changes as
 		// we expand subcommands so it is better not to use a map)
-		arg := findOption(p.accumulatedArgs, opt)
+		arg := findOption(p.accessible, opt)
 		if arg == nil {
 			return nil, fmt.Errorf("unknown argument %s", token)
 		}
@@ -266,7 +268,7 @@ func (p *Parser) OverwriteWithPositionals(positionals []string) error {
 }
 
 func (p *Parser) processPositionals(positionals []string, overwrite bool) error {
-	for _, arg := range p.accumulatedArgs {
+	for _, arg := range p.accessible {
 		if !arg.positional {
 			continue
 		}
@@ -320,7 +322,7 @@ func (p *Parser) processEnvironment(environ []string, overwrite bool) error {
 	}
 
 	// process arguments one-by-one
-	for _, arg := range p.accumulatedArgs {
+	for _, arg := range p.accessible {
 		if arg.env == "" {
 			continue
 		}
@@ -342,7 +344,6 @@ func (p *Parser) processEnvironment(environ []string, overwrite bool) error {
 				}
 			}
 
-			// TODO: call p.processMultiple, respect "overwrite"
 			if err := p.processSequence(arg, values, overwrite); err != nil {
 				return fmt.Errorf("error processing environment variable %s: %v", arg.env, err)
 			}
@@ -372,7 +373,7 @@ func (p *Parser) OverwriteWithDefaults() error {
 // processDefaults assigns default values to all fields in all expanded subcommands.
 // If overwrite is true then it overwrites existing values.
 func (p *Parser) processDefaults(overwrite bool) error {
-	for _, arg := range p.accumulatedArgs {
+	for _, arg := range p.accessible {
 		if arg.defaultVal == "" {
 			continue
 		}
@@ -442,7 +443,7 @@ func (p *Parser) processSequence(arg *Argument, values []string, overwrite bool)
 // Missing returns a list of required arguments that were not provided
 func (p *Parser) Missing() []*Argument {
 	var missing []*Argument
-	for _, arg := range p.accumulatedArgs {
+	for _, arg := range p.accessible {
 		if arg.required && !p.seen[arg] {
 			missing = append(missing, arg)
 		}

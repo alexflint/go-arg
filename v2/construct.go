@@ -44,9 +44,9 @@ type Parser struct {
 	epilogue string        // epilogue for help text (from the argument struct)
 
 	// the following fields are updated during processing of command line arguments
-	leaf            *Command           // the subcommand we processed last
-	accumulatedArgs []*Argument        // concatenation of the leaf subcommand's arguments plus all ancestors' arguments
-	seen            map[*Argument]bool // the arguments we encountered while processing command line arguments
+	leaf       *Command           // the subcommand we processed last
+	accessible []*Argument        // concatenation of the leaf subcommand's arguments plus all ancestors' arguments
+	seen       map[*Argument]bool // the arguments we encountered while processing command line arguments
 }
 
 // Versioned is the interface that the destination struct should implement to
@@ -123,6 +123,10 @@ func NewParser(dest interface{}, options ...ParserOption) (*Parser, error) {
 		root: reflect.ValueOf(dest),
 		cmd:  cmd,
 	}
+	// copy the args for the root command into "accessible", which will
+	// grow each time we open up a subcommand
+	p.accessible = make([]*Argument, len(p.cmd.args))
+	copy(p.accessible, p.cmd.args)
 
 	// check for version, prologue, and epilogue
 	if dest, ok := dest.(Versioned); ok {
