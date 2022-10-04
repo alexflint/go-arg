@@ -792,19 +792,18 @@ func TestEnvironmentVariableEmptyMap(t *testing.T) {
 	assert.Len(t, args.Foo, 0)
 }
 
-// func TestEnvironmentVariableIgnored(t *testing.T) {
-// 	var args struct {
-// 		Foo string `arg:"env"`
-// 	}
-// 	setenv(t, "FOO", "abc")
+func TestEnvironmentVariableIgnored(t *testing.T) {
+	var args struct {
+		Foo string `arg:"env"`
+	}
 
-// 	p, err := NewParser(Config{IgnoreEnv: true}, &args)
-// 	require.NoError(t, err)
+	// the library should never read env vars direct from os
+	os.Setenv("FOO", "123")
 
-// 	err = p.Parse(nil)
-// 	assert.NoError(t, err)
-// 	assert.Equal(t, "", args.Foo)
-// }
+	_, err := parseWithEnv(&args, "")
+	require.NoError(t, err)
+	assert.Equal(t, "", args.Foo)
+}
 
 // func TestDefaultValuesIgnored(t *testing.T) {
 // 	var args struct {
