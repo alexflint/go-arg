@@ -629,14 +629,6 @@ func TestParse(t *testing.T) {
 	assert.Equal(t, "bar", args.Foo)
 }
 
-func TestParseError(t *testing.T) {
-	var args struct {
-		Foo string `arg:"this_is_not_valid"`
-	}
-	_, err := NewParser(&args)
-	assert.Error(t, err)
-}
-
 func TestMustParse(t *testing.T) {
 	var args struct {
 		Foo string
@@ -795,12 +787,12 @@ func TestEnvironmentVariableIgnored(t *testing.T) {
 }
 
 func TestDefaultValuesIgnored(t *testing.T) {
-	var args struct {
-		Foo string `default:"bad"`
-	}
-
-	// just checking that default values are not automatically applied
+	// check that default values are not automatically applied
 	// in ProcessCommandLine or ProcessEnvironment
+
+	var args struct {
+		Foo string `default:"hello"`
+	}
 
 	p, err := NewParser(&args)
 	require.NoError(t, err)
@@ -1388,15 +1380,6 @@ func TestDefaultValuesNotAllowedWithSlice(t *testing.T) {
 
 	_, err := parse(&args, "")
 	assert.EqualError(t, err, ".A: default values are not supported for slice or map fields")
-}
-
-func TestUnexportedFieldsSkipped(t *testing.T) {
-	var args struct {
-		unexported struct{}
-	}
-
-	_, err := NewParser(&args)
-	require.NoError(t, err)
 }
 
 func TestMustParseInvalidParser(t *testing.T) {
