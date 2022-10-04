@@ -206,9 +206,8 @@ func (p *Parser) processOptions(args []string, overwrite bool) ([]string, error)
 			return nil, fmt.Errorf("unknown argument %s", token)
 		}
 
-		// deal with the case of multiple values
+		// for the case of multiple values, consume tokens until next --option
 		if arg.cardinality == multiple && !arg.separate {
-			// consume tokens until next --option
 			var values []string
 			if value == "" {
 				for i+1 < len(args) && !isFlag(args[i+1]) && args[i+1] != "--" {
@@ -219,21 +218,9 @@ func (p *Parser) processOptions(args []string, overwrite bool) ([]string, error)
 				values = append(values, value)
 			}
 
-			// TODO: call p.processVector
-
-			// this is the first time we can check p.seen because we need to correctly
-			// increment i above, even when we then ignore the value
-			if p.seen[arg] && !overwrite {
-				continue
+			if err := p.processSequence(arg, values, overwrite); err != nil {
+				return nil, err
 			}
-
-			// store the values into the slice or map
-			err := setSliceOrMap(p.val(arg.dest), values)
-			if err != nil {
-				return nil, fmt.Errorf("error processing %s: %v", token, err)
-			}
-			p.seen[arg] = true
-
 			continue
 		}
 
@@ -256,7 +243,7 @@ func (p *Parser) processOptions(args []string, overwrite bool) ([]string, error)
 		}
 
 		// send the value to the argument
-		if err := p.processSingle(arg, value, overwrite); err != nil {
+		if err := p.processScalar(arg, value, overwrite); err != nil {
 			return nil, err
 		}
 	}
@@ -287,21 +274,17 @@ func (p *Parser) processPositionals(positionals []string, overwrite bool) error 
 			break
 		}
 		if arg.cardinality == multiple {
-			// TODO: call p.processMultiple
-			if !p.seen[arg] || overwrite {
-				err := setSliceOrMap(p.val(arg.dest), positionals)
-				if err != nil {
-					return fmt.Errorf("error processing %s: %v", arg.field.Name, err)
-				}
-				p.seen[arg] = true
-			}
-			positionals = nil
-		} else {
-			if err := p.processSingle(arg, positionals[0], overwrite); err != nil {
+			if err := p.processSequence(arg, positionals, overwrite); err != nil {
 				return err
 			}
-			positionals = positionals[1:]
+			positionals = nil
+			break
 		}
+
+		if err := p.processScalar(arg, positionals[0], overwrite); err != nil {
+			return err
+		}
+		positionals = positionals[1:]
 	}
 
 	if len(positionals) > 0 {
@@ -351,8 +334,8 @@ func (p *Parser) processEnvironment(environ []string, overwrite bool) error {
 			// expect a CSV string in an environment
 			// variable in the case of multiple values
 			var values []string
-			var err error
 			if len(strings.TrimSpace(value)) > 0 {
+				var err error
 				values, err = csv.NewReader(strings.NewReader(value)).Read()
 				if err != nil {
 					return fmt.Errorf("error parsing CSV string from environment variable %s: %v", arg.env, err)
@@ -360,14 +343,14 @@ func (p *Parser) processEnvironment(environ []string, overwrite bool) error {
 			}
 
 			// TODO: call p.processMultiple, respect "overwrite"
-			if err = setSliceOrMap(p.val(arg.dest), values); err != nil {
+			if err := p.processSequence(arg, values, overwrite); err != nil {
 				return fmt.Errorf("error processing environment variable %s: %v", arg.env, err)
 			}
 			continue
 		}
 
-		if err := p.processSingle(arg, value, overwrite); err != nil {
-			return err
+		if err := p.processScalar(arg, value, overwrite); err != nil {
+			return fmt.Errorf("error processing environment variable %s: %v", arg.env, err)
 		}
 	}
 
@@ -393,7 +376,7 @@ func (p *Parser) processDefaults(overwrite bool) error {
 		if arg.defaultVal == "" {
 			continue
 		}
-		if err := p.processSingle(arg, arg.defaultVal, overwrite); err != nil {
+		if err := p.processScalar(arg, arg.defaultVal, overwrite); err != nil {
 			return err
 		}
 	}
@@ -401,11 +384,10 @@ func (p *Parser) processDefaults(overwrite bool) error {
 	return nil
 }
 
-// processSingle parses a single argument, inserts it into the struct,
-// and marks the argument as "seen" for the sake of required arguments
-// and overwrite semantics. If the argument has been seen before and
-// overwrite=false then the value is ignored.
-func (p *Parser) processSingle(arg *Argument, value string, overwrite bool) error {
+// processScalar parses a single argument, inserts it into the struct,
+// and marks the argument as "seen" (unless the argument has been seen
+// before and overwrite=false, in which case the value is ignored)
+func (p *Parser) processScalar(arg *Argument, value string, overwrite bool) error {
 	if p.seen[arg] && !overwrite && !arg.separate {
 		return nil
 	}
@@ -425,6 +407,32 @@ func (p *Parser) processSingle(arg *Argument, value string, overwrite bool) erro
 		if err != nil {
 			return fmt.Errorf("error processing default value for %s: %v", name, err)
 		}
+	}
+
+	p.seen[arg] = true
+	return nil
+}
+
+// processSequence parses a sequence argument, inserts it into the struct,
+// and marks the argument as "seen" (unless the argument has been seen
+// before and overwrite=false, in which case the value is ignored)
+func (p *Parser) processSequence(arg *Argument, values []string, overwrite bool) error {
+	if p.seen[arg] && !overwrite && !arg.separate {
+		return nil
+	}
+
+	name := strings.ToLower(arg.field.Name)
+	if arg.long != "" && !arg.positional {
+		name = "--" + arg.long
+	}
+
+	if arg.cardinality != multiple {
+		panic(fmt.Sprintf("processSequence called for argument %s which has cardinality %v", arg.field.Name, arg.cardinality))
+	}
+
+	err := setSliceOrMap(p.val(arg.dest), values)
+	if err != nil {
+		return fmt.Errorf("error processing default value for %s: %v", name, err)
 	}
 
 	p.seen[arg] = true
