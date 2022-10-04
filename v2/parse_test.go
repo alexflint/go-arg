@@ -14,16 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func parse(cmdline string, dest interface{}) error {
-	_, err := pparse(cmdline, dest)
-	return err
-}
-
-func pparse(cmdline string, dest interface{}) (*Parser, error) {
-	return parseWithEnv(dest, cmdline)
-}
-
-func parseWithEnv(dest interface{}, cmdline string, env ...string) (*Parser, error) {
+func parse(dest interface{}, cmdline string, env ...string) (*Parser, error) {
 	p, err := NewParser(dest)
 	if err != nil {
 		return nil, err
@@ -44,7 +35,7 @@ func TestString(t *testing.T) {
 		Foo string
 		Ptr *string
 	}
-	err := parse("--foo bar --ptr baz", &args)
+	_, err := parse(&args, "--foo bar --ptr baz")
 	require.NoError(t, err)
 	assert.Equal(t, "bar", args.Foo)
 	assert.Equal(t, "baz", *args.Ptr)
@@ -57,7 +48,7 @@ func TestBool(t *testing.T) {
 		C *bool
 		D *bool
 	}
-	err := parse("--a --c", &args)
+	_, err := parse(&args, "--a --c")
 	require.NoError(t, err)
 	assert.True(t, args.A)
 	assert.False(t, args.B)
@@ -70,7 +61,7 @@ func TestInt(t *testing.T) {
 		Foo int
 		Ptr *int
 	}
-	err := parse("--foo 7 --ptr 8", &args)
+	_, err := parse(&args, "--foo 7 --ptr 8")
 	require.NoError(t, err)
 	assert.EqualValues(t, 7, args.Foo)
 	assert.EqualValues(t, 8, *args.Ptr)
@@ -83,7 +74,7 @@ func TestHexOctBin(t *testing.T) {
 		Bin         int
 		Underscored int
 	}
-	err := parse("--hex 0xA --oct 0o10 --bin 0b101 --underscored 123_456", &args)
+	_, err := parse(&args, "--hex 0xA --oct 0o10 --bin 0b101 --underscored 123_456")
 	require.NoError(t, err)
 	assert.EqualValues(t, 10, args.Hex)
 	assert.EqualValues(t, 8, args.Oct)
@@ -95,7 +86,7 @@ func TestNegativeInt(t *testing.T) {
 	var args struct {
 		Foo int
 	}
-	err := parse("-foo=-100", &args)
+	_, err := parse(&args, "-foo=-100")
 	require.NoError(t, err)
 	assert.EqualValues(t, args.Foo, -100)
 }
@@ -104,7 +95,7 @@ func TestNumericOptionName(t *testing.T) {
 	var args struct {
 		N int `arg:"--100"`
 	}
-	err := parse("-100 6", &args)
+	_, err := parse(&args, "-100 6")
 	require.NoError(t, err)
 	assert.EqualValues(t, args.N, 6)
 }
@@ -114,7 +105,7 @@ func TestUint(t *testing.T) {
 		Foo uint
 		Ptr *uint
 	}
-	err := parse("--foo 7 --ptr 8", &args)
+	_, err := parse(&args, "--foo 7 --ptr 8")
 	require.NoError(t, err)
 	assert.EqualValues(t, 7, args.Foo)
 	assert.EqualValues(t, 8, *args.Ptr)
@@ -125,7 +116,7 @@ func TestFloat(t *testing.T) {
 		Foo float32
 		Ptr *float32
 	}
-	err := parse("--foo 3.4 --ptr 3.5", &args)
+	_, err := parse(&args, "--foo 3.4 --ptr 3.5")
 	require.NoError(t, err)
 	assert.EqualValues(t, 3.4, args.Foo)
 	assert.EqualValues(t, 3.5, *args.Ptr)
@@ -136,7 +127,7 @@ func TestDuration(t *testing.T) {
 		Foo time.Duration
 		Ptr *time.Duration
 	}
-	err := parse("--foo 3ms --ptr 4ms", &args)
+	_, err := parse(&args, "--foo 3ms --ptr 4ms")
 	require.NoError(t, err)
 	assert.Equal(t, 3*time.Millisecond, args.Foo)
 	assert.Equal(t, 4*time.Millisecond, *args.Ptr)
@@ -146,7 +137,7 @@ func TestInvalidDuration(t *testing.T) {
 	var args struct {
 		Foo time.Duration
 	}
-	err := parse("--foo xxx", &args)
+	_, err := parse(&args, "--foo xxx")
 	require.Error(t, err)
 }
 
@@ -154,7 +145,7 @@ func TestIntPtr(t *testing.T) {
 	var args struct {
 		Foo *int
 	}
-	err := parse("--foo 123", &args)
+	_, err := parse(&args, "--foo 123")
 	require.NoError(t, err)
 	require.NotNil(t, args.Foo)
 	assert.Equal(t, 123, *args.Foo)
@@ -164,7 +155,7 @@ func TestIntPtrNotPresent(t *testing.T) {
 	var args struct {
 		Foo *int
 	}
-	err := parse("", &args)
+	_, err := parse(&args, "")
 	require.NoError(t, err)
 	assert.Nil(t, args.Foo)
 }
@@ -178,7 +169,7 @@ func TestMixed(t *testing.T) {
 		Spam float32
 	}
 	args.Bar = 3
-	err := parse("123 -spam=1.2 -ham -f xyz", &args)
+	_, err := parse(&args, "123 -spam=1.2 -ham -f xyz")
 	require.NoError(t, err)
 	assert.Equal(t, "xyz", args.Foo)
 	assert.Equal(t, 3, args.Bar)
@@ -191,7 +182,7 @@ func TestRequired(t *testing.T) {
 	var args struct {
 		Foo string `arg:"required"`
 	}
-	err := parse("--foo=abc", &args)
+	_, err := parse(&args, "--foo=abc")
 	require.NoError(t, err)
 }
 
@@ -199,7 +190,7 @@ func TestMissingRequired(t *testing.T) {
 	var args struct {
 		Foo string `arg:"required"`
 	}
-	err := parse("", &args)
+	_, err := parse(&args, "")
 	require.Error(t, err, "--foo is required")
 }
 
@@ -207,7 +198,7 @@ func TestMissingRequiredWithEnv(t *testing.T) {
 	var args struct {
 		Foo string `arg:"required,env:FOO"`
 	}
-	err := parse("", &args)
+	_, err := parse(&args, "")
 	require.Error(t, err, "--foo is required (or environment variable FOO)")
 }
 
@@ -216,24 +207,24 @@ func TestShortFlag(t *testing.T) {
 		Foo string `arg:"-f"`
 	}
 
-	err := parse("-f xyz", &args)
+	_, err := parse(&args, "-f a")
 	require.NoError(t, err)
-	assert.Equal(t, "xyz", args.Foo)
+	assert.Equal(t, "a", args.Foo)
 
-	err = parse("-foo xyz", &args)
+	_, err = parse(&args, "-foo b")
 	require.NoError(t, err)
-	assert.Equal(t, "xyz", args.Foo)
+	assert.Equal(t, "b", args.Foo)
 
-	err = parse("--foo xyz", &args)
+	_, err = parse(&args, "--foo c")
 	require.NoError(t, err)
-	assert.Equal(t, "xyz", args.Foo)
+	assert.Equal(t, "c", args.Foo)
 }
 
 func TestInvalidShortFlag(t *testing.T) {
 	var args struct {
 		Foo string `arg:"-foo"`
 	}
-	err := parse("", &args)
+	_, err := parse(&args, "")
 	assert.Error(t, err)
 }
 
@@ -242,11 +233,11 @@ func TestLongFlag(t *testing.T) {
 		Foo string `arg:"--abc"`
 	}
 
-	err := parse("-abc xyz", &args)
+	_, err := parse(&args, "-abc xyz")
 	require.NoError(t, err)
 	assert.Equal(t, "xyz", args.Foo)
 
-	err = parse("--abc xyz", &args)
+	_, err = parse(&args, "--abc xyz")
 	require.NoError(t, err)
 	assert.Equal(t, "xyz", args.Foo)
 }
@@ -255,7 +246,7 @@ func TestSlice(t *testing.T) {
 	var args struct {
 		Strings []string
 	}
-	err := parse("--strings a b c", &args)
+	_, err := parse(&args, "--strings a b c")
 	require.NoError(t, err)
 	assert.Equal(t, []string{"a", "b", "c"}, args.Strings)
 }
@@ -264,7 +255,7 @@ func TestSliceOfBools(t *testing.T) {
 		B []bool
 	}
 
-	err := parse("--b true false true", &args)
+	_, err := parse(&args, "--b true false true")
 	require.NoError(t, err)
 	assert.Equal(t, []bool{true, false, true}, args.B)
 }
@@ -273,7 +264,7 @@ func TestMap(t *testing.T) {
 	var args struct {
 		Values map[string]int
 	}
-	err := parse("--values a=1 b=2 c=3", &args)
+	_, err := parse(&args, "--values a=1 b=2 c=3")
 	require.NoError(t, err)
 	assert.Len(t, args.Values, 3)
 	assert.Equal(t, 1, args.Values["a"])
@@ -285,7 +276,7 @@ func TestMapPositional(t *testing.T) {
 	var args struct {
 		Values map[string]int `arg:"positional"`
 	}
-	err := parse("a=1 b=2 c=3", &args)
+	_, err := parse(&args, "a=1 b=2 c=3")
 	require.NoError(t, err)
 	assert.Len(t, args.Values, 3)
 	assert.Equal(t, 1, args.Values["a"])
@@ -297,7 +288,7 @@ func TestMapWithSeparate(t *testing.T) {
 	var args struct {
 		Values map[string]int `arg:"separate"`
 	}
-	err := parse("--values a=1 --values b=2 --values c=3", &args)
+	_, err := parse(&args, "--values a=1 --values b=2 --values c=3")
 	require.NoError(t, err)
 	assert.Len(t, args.Values, 3)
 	assert.Equal(t, 1, args.Values["a"])
@@ -312,7 +303,7 @@ func TestPlaceholder(t *testing.T) {
 		Optimize int      `arg:"-O" placeholder:"LEVEL"`
 		MaxJobs  int      `arg:"-j" placeholder:"N"`
 	}
-	err := parse("-O 5 --maxjobs 2 src dest1 dest2", &args)
+	_, err := parse(&args, "-O 5 --maxjobs 2 src dest1 dest2")
 	assert.NoError(t, err)
 }
 
@@ -321,7 +312,7 @@ func TestNoLongName(t *testing.T) {
 		ShortOnly string `arg:"-s,--"`
 		EnvOnly   string `arg:"--,env"`
 	}
-	_, err := parseWithEnv(&args, "-s TestVal2", "ENVONLY=TestVal")
+	_, err := parse(&args, "-s TestVal2", "ENVONLY=TestVal")
 	assert.NoError(t, err)
 	assert.Equal(t, "TestVal", args.EnvOnly)
 	assert.Equal(t, "TestVal2", args.ShortOnly)
@@ -333,7 +324,7 @@ func TestCaseSensitive(t *testing.T) {
 		Upper bool `arg:"-V"`
 	}
 
-	err := parse("-v", &args)
+	_, err := parse(&args, "-v")
 	require.NoError(t, err)
 	assert.True(t, args.Lower)
 	assert.False(t, args.Upper)
@@ -345,7 +336,7 @@ func TestCaseSensitive2(t *testing.T) {
 		Upper bool `arg:"-V"`
 	}
 
-	err := parse("-V", &args)
+	_, err := parse(&args, "-V")
 	require.NoError(t, err)
 	assert.False(t, args.Lower)
 	assert.True(t, args.Upper)
@@ -356,7 +347,7 @@ func TestPositional(t *testing.T) {
 		Input  string `arg:"positional"`
 		Output string `arg:"positional"`
 	}
-	err := parse("foo", &args)
+	_, err := parse(&args, "foo")
 	require.NoError(t, err)
 	assert.Equal(t, "foo", args.Input)
 	assert.Equal(t, "", args.Output)
@@ -367,7 +358,7 @@ func TestPositionalPointer(t *testing.T) {
 		Input  string    `arg:"positional"`
 		Output []*string `arg:"positional"`
 	}
-	err := parse("foo bar baz", &args)
+	_, err := parse(&args, "foo bar baz")
 	require.NoError(t, err)
 	assert.Equal(t, "foo", args.Input)
 	bar := "bar"
@@ -380,7 +371,7 @@ func TestRequiredPositional(t *testing.T) {
 		Input  string `arg:"positional"`
 		Output string `arg:"positional,required"`
 	}
-	err := parse("foo", &args)
+	_, err := parse(&args, "foo")
 	assert.Error(t, err)
 }
 
@@ -389,7 +380,7 @@ func TestRequiredPositionalMultiple(t *testing.T) {
 		Input    string   `arg:"positional"`
 		Multiple []string `arg:"positional,required"`
 	}
-	err := parse("foo", &args)
+	_, err := parse(&args, "foo")
 	assert.Error(t, err)
 }
 
@@ -398,7 +389,7 @@ func TestTooManyPositional(t *testing.T) {
 		Input  string `arg:"positional"`
 		Output string `arg:"positional"`
 	}
-	err := parse("foo bar baz", &args)
+	_, err := parse(&args, "foo bar baz")
 	assert.Error(t, err)
 }
 
@@ -407,7 +398,7 @@ func TestMultiple(t *testing.T) {
 		Foo []int
 		Bar []string
 	}
-	err := parse("--foo 1 2 3 --bar x y z", &args)
+	_, err := parse(&args, "--foo 1 2 3 --bar x y z")
 	require.NoError(t, err)
 	assert.Equal(t, []int{1, 2, 3}, args.Foo)
 	assert.Equal(t, []string{"x", "y", "z"}, args.Bar)
@@ -418,7 +409,7 @@ func TestMultiplePositionals(t *testing.T) {
 		Input    string   `arg:"positional"`
 		Multiple []string `arg:"positional,required"`
 	}
-	err := parse("foo a b c", &args)
+	_, err := parse(&args, "foo a b c")
 	assert.NoError(t, err)
 	assert.Equal(t, "foo", args.Input)
 	assert.Equal(t, []string{"a", "b", "c"}, args.Multiple)
@@ -429,7 +420,7 @@ func TestMultipleWithEq(t *testing.T) {
 		Foo []int
 		Bar []string
 	}
-	err := parse("--foo 1 2 3 --bar=x", &args)
+	_, err := parse(&args, "--foo 1 2 3 --bar=x")
 	require.NoError(t, err)
 	assert.Equal(t, []int{1, 2, 3}, args.Foo)
 	assert.Equal(t, []string{"x"}, args.Bar)
@@ -442,7 +433,7 @@ func TestMultipleWithDefault(t *testing.T) {
 	}
 	args.Foo = []int{42}
 	args.Bar = []string{"foo"}
-	err := parse("--foo 1 2 3 --bar x y z", &args)
+	_, err := parse(&args, "--foo 1 2 3 --bar x y z")
 	require.NoError(t, err)
 	assert.Equal(t, []int{1, 2, 3}, args.Foo)
 	assert.Equal(t, []string{"x", "y", "z"}, args.Bar)
@@ -453,7 +444,7 @@ func TestExemptField(t *testing.T) {
 		Foo string
 		Bar interface{} `arg:"-"`
 	}
-	err := parse("--foo xyz", &args)
+	_, err := parse(&args, "--foo xyz")
 	require.NoError(t, err)
 	assert.Equal(t, "xyz", args.Foo)
 }
@@ -462,7 +453,7 @@ func TestUnknownField(t *testing.T) {
 	var args struct {
 		Foo string
 	}
-	err := parse("--bar xyz", &args)
+	_, err := parse(&args, "--bar xyz")
 	assert.Error(t, err)
 }
 
@@ -470,7 +461,7 @@ func TestNonsenseKey(t *testing.T) {
 	var args struct {
 		X []string `arg:"positional, nonsense"`
 	}
-	err := parse("x", &args)
+	_, err := parse(&args, "x")
 	assert.Error(t, err)
 }
 
@@ -478,7 +469,7 @@ func TestMissingValueAtEnd(t *testing.T) {
 	var args struct {
 		Foo string
 	}
-	err := parse("--foo", &args)
+	_, err := parse(&args, "--foo")
 	assert.Error(t, err)
 }
 
@@ -487,7 +478,7 @@ func TestMissingValueInMiddle(t *testing.T) {
 		Foo string
 		Bar string
 	}
-	err := parse("--foo --bar=abc", &args)
+	_, err := parse(&args, "--foo --bar=abc")
 	assert.Error(t, err)
 }
 
@@ -495,7 +486,7 @@ func TestNegativeValue(t *testing.T) {
 	var args struct {
 		Foo int
 	}
-	err := parse("--foo=-123", &args)
+	_, err := parse(&args, "--foo=-123")
 	require.NoError(t, err)
 	assert.Equal(t, -123, args.Foo)
 }
@@ -504,7 +495,7 @@ func TestInvalidInt(t *testing.T) {
 	var args struct {
 		Foo int
 	}
-	err := parse("--foo=xyz", &args)
+	_, err := parse(&args, "--foo=xyz")
 	assert.Error(t, err)
 }
 
@@ -512,7 +503,7 @@ func TestInvalidUint(t *testing.T) {
 	var args struct {
 		Foo uint
 	}
-	err := parse("--foo=xyz", &args)
+	_, err := parse(&args, "--foo=xyz")
 	assert.Error(t, err)
 }
 
@@ -520,7 +511,7 @@ func TestInvalidFloat(t *testing.T) {
 	var args struct {
 		Foo float64
 	}
-	err := parse("--foo xyz", &args)
+	_, err := parse(&args, "--foo xyz")
 	require.Error(t, err)
 }
 
@@ -528,7 +519,7 @@ func TestInvalidBool(t *testing.T) {
 	var args struct {
 		Foo bool
 	}
-	err := parse("--foo=xyz", &args)
+	_, err := parse(&args, "--foo=xyz")
 	require.Error(t, err)
 }
 
@@ -536,7 +527,7 @@ func TestInvalidIntSlice(t *testing.T) {
 	var args struct {
 		Foo []int
 	}
-	err := parse("--foo 1 2 xyz", &args)
+	_, err := parse(&args, "--foo 1 2 xyz")
 	require.Error(t, err)
 }
 
@@ -544,7 +535,7 @@ func TestInvalidPositional(t *testing.T) {
 	var args struct {
 		Foo int `arg:"positional"`
 	}
-	err := parse("xyz", &args)
+	_, err := parse(&args, "xyz")
 	require.Error(t, err)
 }
 
@@ -552,7 +543,7 @@ func TestInvalidPositionalSlice(t *testing.T) {
 	var args struct {
 		Foo []int `arg:"positional"`
 	}
-	err := parse("1 2 xyz", &args)
+	_, err := parse(&args, "1 2 xyz")
 	require.Error(t, err)
 }
 
@@ -561,7 +552,7 @@ func TestNoMoreOptions(t *testing.T) {
 		Foo string
 		Bar []string `arg:"positional"`
 	}
-	err := parse("abc -- --foo xyz", &args)
+	_, err := parse(&args, "abc -- --foo xyz")
 	require.NoError(t, err)
 	assert.Equal(t, "", args.Foo)
 	assert.Equal(t, []string{"abc", "--foo", "xyz"}, args.Bar)
@@ -571,7 +562,7 @@ func TestNoMoreOptionsBeforeHelp(t *testing.T) {
 	var args struct {
 		Foo int
 	}
-	err := parse("not_an_integer -- --help", &args)
+	_, err := parse(&args, "not_an_integer -- --help")
 	assert.NotEqual(t, ErrHelp, err)
 }
 
@@ -580,20 +571,20 @@ func TestHelpFlag(t *testing.T) {
 		Foo string
 		Bar interface{} `arg:"-"`
 	}
-	err := parse("--help", &args)
+	_, err := parse(&args, "--help")
 	assert.Equal(t, ErrHelp, err)
 }
 
 func TestPanicOnNonPointer(t *testing.T) {
 	var args struct{}
 	assert.Panics(t, func() {
-		_ = parse("", args)
+		_, _ = parse(args, "")
 	})
 }
 
 func TestErrorOnNonStruct(t *testing.T) {
 	var args string
-	err := parse("", &args)
+	_, err := parse(&args, "")
 	assert.Error(t, err)
 }
 
@@ -601,7 +592,7 @@ func TestUnsupportedType(t *testing.T) {
 	var args struct {
 		Foo interface{}
 	}
-	err := parse("--foo", &args)
+	_, err := parse(&args, "--foo")
 	assert.Error(t, err)
 }
 
@@ -609,7 +600,7 @@ func TestUnsupportedSliceElement(t *testing.T) {
 	var args struct {
 		Foo []interface{}
 	}
-	err := parse("--foo 3", &args)
+	_, err := parse(&args, "--foo 3")
 	assert.Error(t, err)
 }
 
@@ -617,7 +608,7 @@ func TestUnsupportedSliceElementMissingValue(t *testing.T) {
 	var args struct {
 		Foo []interface{}
 	}
-	err := parse("--foo", &args)
+	_, err := parse(&args, "--foo")
 	assert.Error(t, err)
 }
 
@@ -625,7 +616,7 @@ func TestUnknownTag(t *testing.T) {
 	var args struct {
 		Foo string `arg:"this_is_not_valid"`
 	}
-	err := parse("--foo xyz", &args)
+	_, err := parse(&args, "--foo xyz")
 	assert.Error(t, err)
 }
 
@@ -633,8 +624,7 @@ func TestParse(t *testing.T) {
 	var args struct {
 		Foo string
 	}
-	os.Args = []string{"example", "--foo", "bar"}
-	err := Parse(&args)
+	_, err := parse(&args, "--foo bar")
 	require.NoError(t, err)
 	assert.Equal(t, "bar", args.Foo)
 }
@@ -643,8 +633,7 @@ func TestParseError(t *testing.T) {
 	var args struct {
 		Foo string `arg:"this_is_not_valid"`
 	}
-	os.Args = []string{"example", "--bar"}
-	err := Parse(&args)
+	_, err := NewParser(&args)
 	assert.Error(t, err)
 }
 
@@ -662,7 +651,7 @@ func TestEnvironmentVariable(t *testing.T) {
 	var args struct {
 		Foo string `arg:"env"`
 	}
-	_, err := parseWithEnv(&args, "", "FOO=bar")
+	_, err := parse(&args, "", "FOO=bar")
 	require.NoError(t, err)
 	assert.Equal(t, "bar", args.Foo)
 }
@@ -671,7 +660,7 @@ func TestEnvironmentVariableNotPresent(t *testing.T) {
 	var args struct {
 		NotPresent string `arg:"env"`
 	}
-	_, err := parseWithEnv(&args, "", "")
+	_, err := parse(&args, "", "")
 	require.NoError(t, err)
 	assert.Equal(t, "", args.NotPresent)
 }
@@ -680,7 +669,7 @@ func TestEnvironmentVariableOverrideName(t *testing.T) {
 	var args struct {
 		Foo string `arg:"env:BAZ"`
 	}
-	_, err := parseWithEnv(&args, "", "BAZ=bar")
+	_, err := parse(&args, "", "BAZ=bar")
 	require.NoError(t, err)
 	assert.Equal(t, "bar", args.Foo)
 }
@@ -689,7 +678,7 @@ func TestCommandLineSupercedesEnv(t *testing.T) {
 	var args struct {
 		Foo string `arg:"env"`
 	}
-	_, err := parseWithEnv(&args, "--foo zzz", "FOO=bar")
+	_, err := parse(&args, "--foo zzz", "FOO=bar")
 	require.NoError(t, err)
 	assert.Equal(t, "zzz", args.Foo)
 }
@@ -698,7 +687,7 @@ func TestEnvironmentVariableError(t *testing.T) {
 	var args struct {
 		Foo int `arg:"env"`
 	}
-	_, err := parseWithEnv(&args, "", "FOO=bar")
+	_, err := parse(&args, "", "FOO=bar")
 	assert.Error(t, err)
 }
 
@@ -706,7 +695,7 @@ func TestEnvironmentVariableRequired(t *testing.T) {
 	var args struct {
 		Foo string `arg:"env,required"`
 	}
-	_, err := parseWithEnv(&args, "", "FOO=bar")
+	_, err := parse(&args, "", "FOO=bar")
 	require.NoError(t, err)
 	assert.Equal(t, "bar", args.Foo)
 }
@@ -715,7 +704,7 @@ func TestEnvironmentVariableSliceArgumentString(t *testing.T) {
 	var args struct {
 		Foo []string `arg:"env"`
 	}
-	_, err := parseWithEnv(&args, "", `FOO=bar,"baz, qux"`)
+	_, err := parse(&args, "", `FOO=bar,"baz, qux"`)
 	require.NoError(t, err)
 	assert.Equal(t, []string{"bar", "baz, qux"}, args.Foo)
 }
@@ -724,7 +713,7 @@ func TestEnvironmentVariableSliceEmpty(t *testing.T) {
 	var args struct {
 		Foo []string `arg:"env"`
 	}
-	_, err := parseWithEnv(&args, "", `FOO=`)
+	_, err := parse(&args, "", `FOO=`)
 	require.NoError(t, err)
 	assert.Len(t, args.Foo, 0)
 }
@@ -733,7 +722,7 @@ func TestEnvironmentVariableSliceArgumentInteger(t *testing.T) {
 	var args struct {
 		Foo []int `arg:"env"`
 	}
-	_, err := parseWithEnv(&args, "", `FOO=1,99`)
+	_, err := parse(&args, "", `FOO=1,99`)
 	require.NoError(t, err)
 	assert.Equal(t, []int{1, 99}, args.Foo)
 }
@@ -742,7 +731,7 @@ func TestEnvironmentVariableSliceArgumentFloat(t *testing.T) {
 	var args struct {
 		Foo []float32 `arg:"env"`
 	}
-	_, err := parseWithEnv(&args, "", `FOO=1.1,99.9`)
+	_, err := parse(&args, "", `FOO=1.1,99.9`)
 	require.NoError(t, err)
 	assert.Equal(t, []float32{1.1, 99.9}, args.Foo)
 }
@@ -751,7 +740,7 @@ func TestEnvironmentVariableSliceArgumentBool(t *testing.T) {
 	var args struct {
 		Foo []bool `arg:"env"`
 	}
-	_, err := parseWithEnv(&args, "", `FOO=true,false,0,1`)
+	_, err := parse(&args, "", `FOO=true,false,0,1`)
 	require.NoError(t, err)
 	assert.Equal(t, []bool{true, false, false, true}, args.Foo)
 }
@@ -760,7 +749,7 @@ func TestEnvironmentVariableSliceArgumentWrongCsv(t *testing.T) {
 	var args struct {
 		Foo []int `arg:"env"`
 	}
-	_, err := parseWithEnv(&args, "", `FOO=1,99\"`)
+	_, err := parse(&args, "", `FOO=1,99\"`)
 	assert.Error(t, err)
 }
 
@@ -768,7 +757,7 @@ func TestEnvironmentVariableSliceArgumentWrongType(t *testing.T) {
 	var args struct {
 		Foo []bool `arg:"env"`
 	}
-	_, err := parseWithEnv(&args, "", `FOO=one,two`)
+	_, err := parse(&args, "", `FOO=one,two`)
 	assert.Error(t, err)
 }
 
@@ -776,7 +765,7 @@ func TestEnvironmentVariableMap(t *testing.T) {
 	var args struct {
 		Foo map[int]string `arg:"env"`
 	}
-	_, err := parseWithEnv(&args, "", `FOO=1=one,99=ninetynine`)
+	_, err := parse(&args, "", `FOO=1=one,99=ninetynine`)
 	require.NoError(t, err)
 	assert.Len(t, args.Foo, 2)
 	assert.Equal(t, "one", args.Foo[1])
@@ -787,7 +776,7 @@ func TestEnvironmentVariableEmptyMap(t *testing.T) {
 	var args struct {
 		Foo map[int]string `arg:"env"`
 	}
-	_, err := parseWithEnv(&args, "", `FOO=`)
+	_, err := parse(&args, "", `FOO=`)
 	require.NoError(t, err)
 	assert.Len(t, args.Foo, 0)
 }
@@ -800,7 +789,7 @@ func TestEnvironmentVariableIgnored(t *testing.T) {
 	// the library should never read env vars direct from os
 	os.Setenv("FOO", "123")
 
-	_, err := parseWithEnv(&args, "")
+	_, err := parse(&args, "")
 	require.NoError(t, err)
 	assert.Equal(t, "", args.Foo)
 }
@@ -832,7 +821,7 @@ func TestEnvironmentVariableInSubcommand(t *testing.T) {
 		} `arg:"subcommand"`
 	}
 
-	_, err := parseWithEnv(&args, "sub", "FOO=abc")
+	_, err := parse(&args, "sub", "FOO=abc")
 	require.NoError(t, err)
 	require.NotNil(t, args.Sub)
 	assert.Equal(t, "abc", args.Sub.Foo)
@@ -845,7 +834,7 @@ func TestEnvironmentVariableInSubcommandEmpty(t *testing.T) {
 		} `arg:"subcommand"`
 	}
 
-	_, err := parseWithEnv(&args, "sub")
+	_, err := parse(&args, "sub")
 	require.NoError(t, err)
 	require.NotNil(t, args.Sub)
 	assert.Equal(t, "", args.Sub.Foo)
@@ -865,7 +854,7 @@ func TestTextUnmarshaler(t *testing.T) {
 	var args struct {
 		Foo textUnmarshaler
 	}
-	err := parse("--foo abc", &args)
+	_, err := parse(&args, "--foo abc")
 	require.NoError(t, err)
 	assert.Equal(t, 3, args.Foo.val)
 }
@@ -875,7 +864,7 @@ func TestPtrToTextUnmarshaler(t *testing.T) {
 	var args struct {
 		Foo *textUnmarshaler
 	}
-	err := parse("--foo abc", &args)
+	_, err := parse(&args, "--foo abc")
 	require.NoError(t, err)
 	assert.Equal(t, 3, args.Foo.val)
 }
@@ -885,7 +874,7 @@ func TestRepeatedTextUnmarshaler(t *testing.T) {
 	var args struct {
 		Foo []textUnmarshaler
 	}
-	err := parse("--foo abc d ef", &args)
+	_, err := parse(&args, "--foo abc d ef")
 	require.NoError(t, err)
 	require.Len(t, args.Foo, 3)
 	assert.Equal(t, 3, args.Foo[0].val)
@@ -898,7 +887,7 @@ func TestRepeatedPtrToTextUnmarshaler(t *testing.T) {
 	var args struct {
 		Foo []*textUnmarshaler
 	}
-	err := parse("--foo abc d ef", &args)
+	_, err := parse(&args, "--foo abc d ef")
 	require.NoError(t, err)
 	require.Len(t, args.Foo, 3)
 	assert.Equal(t, 3, args.Foo[0].val)
@@ -911,7 +900,7 @@ func TestPositionalTextUnmarshaler(t *testing.T) {
 	var args struct {
 		Foo []textUnmarshaler `arg:"positional"`
 	}
-	err := parse("abc d ef", &args)
+	_, err := parse(&args, "abc d ef")
 	require.NoError(t, err)
 	require.Len(t, args.Foo, 3)
 	assert.Equal(t, 3, args.Foo[0].val)
@@ -924,7 +913,7 @@ func TestPositionalPtrToTextUnmarshaler(t *testing.T) {
 	var args struct {
 		Foo []*textUnmarshaler `arg:"positional"`
 	}
-	err := parse("abc d ef", &args)
+	_, err := parse(&args, "abc d ef")
 	require.NoError(t, err)
 	require.Len(t, args.Foo, 3)
 	assert.Equal(t, 3, args.Foo[0].val)
@@ -945,7 +934,7 @@ func TestBoolUnmarhsaler(t *testing.T) {
 	var args struct {
 		Foo *boolUnmarshaler
 	}
-	err := parse("--foo ab", &args)
+	_, err := parse(&args, "--foo ab")
 	require.NoError(t, err)
 	assert.EqualValues(t, true, *args.Foo)
 }
@@ -964,7 +953,7 @@ func TestSliceUnmarhsaler(t *testing.T) {
 		Foo *sliceUnmarshaler
 		Bar string `arg:"positional"`
 	}
-	err := parse("--foo abcde xyz", &args)
+	_, err := parse(&args, "--foo abcde xyz")
 	require.NoError(t, err)
 	require.Len(t, *args.Foo, 1)
 	assert.EqualValues(t, 5, (*args.Foo)[0])
@@ -975,7 +964,7 @@ func TestIP(t *testing.T) {
 	var args struct {
 		Host net.IP
 	}
-	err := parse("--host 192.168.0.1", &args)
+	_, err := parse(&args, "--host 192.168.0.1")
 	require.NoError(t, err)
 	assert.Equal(t, "192.168.0.1", args.Host.String())
 }
@@ -984,7 +973,7 @@ func TestPtrToIP(t *testing.T) {
 	var args struct {
 		Host *net.IP
 	}
-	err := parse("--host 192.168.0.1", &args)
+	_, err := parse(&args, "--host 192.168.0.1")
 	require.NoError(t, err)
 	assert.Equal(t, "192.168.0.1", args.Host.String())
 }
@@ -993,7 +982,7 @@ func TestURL(t *testing.T) {
 	var args struct {
 		URL url.URL
 	}
-	err := parse("--url https://example.com/get?item=xyz", &args)
+	_, err := parse(&args, "--url https://example.com/get?item=xyz")
 	require.NoError(t, err)
 	assert.Equal(t, "https://example.com/get?item=xyz", args.URL.String())
 }
@@ -1002,7 +991,7 @@ func TestPtrToURL(t *testing.T) {
 	var args struct {
 		URL *url.URL
 	}
-	err := parse("--url http://example.com/#xyz", &args)
+	_, err := parse(&args, "--url http://example.com/#xyz")
 	require.NoError(t, err)
 	assert.Equal(t, "http://example.com/#xyz", args.URL.String())
 }
@@ -1011,7 +1000,7 @@ func TestIPSlice(t *testing.T) {
 	var args struct {
 		Host []net.IP
 	}
-	err := parse("--host 192.168.0.1 127.0.0.1", &args)
+	_, err := parse(&args, "--host 192.168.0.1 127.0.0.1")
 	require.NoError(t, err)
 	require.Len(t, args.Host, 2)
 	assert.Equal(t, "192.168.0.1", args.Host[0].String())
@@ -1022,7 +1011,7 @@ func TestInvalidIPAddress(t *testing.T) {
 	var args struct {
 		Host net.IP
 	}
-	err := parse("--host xxx", &args)
+	_, err := parse(&args, "--host xxx")
 	assert.Error(t, err)
 }
 
@@ -1030,7 +1019,7 @@ func TestMAC(t *testing.T) {
 	var args struct {
 		Host net.HardwareAddr
 	}
-	err := parse("--host 0123.4567.89ab", &args)
+	_, err := parse(&args, "--host 0123.4567.89ab")
 	require.NoError(t, err)
 	assert.Equal(t, "01:23:45:67:89:ab", args.Host.String())
 }
@@ -1039,7 +1028,7 @@ func TestInvalidMac(t *testing.T) {
 	var args struct {
 		Host net.HardwareAddr
 	}
-	err := parse("--host xxx", &args)
+	_, err := parse(&args, "--host xxx")
 	assert.Error(t, err)
 }
 
@@ -1047,7 +1036,7 @@ func TestMailAddr(t *testing.T) {
 	var args struct {
 		Recipient mail.Address
 	}
-	err := parse("--recipient foo@example.com", &args)
+	_, err := parse(&args, "--recipient foo@example.com")
 	require.NoError(t, err)
 	assert.Equal(t, "<foo@example.com>", args.Recipient.String())
 }
@@ -1056,7 +1045,7 @@ func TestInvalidMailAddr(t *testing.T) {
 	var args struct {
 		Recipient mail.Address
 	}
-	err := parse("--recipient xxx", &args)
+	_, err := parse(&args, "--recipient xxx")
 	assert.Error(t, err)
 }
 
@@ -1074,7 +1063,7 @@ func TestEmbedded(t *testing.T) {
 		B
 		Z bool
 	}
-	err := parse("--x=hello --y=321 --z", &args)
+	_, err := parse(&args, "--x=hello --y=321 --z")
 	require.NoError(t, err)
 	assert.Equal(t, "hello", args.X)
 	assert.Equal(t, 321, args.Y)
@@ -1086,7 +1075,7 @@ func TestEmbeddedPtr(t *testing.T) {
 	var args struct {
 		*A
 	}
-	err := parse("--x=hello", &args)
+	_, err := parse(&args, "--x=hello")
 	require.Error(t, err)
 }
 
@@ -1098,7 +1087,7 @@ func TestEmbeddedPtrIgnored(t *testing.T) {
 		*A `arg:"-"`
 		B
 	}
-	err := parse("--y=321", &args)
+	_, err := parse(&args, "--y=321")
 	require.NoError(t, err)
 	assert.Equal(t, 321, args.Y)
 }
@@ -1116,7 +1105,7 @@ func TestEmbeddedWithDuplicateField(t *testing.T) {
 		U
 	}
 
-	err := parse("--cat=cat --dog=dog", &args)
+	_, err := parse(&args, "--cat=cat --dog=dog")
 	require.NoError(t, err)
 	assert.Equal(t, "cat", args.T.A)
 	assert.Equal(t, "dog", args.U.A)
@@ -1135,7 +1124,7 @@ func TestEmbeddedWithDuplicateField2(t *testing.T) {
 		U
 	}
 
-	err := parse("--a=xyz", &args)
+	_, err := parse(&args, "--a=xyz")
 	require.NoError(t, err)
 	assert.Equal(t, "xyz", args.T.A)
 	assert.Equal(t, "", args.U.A)
@@ -1148,7 +1137,7 @@ func TestUnexportedEmbedded(t *testing.T) {
 	var args struct {
 		embeddedArgs
 	}
-	err := parse("--foo bar", &args)
+	_, err := parse(&args, "--foo bar")
 	require.NoError(t, err)
 	assert.Equal(t, "bar", args.Foo)
 }
@@ -1160,7 +1149,7 @@ func TestIgnoredEmbedded(t *testing.T) {
 	var args struct {
 		embeddedArgs `arg:"-"`
 	}
-	err := parse("--foo bar", &args)
+	_, err := parse(&args, "--foo bar")
 	require.Error(t, err)
 }
 
@@ -1172,7 +1161,8 @@ func TestEmptyArgs(t *testing.T) {
 	var args struct {
 		Foo string
 	}
-	MustParse(&args)
+	err := Parse(&args)
+	require.NoError(t, err)
 
 	// put the original arguments back
 	os.Args = origArgs
@@ -1182,7 +1172,7 @@ func TestTooManyHyphens(t *testing.T) {
 	var args struct {
 		TooManyHyphens string `arg:"---x"`
 	}
-	err := parse("--foo -", &args)
+	_, err := parse(&args, "--foo -")
 	assert.Error(t, err)
 }
 
@@ -1190,7 +1180,7 @@ func TestHyphenAsOption(t *testing.T) {
 	var args struct {
 		Foo string
 	}
-	err := parse("--foo -", &args)
+	_, err := parse(&args, "--foo -")
 	require.NoError(t, err)
 	assert.Equal(t, "-", args.Foo)
 }
@@ -1199,7 +1189,7 @@ func TestHyphenAsPositional(t *testing.T) {
 	var args struct {
 		Foo string `arg:"positional"`
 	}
-	err := parse("-", &args)
+	_, err := parse(&args, "-")
 	require.NoError(t, err)
 	assert.Equal(t, "-", args.Foo)
 }
@@ -1209,7 +1199,7 @@ func TestHyphenInMultiOption(t *testing.T) {
 		Foo []string
 		Bar int
 	}
-	err := parse("--foo --- x - y --bar 3", &args)
+	_, err := parse(&args, "--foo --- x - y --bar 3")
 	require.NoError(t, err)
 	assert.Equal(t, []string{"---", "x", "-", "y"}, args.Foo)
 	assert.Equal(t, 3, args.Bar)
@@ -1219,7 +1209,7 @@ func TestHyphenInMultiPositional(t *testing.T) {
 	var args struct {
 		Foo []string `arg:"positional"`
 	}
-	err := parse("--- x - y", &args)
+	_, err := parse(&args, "--- x - y")
 	require.NoError(t, err)
 	assert.Equal(t, []string{"---", "x", "-", "y"}, args.Foo)
 }
@@ -1230,7 +1220,7 @@ func TestSeparate(t *testing.T) {
 			Foo []string `arg:"--foo,-f,separate"`
 		}
 
-		err := parse(val, &args)
+		_, err := parse(&args, val)
 		require.NoError(t, err)
 		assert.Equal(t, []string{"one"}, args.Foo)
 	}
@@ -1243,7 +1233,7 @@ func TestSeparateWithDefault(t *testing.T) {
 		Foo: []string{"default"},
 	}
 
-	err := parse("-f one -f=two", &args)
+	_, err := parse(&args, "-f one -f=two")
 	require.NoError(t, err)
 	assert.Equal(t, []string{"default", "one", "two"}, args.Foo)
 }
@@ -1255,7 +1245,7 @@ func TestSeparateWithPositional(t *testing.T) {
 		Moo string   `arg:"positional"`
 	}
 
-	err := parse("zzz --foo one -f=two --foo=three -f four aaa", &args)
+	_, err := parse(&args, "zzz --foo one -f=two --foo=three -f four aaa")
 	require.NoError(t, err)
 	assert.Equal(t, []string{"one", "two", "three", "four"}, args.Foo)
 	assert.Equal(t, "zzz", args.Bar)
@@ -1270,7 +1260,7 @@ func TestSeparatePositionalInterweaved(t *testing.T) {
 		Post []string `arg:"positional"`
 	}
 
-	err := parse("zzz -f foo1 -b=bar1 --foo=foo2 -b bar2 post1 -b bar3 post2 post3", &args)
+	_, err := parse(&args, "zzz -f foo1 -b=bar1 --foo=foo2 -b bar2 post1 -b bar3 post2 post3")
 	require.NoError(t, err)
 	assert.Equal(t, []string{"foo1", "foo2"}, args.Foo)
 	assert.Equal(t, []string{"bar1", "bar2", "bar3"}, args.Bar)
@@ -1283,7 +1273,7 @@ func TestSpacesAllowedInTags(t *testing.T) {
 		Foo []string `arg:"--foo, -f, separate, required, help:quite nice really"`
 	}
 
-	err := parse("--foo one -f=two --foo=three -f four", &args)
+	_, err := parse(&args, "--foo one -f=two --foo=three -f four")
 	require.NoError(t, err)
 	assert.Equal(t, []string{"one", "two", "three", "four"}, args.Foo)
 }
@@ -1306,7 +1296,7 @@ func TestReuseParser(t *testing.T) {
 
 func TestVersion(t *testing.T) {
 	var args struct{}
-	err := parse("--version", &args)
+	_, err := parse(&args, "--version")
 	assert.Equal(t, ErrVersion, err)
 
 }
@@ -1317,7 +1307,7 @@ func TestMultipleTerminates(t *testing.T) {
 		Y string `arg:"positional"`
 	}
 
-	err := parse("--x a b -- c", &args)
+	_, err := parse(&args, "--x a b -- c")
 	require.NoError(t, err)
 	assert.Equal(t, []string{"a", "b"}, args.X)
 	assert.Equal(t, "c", args.Y)
@@ -1335,7 +1325,7 @@ func TestDefaultOptionValues(t *testing.T) {
 		H *bool    `default:"true"`
 	}
 
-	err := parse("--c=xyz --e=4.56", &args)
+	_, err := parse(&args, "--c=xyz --e=4.56")
 	require.NoError(t, err)
 
 	assert.Equal(t, 123, args.A)
@@ -1353,7 +1343,7 @@ func TestDefaultUnparseable(t *testing.T) {
 		A int `default:"x"`
 	}
 
-	err := parse("", &args)
+	_, err := parse(&args, "")
 	assert.EqualError(t, err, `error processing default value for --a: strconv.ParseInt: parsing "x": invalid syntax`)
 }
 
@@ -1369,7 +1359,7 @@ func TestDefaultPositionalValues(t *testing.T) {
 		H *bool    `arg:"positional" default:"true"`
 	}
 
-	err := parse("456 789", &args)
+	_, err := parse(&args, "456 789")
 	require.NoError(t, err)
 
 	assert.Equal(t, 456, args.A)
@@ -1387,7 +1377,7 @@ func TestDefaultValuesNotAllowedWithRequired(t *testing.T) {
 		A int `arg:"required" default:"123"` // required not allowed with default!
 	}
 
-	err := parse("", &args)
+	_, err := parse(&args, "")
 	assert.EqualError(t, err, ".A: 'required' cannot be used when a default value is specified")
 }
 
@@ -1396,7 +1386,7 @@ func TestDefaultValuesNotAllowedWithSlice(t *testing.T) {
 		A []int `default:"123"` // required not allowed with default!
 	}
 
-	err := parse("", &args)
+	_, err := parse(&args, "")
 	assert.EqualError(t, err, ".A: default values are not supported for slice or map fields")
 }
 

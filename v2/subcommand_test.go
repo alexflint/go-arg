@@ -42,7 +42,7 @@ func TestMinimalSubcommand(t *testing.T) {
 	var args struct {
 		List *listCmd `arg:"subcommand"`
 	}
-	p, err := pparse("list", &args)
+	p, err := parse(&args, "list")
 	require.NoError(t, err)
 	assert.NotNil(t, args.List)
 	assert.Equal(t, args.List, p.Subcommand())
@@ -66,7 +66,7 @@ func TestNoSuchSubcommand(t *testing.T) {
 	var args struct {
 		List *listCmd `arg:"subcommand"`
 	}
-	_, err := pparse("invalid", &args)
+	_, err := parse(&args, "invalid")
 	assert.Error(t, err)
 }
 
@@ -76,7 +76,7 @@ func TestNamedSubcommand(t *testing.T) {
 	var args struct {
 		List *listCmd `arg:"subcommand:ls"`
 	}
-	p, err := pparse("ls", &args)
+	p, err := parse(&args, "ls")
 	require.NoError(t, err)
 	assert.NotNil(t, args.List)
 	assert.Equal(t, args.List, p.Subcommand())
@@ -89,7 +89,7 @@ func TestEmptySubcommand(t *testing.T) {
 	var args struct {
 		List *listCmd `arg:"subcommand"`
 	}
-	p, err := pparse("", &args)
+	p, err := parse(&args, "")
 	require.NoError(t, err)
 	assert.Nil(t, args.List)
 	assert.Nil(t, p.Subcommand())
@@ -105,7 +105,7 @@ func TestTwoSubcommands(t *testing.T) {
 		Get  *getCmd  `arg:"subcommand"`
 		List *listCmd `arg:"subcommand"`
 	}
-	p, err := pparse("list", &args)
+	p, err := parse(&args, "list")
 	require.NoError(t, err)
 	assert.Nil(t, args.Get)
 	assert.NotNil(t, args.List)
@@ -128,7 +128,7 @@ func TestSubcommandsWithOptions(t *testing.T) {
 
 	{
 		var args cmd
-		err := parse("list", &args)
+		_, err := parse(&args, "list")
 		require.NoError(t, err)
 		assert.Nil(t, args.Get)
 		assert.NotNil(t, args.List)
@@ -136,26 +136,16 @@ func TestSubcommandsWithOptions(t *testing.T) {
 
 	{
 		var args cmd
-		err := parse("list --limit 3", &args)
-		require.NoError(t, err)
-		assert.Nil(t, args.Get)
-		assert.NotNil(t, args.List)
-		assert.Equal(t, args.List.Limit, 3)
-	}
-
-	{
-		var args cmd
-		err := parse("list --limit 3 --verbose", &args)
+		_, err := parse(&args, "list --limit 3")
 		require.NoError(t, err)
 		assert.Nil(t, args.Get)
 		assert.NotNil(t, args.List)
 		assert.Equal(t, args.List.Limit, 3)
-		assert.True(t, args.Verbose)
 	}
 
 	{
 		var args cmd
-		err := parse("list --verbose --limit 3", &args)
+		_, err := parse(&args, "list --limit 3 --verbose")
 		require.NoError(t, err)
 		assert.Nil(t, args.Get)
 		assert.NotNil(t, args.List)
@@ -165,7 +155,7 @@ func TestSubcommandsWithOptions(t *testing.T) {
 
 	{
 		var args cmd
-		err := parse("--verbose list --limit 3", &args)
+		_, err := parse(&args, "list --verbose --limit 3")
 		require.NoError(t, err)
 		assert.Nil(t, args.Get)
 		assert.NotNil(t, args.List)
@@ -175,7 +165,17 @@ func TestSubcommandsWithOptions(t *testing.T) {
 
 	{
 		var args cmd
-		err := parse("get", &args)
+		_, err := parse(&args, "--verbose list --limit 3")
+		require.NoError(t, err)
+		assert.Nil(t, args.Get)
+		assert.NotNil(t, args.List)
+		assert.Equal(t, args.List.Limit, 3)
+		assert.True(t, args.Verbose)
+	}
+
+	{
+		var args cmd
+		_, err := parse(&args, "get")
 		require.NoError(t, err)
 		assert.NotNil(t, args.Get)
 		assert.Nil(t, args.List)
@@ -183,7 +183,7 @@ func TestSubcommandsWithOptions(t *testing.T) {
 
 	{
 		var args cmd
-		err := parse("get --name test", &args)
+		_, err := parse(&args, "get --name test")
 		require.NoError(t, err)
 		assert.NotNil(t, args.Get)
 		assert.Nil(t, args.List)
@@ -206,7 +206,7 @@ func TestSubcommandsWithEnvVars(t *testing.T) {
 
 	{
 		var args cmd
-		_, err := parseWithEnv(&args, "list", "LIMIT=123")
+		_, err := parse(&args, "list", "LIMIT=123")
 		require.NoError(t, err)
 		require.NotNil(t, args.List)
 		assert.Equal(t, 123, args.List.Limit)
@@ -214,7 +214,7 @@ func TestSubcommandsWithEnvVars(t *testing.T) {
 
 	{
 		var args cmd
-		_, err := parseWithEnv(&args, "list", "LIMIT=not_an_integer")
+		_, err := parse(&args, "list", "LIMIT=not_an_integer")
 		assert.Error(t, err)
 	}
 }
@@ -233,7 +233,7 @@ func TestNestedSubcommands(t *testing.T) {
 
 	{
 		var args root
-		p, err := pparse("grandparent parent child", &args)
+		p, err := parse(&args, "grandparent parent child")
 		require.NoError(t, err)
 		require.NotNil(t, args.Grandparent)
 		require.NotNil(t, args.Grandparent.Parent)
@@ -244,7 +244,7 @@ func TestNestedSubcommands(t *testing.T) {
 
 	{
 		var args root
-		p, err := pparse("grandparent parent", &args)
+		p, err := parse(&args, "grandparent parent")
 		require.NoError(t, err)
 		require.NotNil(t, args.Grandparent)
 		require.NotNil(t, args.Grandparent.Parent)
@@ -255,7 +255,7 @@ func TestNestedSubcommands(t *testing.T) {
 
 	{
 		var args root
-		p, err := pparse("grandparent", &args)
+		p, err := parse(&args, "grandparent")
 		require.NoError(t, err)
 		require.NotNil(t, args.Grandparent)
 		require.Nil(t, args.Grandparent.Parent)
@@ -265,7 +265,7 @@ func TestNestedSubcommands(t *testing.T) {
 
 	{
 		var args root
-		p, err := pparse("", &args)
+		p, err := parse(&args, "")
 		require.NoError(t, err)
 		require.Nil(t, args.Grandparent)
 		assert.Nil(t, p.Subcommand())
@@ -284,7 +284,7 @@ func TestSubcommandsWithPositionals(t *testing.T) {
 
 	{
 		var args cmd
-		err := parse("list", &args)
+		_, err := parse(&args, "list")
 		require.NoError(t, err)
 		assert.NotNil(t, args.List)
 		assert.Equal(t, "", args.List.Pattern)
@@ -292,7 +292,7 @@ func TestSubcommandsWithPositionals(t *testing.T) {
 
 	{
 		var args cmd
-		err := parse("list --format json", &args)
+		_, err := parse(&args, "list --format json")
 		require.NoError(t, err)
 		assert.NotNil(t, args.List)
 		assert.Equal(t, "", args.List.Pattern)
@@ -301,7 +301,7 @@ func TestSubcommandsWithPositionals(t *testing.T) {
 
 	{
 		var args cmd
-		err := parse("list somepattern", &args)
+		_, err := parse(&args, "list somepattern")
 		require.NoError(t, err)
 		assert.NotNil(t, args.List)
 		assert.Equal(t, "somepattern", args.List.Pattern)
@@ -309,16 +309,7 @@ func TestSubcommandsWithPositionals(t *testing.T) {
 
 	{
 		var args cmd
-		err := parse("list somepattern --format json", &args)
-		require.NoError(t, err)
-		assert.NotNil(t, args.List)
-		assert.Equal(t, "somepattern", args.List.Pattern)
-		assert.Equal(t, "json", args.Format)
-	}
-
-	{
-		var args cmd
-		err := parse("list --format json somepattern", &args)
+		_, err := parse(&args, "list somepattern --format json")
 		require.NoError(t, err)
 		assert.NotNil(t, args.List)
 		assert.Equal(t, "somepattern", args.List.Pattern)
@@ -327,7 +318,7 @@ func TestSubcommandsWithPositionals(t *testing.T) {
 
 	{
 		var args cmd
-		err := parse("--format json list somepattern", &args)
+		_, err := parse(&args, "list --format json somepattern")
 		require.NoError(t, err)
 		assert.NotNil(t, args.List)
 		assert.Equal(t, "somepattern", args.List.Pattern)
@@ -336,7 +327,16 @@ func TestSubcommandsWithPositionals(t *testing.T) {
 
 	{
 		var args cmd
-		err := parse("--format json", &args)
+		_, err := parse(&args, "--format json list somepattern")
+		require.NoError(t, err)
+		assert.NotNil(t, args.List)
+		assert.Equal(t, "somepattern", args.List.Pattern)
+		assert.Equal(t, "json", args.Format)
+	}
+
+	{
+		var args cmd
+		_, err := parse(&args, "--format json")
 		require.NoError(t, err)
 		assert.Nil(t, args.List)
 		assert.Equal(t, "json", args.Format)
@@ -353,7 +353,7 @@ func TestSubcommandsWithMultiplePositionals(t *testing.T) {
 
 	{
 		var args cmd
-		err := parse("get", &args)
+		_, err := parse(&args, "get")
 		require.NoError(t, err)
 		assert.NotNil(t, args.Get)
 		assert.Empty(t, args.Get.Items)
@@ -361,7 +361,7 @@ func TestSubcommandsWithMultiplePositionals(t *testing.T) {
 
 	{
 		var args cmd
-		err := parse("get --limit 5", &args)
+		_, err := parse(&args, "get --limit 5")
 		require.NoError(t, err)
 		assert.NotNil(t, args.Get)
 		assert.Empty(t, args.Get.Items)
@@ -370,7 +370,7 @@ func TestSubcommandsWithMultiplePositionals(t *testing.T) {
 
 	{
 		var args cmd
-		err := parse("get item1", &args)
+		_, err := parse(&args, "get item1")
 		require.NoError(t, err)
 		assert.NotNil(t, args.Get)
 		assert.Equal(t, []string{"item1"}, args.Get.Items)
@@ -378,7 +378,7 @@ func TestSubcommandsWithMultiplePositionals(t *testing.T) {
 
 	{
 		var args cmd
-		err := parse("get item1 item2 item3", &args)
+		_, err := parse(&args, "get item1 item2 item3")
 		require.NoError(t, err)
 		assert.NotNil(t, args.Get)
 		assert.Equal(t, []string{"item1", "item2", "item3"}, args.Get.Items)
@@ -386,7 +386,7 @@ func TestSubcommandsWithMultiplePositionals(t *testing.T) {
 
 	{
 		var args cmd
-		err := parse("get item1 --limit 5 item2", &args)
+		_, err := parse(&args, "get item1 --limit 5 item2")
 		require.NoError(t, err)
 		assert.NotNil(t, args.Get)
 		assert.Equal(t, []string{"item1", "item2"}, args.Get.Items)
