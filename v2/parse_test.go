@@ -24,7 +24,7 @@ func pparse(cmdline string, dest interface{}) (*Parser, error) {
 }
 
 func parseWithEnv(dest interface{}, cmdline string, env ...string) (*Parser, error) {
-	p, err := NewParser(Config{}, dest)
+	p, err := NewParser(dest)
 	if err != nil {
 		return nil, err
 	}
@@ -813,7 +813,7 @@ func TestDefaultValuesIgnored(t *testing.T) {
 	// just checking that default values are not automatically applied
 	// in ProcessCommandLine or ProcessEnvironment
 
-	p, err := NewParser(Config{}, &args)
+	p, err := NewParser(&args)
 	require.NoError(t, err)
 
 	err = p.ProcessCommandLine(nil)
@@ -1293,7 +1293,7 @@ func TestReuseParser(t *testing.T) {
 		Foo string `arg:"required"`
 	}
 
-	p, err := NewParser(Config{}, &args)
+	p, err := NewParser(&args)
 	require.NoError(t, err)
 
 	err = p.Parse([]string{"program", "--foo=abc"}, nil)
@@ -1405,7 +1405,7 @@ func TestUnexportedFieldsSkipped(t *testing.T) {
 		unexported struct{}
 	}
 
-	_, err := NewParser(Config{}, &args)
+	_, err := NewParser(&args)
 	require.NoError(t, err)
 }
 

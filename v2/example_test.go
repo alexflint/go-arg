@@ -314,7 +314,7 @@ func Example_writeHelpForSubcommand() {
 	osExit = func(int) {}
 	stdout = os.Stdout
 
-	p, err := NewParser(Config{}, &args)
+	p, err := NewParser(&args, WithProgramName("example"))
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -363,7 +363,7 @@ func Example_writeHelpForSubcommandNested() {
 	osExit = func(int) {}
 	stdout = os.Stdout
 
-	p, err := NewParser(Config{}, &args)
+	p, err := NewParser(&args, WithProgramName("example"))
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)

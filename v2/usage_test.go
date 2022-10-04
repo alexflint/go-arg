@@ -50,19 +50,19 @@ Options:
   --optimize OPTIMIZE, -O OPTIMIZE
                          optimization level
   --ids IDS              Ids
-  --values VALUES        Values [default: [3.14 42 256]]
+  --values VALUES        Values
   --workers WORKERS, -w WORKERS
                          number of workers to start [default: 10, env: WORKERS]
   --testenv TESTENV, -a TESTENV [env: TEST_ENV]
-  --file FILE, -f FILE   File with mandatory extension [default: scratch.txt]
+  --file FILE, -f FILE   File with mandatory extension
   --help, -h             display this help and exit
 `
 
 	var args struct {
 		Input    string       `arg:"positional,required"`
 		Output   []string     `arg:"positional" help:"list of outputs"`
-		Name     string       `help:"name to use"`
-		Value    int          `help:"secret value"`
+		Name     string       `help:"name to use" default:"Foo Bar"`
+		Value    int          `help:"secret value" default:"42"`
 		Verbose  bool         `arg:"-v" help:"verbosity level"`
 		Dataset  string       `help:"dataset to use"`
 		Optimize int          `arg:"-O" help:"optimization level"`
@@ -72,11 +72,7 @@ Options:
 		TestEnv  string       `arg:"-a,env:TEST_ENV"`
 		File     *NameDotName `arg:"-f" help:"File with mandatory extension"`
 	}
-	args.Name = "Foo Bar"
-	args.Value = 42
-	args.Values = []float64{3.14, 42, 256}
-	args.File = &NameDotName{"scratch", "txt"}
-	p, err := NewParser(Config{Program: "example"}, &args)
+	p, err := NewParser(&args, WithProgramName("example"))
 	require.NoError(t, err)
 
 	os.Args[0] = "example"
@@ -112,11 +108,10 @@ Options:
   --help, -h             display this help and exit
 `
 	var args struct {
-		Label   string
+		Label   string `default:"cat"`
 		Content string `default:"dog"`
 	}
-	args.Label = "cat"
-	p, err := NewParser(Config{Program: "example"}, &args)
+	p, err := NewParser(&args, WithProgramName("example"))
 	require.NoError(t, err)
 
 	args.Label = "should_ignore_this"
@@ -128,16 +123,6 @@ Options:
 	var usage bytes.Buffer
 	p.WriteUsage(&usage)
 	assert.Equal(t, expectedUsage, strings.TrimSpace(usage.String()))
-}
-
-func TestUsageCannotMarshalToString(t *testing.T) {
-	var args struct {
-		Name *MyEnum
-	}
-	v := MyEnum(42)
-	args.Name = &v
-	_, err := NewParser(Config{Program: "example"}, &args)
-	assert.EqualError(t, err, `args.Name: error marshaling default value to string: There was a problem`)
 }
 
 func TestUsageLongPositionalWithHelp_legacyForm(t *testing.T) {
@@ -157,7 +142,7 @@ Options:
 		VeryLongPositionalWithHelp string `arg:"positional,help:this positional argument is very long but cannot include commas"`
 	}
 
-	p, err := NewParser(Config{Program: "example"}, &args)
+	p, err := NewParser(&args, WithProgramName("example"))
 	require.NoError(t, err)
 
 	var help bytes.Buffer
@@ -186,7 +171,7 @@ Options:
 		VeryLongPositionalWithHelp string `arg:"positional" help:"this positional argument is very long, and includes: commas, colons etc"`
 	}
 
-	p, err := NewParser(Config{Program: "example"}, &args)
+	p, err := NewParser(&args, WithProgramName("example"))
 	require.NoError(t, err)
 
 	var help bytes.Buffer
@@ -207,10 +192,7 @@ Usage: myprogram
 Options:
   --help, -h             display this help and exit
 `
-	config := Config{
-		Program: "myprogram",
-	}
-	p, err := NewParser(config, &struct{}{})
+	p, err := NewParser(&struct{}{}, WithProgramName("myprogram"))
 	require.NoError(t, err)
 
 	os.Args[0] = "example"
@@ -242,8 +224,7 @@ Options:
   --help, -h             display this help and exit
   --version              display version and exit
 `
-	os.Args[0] = "example"
-	p, err := NewParser(Config{}, &versioned{})
+	p, err := NewParser(&versioned{}, WithProgramName("example"))
 	require.NoError(t, err)
 
 	var help bytes.Buffer
@@ -272,8 +253,7 @@ Usage: example
 Options:
   --help, -h             display this help and exit
 `
-	os.Args[0] = "example"
-	p, err := NewParser(Config{}, &described{})
+	p, err := NewParser(&described{}, WithProgramName("example"))
 	require.NoError(t, err)
 
 	var help bytes.Buffer
@@ -304,7 +284,7 @@ Options:
 For more information visit github.com/alexflint/go-arg
 `
 	os.Args[0] = "example"
-	p, err := NewParser(Config{}, &epilogued{})
+	p, err := NewParser(&epilogued{}, WithProgramName("example"))
 	require.NoError(t, err)
 
 	var help bytes.Buffer
@@ -323,7 +303,7 @@ func TestUsageForRequiredPositionals(t *testing.T) {
 		Required2 string `arg:"positional,required"`
 	}
 
-	p, err := NewParser(Config{Program: "example"}, &args)
+	p, err := NewParser(&args, WithProgramName("example"))
 	require.NoError(t, err)
 
 	var usage bytes.Buffer
@@ -340,7 +320,7 @@ func TestUsageForMixedPositionals(t *testing.T) {
 		Optional2 string `arg:"positional"`
 	}
 
-	p, err := NewParser(Config{Program: "example"}, &args)
+	p, err := NewParser(&args, WithProgramName("example"))
 	require.NoError(t, err)
 
 	var usage bytes.Buffer
@@ -356,7 +336,7 @@ func TestUsageForRepeatedPositionals(t *testing.T) {
 		Repeated  []string `arg:"positional,required"`
 	}
 
-	p, err := NewParser(Config{Program: "example"}, &args)
+	p, err := NewParser(&args, WithProgramName("example"))
 	require.NoError(t, err)
 
 	var usage bytes.Buffer
@@ -374,7 +354,7 @@ func TestUsageForMixedAndRepeatedPositionals(t *testing.T) {
 		Repeated  []string `arg:"positional"`
 	}
 
-	p, err := NewParser(Config{Program: "example"}, &args)
+	p, err := NewParser(&args, WithProgramName("example"))
 	require.NoError(t, err)
 
 	var usage bytes.Buffer
@@ -398,7 +378,7 @@ Options:
 		RequiredMultiple []string `arg:"positional,required" help:"required multiple positional"`
 	}
 
-	p, err := NewParser(Config{Program: "example"}, &args)
+	p, err := NewParser(&args, WithProgramName("example"))
 	require.NoError(t, err)
 
 	var help bytes.Buffer
@@ -440,7 +420,7 @@ Global options:
 	}
 
 	os.Args[0] = "example"
-	p, err := NewParser(Config{}, &args)
+	p, err := NewParser(&args)
 	require.NoError(t, err)
 
 	_ = p.Parse([]string{"child", "nested", "value"}, nil)
@@ -458,7 +438,7 @@ func TestNonexistentSubcommand(t *testing.T) {
 	var args struct {
 		sub *struct{} `arg:"subcommand"`
 	}
-	p, err := NewParser(Config{}, &args)
+	p, err := NewParser(&args)
 	require.NoError(t, err)
 
 	var b bytes.Buffer
@@ -497,7 +477,7 @@ Options:
 		ShortOnly  string `arg:"-a,--" help:"some help" default:"some val" placeholder:"PLACEHOLDER"`
 		ShortOnly2 string `arg:"-b,--,required" help:"some help2"`
 	}
-	p, err := NewParser(Config{Program: "example"}, &args)
+	p, err := NewParser(&args, WithProgramName("example"))
 	assert.NoError(t, err)
 
 	var help bytes.Buffer
@@ -524,7 +504,7 @@ Options:
 		Dog string
 		Cat string `arg:"-c,--"`
 	}
-	p, err := NewParser(Config{Program: "example"}, &args)
+	p, err := NewParser(&args, WithProgramName("example"))
 	assert.NoError(t, err)
 
 	var help bytes.Buffer
@@ -552,7 +532,7 @@ Options:
 		EnvOnlyOverriden string `arg:"--,env:CUSTOM"`
 	}
 
-	p, err := NewParser(Config{Program: "example"}, &args)
+	p, err := NewParser(&args, WithProgramName("example"))
 	assert.NoError(t, err)
 
 	var help bytes.Buffer
@@ -586,7 +566,7 @@ error: something went wrong
 	var args struct {
 		Foo int
 	}
-	p, err := NewParser(Config{Program: "example"}, &args)
+	p, err := NewParser(&args, WithProgramName("example"))
 	require.NoError(t, err)
 	p.Fail("something went wrong")
 
@@ -616,7 +596,7 @@ error: something went wrong
 	var args struct {
 		Sub *struct{} `arg:"subcommand"`
 	}
-	p, err := NewParser(Config{Program: "example"}, &args)
+	p, err := NewParser(&args, WithProgramName("example"))
 	require.NoError(t, err)
 
 	err = p.FailSubcommand("something went wrong", "sub")

@@ -1,7 +1,6 @@
 package arg
 
 import (
-	"encoding"
 	"encoding/csv"
 	"errors"
 	"fmt"
@@ -73,7 +72,7 @@ var ErrVersion = errors.New("version requested by user")
 
 // MustParse processes command line arguments and exits upon failure
 func MustParse(dest interface{}) *Parser {
-	p, err := NewParser(Config{}, dest)
+	p, err := NewParser(dest)
 	if err != nil {
 		fmt.Fprintln(stdout, err)
 		osExit(-1)
@@ -96,25 +95,18 @@ func MustParse(dest interface{}) *Parser {
 }
 
 // Parse processes command line arguments and stores them in dest
-func Parse(dest interface{}) error {
-	p, err := NewParser(Config{}, dest)
+func Parse(dest interface{}, options ...ParserOption) error {
+	p, err := NewParser(dest, options...)
 	if err != nil {
 		return err
 	}
 	return p.Parse(os.Args, os.Environ())
 }
 
-// Config represents configuration options for an argument parser
-type Config struct {
-	// Program is the name of the program used in the help text
-	Program string
-}
-
 // Parser represents a set of command line options with destination values
 type Parser struct {
 	cmd      *Command      // the top-level command
 	root     reflect.Value // destination struct to fill will values
-	config   Config        // configuration passed to NewParser
 	version  string        // version from the argument struct
 	prologue string        // prologue for help text (from the argument struct)
 	epilogue string        // epilogue for help text (from the argument struct)
@@ -170,58 +162,58 @@ func walkFieldsImpl(t reflect.Type, visit func(field reflect.StructField, owner 
 	}
 }
 
+// the ParserOption interface matches options for the parser constructor
+type ParserOption interface {
+	parserOption()
+}
+
+type programNameParserOption struct {
+	s string
+}
+
+func (programNameParserOption) parserOption() {}
+
+// WithProgramName overrides the name of the program as displayed in help test
+func WithProgramName(name string) ParserOption {
+	return programNameParserOption{s: name}
+}
+
 // NewParser constructs a parser from a list of destination structs
-func NewParser(config Config, dest interface{}) (*Parser, error) {
-	// first pick a name for the command for use in the usage text
-	var name string
-	switch {
-	case config.Program != "":
-		name = config.Program
-	case len(os.Args) > 0:
-		name = filepath.Base(os.Args[0])
-	default:
-		name = "program"
-	}
-
-	// construct a parser
-	p := Parser{
-		cmd:    &Command{name: name},
-		config: config,
-		seen:   make(map[*Argument]bool),
-	}
-
-	// make a list of roots
-	p.root = reflect.ValueOf(dest)
-
-	// process each of the destination values
+func NewParser(dest interface{}, options ...ParserOption) (*Parser, error) {
+	// check the destination type
 	t := reflect.TypeOf(dest)
 	if t.Kind() != reflect.Ptr {
 		panic(fmt.Sprintf("%s is not a pointer (did you forget an ampersand?)", t))
 	}
 
-	cmd, err := cmdFromStruct(name, path{}, t)
+	// pick a program name for help text and usage output
+	program := "program"
+	if len(os.Args) > 0 {
+		program = filepath.Base(os.Args[0])
+	}
+
+	// apply the options
+	for _, opt := range options {
+		switch opt := opt.(type) {
+		case programNameParserOption:
+			program = opt.s
+		}
+	}
+
+	// build the root command from the struct
+	cmd, err := cmdFromStruct(program, path{}, t)
 	if err != nil {
 		return nil, err
 	}
 
-	// add nonzero field values as defaults
-	for _, arg := range cmd.args {
-		if v := p.val(arg.dest); v.IsValid() && !isZero(v) {
-			if defaultVal, ok := v.Interface().(encoding.TextMarshaler); ok {
-				str, err := defaultVal.MarshalText()
-				if err != nil {
-					return nil, fmt.Errorf("%v: error marshaling default value to string: %v", arg.dest, err)
-				}
-				arg.defaultVal = string(str)
-			} else {
-				arg.defaultVal = fmt.Sprintf("%v", v)
-			}
-		}
+	// construct the parser
+	p := Parser{
+		seen: make(map[*Argument]bool),
+		root: reflect.ValueOf(dest),
+		cmd:  cmd,
 	}
 
-	p.cmd.args = append(p.cmd.args, cmd.args...)
-	p.cmd.subcommands = append(p.cmd.subcommands, cmd.subcommands...)
-
+	// check for version, prologue, and epilogue
 	if dest, ok := dest.(Versioned); ok {
 		p.version = dest.Version()
 	}

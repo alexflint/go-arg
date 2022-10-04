@@ -15,7 +15,7 @@ func TestSubcommandNotAPointer(t *testing.T) {
 	var args struct {
 		A string `arg:"subcommand"`
 	}
-	_, err := NewParser(Config{}, &args)
+	_, err := NewParser(&args)
 	assert.Error(t, err)
 }
 
@@ -23,7 +23,7 @@ func TestSubcommandNotAPointerToStruct(t *testing.T) {
 	var args struct {
 		A struct{} `arg:"subcommand"`
 	}
-	_, err := NewParser(Config{}, &args)
+	_, err := NewParser(&args)
 	assert.Error(t, err)
 }
 
@@ -32,7 +32,7 @@ func TestPositionalAndSubcommandNotAllowed(t *testing.T) {
 		A string    `arg:"positional"`
 		B *struct{} `arg:"subcommand"`
 	}
-	_, err := NewParser(Config{}, &args)
+	_, err := NewParser(&args)
 	assert.Error(t, err)
 }
 
@@ -54,7 +54,7 @@ func TestSubcommandNamesBeforeParsing(t *testing.T) {
 	var args struct {
 		List *listCmd `arg:"subcommand"`
 	}
-	p, err := NewParser(Config{}, &args)
+	p, err := NewParser(&args)
 	require.NoError(t, err)
 	assert.Nil(t, p.Subcommand())
 	assert.Nil(t, p.SubcommandNames())
@@ -400,7 +400,7 @@ func TestValForNilStruct(t *testing.T) {
 		Sub *subcmd `arg:"subcommand"`
 	}
 
-	p, err := NewParser(Config{}, &cmd)
+	p, err := NewParser(&cmd)
 	require.NoError(t, err)
 
 	typ := reflect.TypeOf(cmd)
