@@ -82,18 +82,7 @@ func MustParse(dest ...interface{}) *Parser {
 		return nil // just in case osExit was monkey-patched
 	}
 
-	err = p.Parse(flags())
-	switch {
-	case err == ErrHelp:
-		p.writeHelpForSubcommand(stdout, p.lastCmd)
-		osExit(0)
-	case err == ErrVersion:
-		fmt.Fprintln(stdout, p.version)
-		osExit(0)
-	case err != nil:
-		p.failWithSubcommand(err.Error(), p.lastCmd)
-	}
-
+	p.MustParse(flags())
 	return p
 }
 
@@ -447,6 +436,20 @@ func (p *Parser) Parse(args []string) error {
 		}
 	}
 	return err
+}
+
+func (p *Parser) MustParse(args []string) {
+	err := p.Parse(args)
+	switch {
+	case err == ErrHelp:
+		p.writeHelpForSubcommand(stdout, p.lastCmd)
+		osExit(0)
+	case err == ErrVersion:
+		fmt.Fprintln(stdout, p.version)
+		osExit(0)
+	case err != nil:
+		p.failWithSubcommand(err.Error(), p.lastCmd)
+	}
 }
 
 // process environment vars for the given arguments

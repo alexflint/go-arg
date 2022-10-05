@@ -860,6 +860,54 @@ func TestEnvironmentVariableInSubcommandIgnored(t *testing.T) {
 	assert.Equal(t, "", args.Sub.Foo)
 }
 
+func TestParserMustParseEmptyArgs(t *testing.T) {
+	// this mirrors TestEmptyArgs
+	p, err := NewParser(Config{}, &struct{}{})
+	require.NoError(t, err)
+	assert.NotNil(t, p)
+	p.MustParse(nil)
+}
+
+func TestParserMustParse(t *testing.T) {
+	tests := []struct {
+		name    string
+		args    versioned
+		cmdLine []string
+		code    int
+		output  string
+	}{
+		{name: "help", args: struct{}{}, cmdLine: []string{"--help"}, code: 0, output: "display this help and exit"},
+		{name: "version", args: versioned{}, cmdLine: []string{"--version"}, code: 0, output: "example 3.2.1"},
+		{name: "invalid", args: struct{}{}, cmdLine: []string{"invalid"}, code: -1, output: ""},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			originalExit := osExit
+			originalStdout := stdout
+			defer func() {
+				osExit = originalExit
+				stdout = originalStdout
+			}()
+
+			var exitCode *int
+			osExit = func(code int) { exitCode = &code }
+			var b bytes.Buffer
+			stdout = &b
+
+			p, err := NewParser(Config{}, &tt.args)
+			require.NoError(t, err)
+			assert.NotNil(t, p)
+
+			p.MustParse(tt.cmdLine)
+			assert.NotNil(t, exitCode)
+			assert.Equal(t, tt.code, *exitCode)
+			assert.Contains(t, b.String(), tt.output)
+		})
+	}
+}
+
 type textUnmarshaler struct {
 	val int
 }
