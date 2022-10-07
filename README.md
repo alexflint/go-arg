@@ -17,6 +17,12 @@
 Declare command line arguments for your program by defining a struct.
 
 ```go
+import "github.com/go-arg/v2
+```
+
+TODO
+
+```go
 var args struct {
 	Foo string
 	Bar bool
@@ -33,7 +39,7 @@ hello true
 ### Installation
 
 ```shell
-go get github.com/alexflint/go-arg
+go get github.com/alexflint/go-arg/v2
 ```
 
 ### Required arguments
@@ -90,36 +96,6 @@ $ WORKERS=4 ./example --workers=6
 Workers: 6
 ```
 
-You can also override the name of the environment variable:
-
-```go
-var args struct {
-	Workers int `arg:"env:NUM_WORKERS"`
-}
-arg.MustParse(&args)
-fmt.Println("Workers:", args.Workers)
-```
-
-```
-$ NUM_WORKERS=4 ./example
-Workers: 4
-```
-
-You can provide multiple values using the CSV (RFC 4180) format:
-
-```go
-var args struct {
-    Workers []int `arg:"env"`
-}
-arg.MustParse(&args)
-fmt.Println("Workers:", args.Workers)
-```
-
-```
-$ WORKERS='1,99' ./example
-Workers: [1 99]
-```
-
 ### Usage strings
 ```go
 var args struct {
@@ -158,47 +134,23 @@ var args struct {
 arg.MustParse(&args)
 ```
 
-### Default values (before v1.2)
+### Overriding the name of an environment variable
 
 ```go
 var args struct {
-	Foo string
-	Bar bool
-}
-arg.Foo = "abc"
-arg.MustParse(&args)
-```
-
-### Combining command line options, environment variables, and default values
-
-You can combine command line arguments, environment variables, and default values. Command line arguments take precedence over environment variables, which take precedence over default values. This means that we check whether a certain option was provided on the command line, then if not, we check for an environment variable (only if an `env` tag was provided), then if none is found, we check for a `default` tag containing a default value.
-
-```go
-var args struct {
-    Test  string `arg:"-t,env:TEST" default:"something"`
+	Workers int `arg:"env:NUM_WORKERS"`
 }
 arg.MustParse(&args)
+fmt.Println("Workers:", args.Workers)
 ```
 
-#### Ignoring environment variables and/or default values
-
-The values in an existing structure can be kept in-tact by ignoring environment
-variables and/or default values.
-
-```go
-var args struct {
-    Test  string `arg:"-t,env:TEST" default:"something"`
-}
-
-p, err := arg.NewParser(arg.Config{
-    IgnoreEnv: true,
-    IgnoreDefault: true,
-}, &args)
-
-err = p.Parse(os.Args)
+```
+$ NUM_WORKERS=4 ./example
+Workers: 4
 ```
 
 ### Arguments with multiple values
+
 ```go
 var args struct {
 	Database string
@@ -211,23 +163,6 @@ fmt.Printf("Fetching the following IDs from %s: %q", args.Database, args.IDs)
 ```shell
 ./example -database foo -ids 1 2 3
 Fetching the following IDs from foo: [1 2 3]
-```
-
-### Arguments that can be specified multiple times, mixed with positionals
-```go
-var args struct {
-    Commands  []string `arg:"-c,separate"`
-    Files     []string `arg:"-f,separate"`
-    Databases []string `arg:"positional"`
-}
-arg.MustParse(&args)
-```
-
-```shell
-./example -c cmd1 db1 -f file1 db2 -c cmd2 -f file2 -f file3 db3 -c cmd3
-Commands: [cmd1 cmd2 cmd3]
-Files [file1 file2 file3]
-Databases [db1 db2 db3]
 ```
 
 ### Arguments with keys and values
@@ -266,7 +201,7 @@ error: you must provide either --foo or --bar
 
 ```go
 type args struct {
-	...
+	// ...
 }
 
 func (args) Version() string {
@@ -353,7 +288,7 @@ The following types may be used as arguments:
 - maps using any of the above as keys and values
 - any type that implements `encoding.TextUnmarshaler`
 
-### Custom parsing
+### Custom parsing 
 
 Implement `encoding.TextUnmarshaler` to define your own parsing logic.
 
@@ -391,73 +326,121 @@ Usage: example [--name NAME]
 error: error processing --name: missing period in "oops"
 ```
 
-### Custom parsing with default values
+### Slice-valued environment variables
 
-Implement `encoding.TextMarshaler` to define your own default value strings:
-
-```go
-// Accepts command line arguments of the form "head.tail"
-type NameDotName struct {
-	Head, Tail string
-}
-
-func (n *NameDotName) UnmarshalText(b []byte) error {
-	// same as previous example
-}
-
-// this is only needed if you want to display a default value in the usage string
-func (n *NameDotName) MarshalText() ([]byte, error) {
-	return []byte(fmt.Sprintf("%s.%s", n.Head, n.Tail)), nil
-}
-
-func main() {
-	var args struct {
-		Name NameDotName `default:"file.txt"`
-	}
-	arg.MustParse(&args)
-	fmt.Printf("%#v\n", args.Name)
-}
-```
-```shell
-$ ./example --help
-Usage: test [--name NAME]
-
-Options:
-  --name NAME [default: file.txt]
-  --help, -h             display this help and exit
-
-$ ./example
-main.NameDotName{Head:"file", Tail:"txt"}
-```
-
-### Custom placeholders
-
-*Introduced in version 1.3.0*
-
-Use the `placeholder` tag to control which placeholder text is used in the usage text.
+You can provide multiple values using the CSV (RFC 4180) format:
 
 ```go
 var args struct {
-	Input    string   `arg:"positional" placeholder:"SRC"`
-	Output   []string `arg:"positional" placeholder:"DST"`
-	Optimize int      `arg:"-O" help:"optimization level" placeholder:"LEVEL"`
-	MaxJobs  int      `arg:"-j" help:"maximum number of simultaneous jobs" placeholder:"N"`
+    Workers []int `arg:"env"`
+}
+arg.MustParse(&args)
+fmt.Println("Workers:", args.Workers)
+```
+
+```
+$ WORKERS='1,99' ./example
+Workers: [1 99]
+```
+
+### Parsing command line tokens and environment variables from a slice
+
+You can override the command line tokens and environment variables processed by go-arg:
+
+```go
+var args struct {
+	Samsara int
+	Nirvana float64 `arg:"env:NIRVANA"`
+}
+p, err := arg.NewParser(&args)
+if err != nil {
+	log.Fatal(err)
+}
+cmdline := []string{"./thisprogram", "--samsara=123"}
+environ := []string{"NIRVANA=45.6"}
+err = p.Parse(cmdline, environ)
+if err != nil {
+	log.Fatal(err)
+}
+```
+```
+./example
+SAMSARA: 123
+NIRVANA: 45.6
+```
+
+### Configuration files
+
+TODO
+
+### Combining command line options, environment variables, and default values
+
+By default, command line arguments take precedence over environment variables, which take precedence over default values. This means that we check whether a certain option was provided on the command line, then if not, we check for an environment variable (only if an `env` tag was provided), then, if none is found, we check for a `default` tag.
+
+```go
+var args struct {
+    Test  string `arg:"-t,env:TEST" default:"something"`
 }
 arg.MustParse(&args)
 ```
+
+### Changing precedence of command line options, environment variables, and default values
+
+You can use the low-level functions `Process*` and `OverwriteWith*` to control which things override which other things. Here is an example in which environment variables take precedence over command line options, which is the opposite of the default behavior:
+
+```go
+var args struct {
+	Test string `arg:"env:TEST"`
+}
+
+p, err := arg.NewParser(&args)
+if err != nil {
+	log.Fatal(err)
+}
+
+err = p.ParseCommandLine(os.Args)
+if err != nil {
+	p.Fail(err.Error())
+}
+
+err = p.OverwriteWithEnvironment(os.Environ())
+if err != nil {
+	p.Fail(err.Error())
+}
+
+err = p.Validate()
+if err != nil {
+	p.Fail(err.Error())
+}
+
+fmt.Printf("test=%s\n", args.Test)
+```
+```
+TEST=value_from_env ./example --test=value_from_option
+test=value_from_env
+```
+
+### Ignoring environment variables
+
+TODO
+
+### Ignoring default values
+
+TODO
+
+### Arguments that can be specified multiple times
+```go
+var args struct {
+    Commands  []string `arg:"-c,separate"`
+    Files     []string `arg:"-f,separate"`
+}
+arg.MustParse(&args)
+```
+
 ```shell
-$ ./example -h
-Usage: example [--optimize LEVEL] [--maxjobs N] SRC [DST [DST ...]]
-
-Positional arguments:
-  SRC
-  DST
-
-Options:
-  --optimize LEVEL, -O LEVEL
-                         optimization level
-  --maxjobs N, -j N      maximum number of simultaneous jobs
-  --help, -h             display this help and exit
+./example -c cmd1 -f file1 -c cmd2 -f file2 -f file3 -c cmd3
+Commands: [cmd1 cmd2 cmd3]
+Files [file1 file2 file3]
 ```
 
 ### Description strings
@@ -521,18 +504,14 @@ For more information visit github.com/alexflint/go-arg
 
 ### Subcommands
 
-*Introduced in version 1.1.0*
-
-Subcommands are commonly used in tools that wish to group multiple functions into a single program. An example is the `git` tool:
+Subcommands are commonly used in tools that group multiple functions into a single program. An example is the `git` tool:
 ```shell
 $ git checkout [arguments specific to checking out code]
-$ git commit [arguments specific to committing]
-$ git push [arguments specific to pushing]
+$ git commit [arguments specific to committing code]
+$ git push [arguments specific to pushing code]
 ```
 
-The strings "checkout", "commit", and "push" are different from simple positional arguments because the options available to the user change depending on which subcommand they choose.
-
-This can be implemented with `go-arg` as follows:
+This can be implemented with `go-arg` with the `arg:"subcommand"` tag:
 
 ```go
 type CheckoutCmd struct {
@@ -567,14 +546,9 @@ case args.Push != nil:
 }
 ```
 
-Some additional rules apply when working with subcommands:
-* The `subcommand` tag can only be used with fields that are pointers to structs
-* Any struct that contains a subcommand must not contain any positionals
+Note that the `subcommand` tag can only be used with fields that are pointers to structs, and that any struct that contains subcommands cannot also contain positionals.
 
-This package allows to have a program that accepts subcommands, but also does something else
-when no subcommands are specified.
-If on the other hand you want the program to terminate when no subcommands are specified,
-the recommended way is:
+### Terminating when no subcommands are specified
 
 ```go
 p := arg.MustParse(&args)
@@ -583,20 +557,39 @@ if p.Subcommand() == nil {
 }
 ```
 
+### Customizing placeholder strings
+
+Use the `placeholder` tag to control which placeholder text is used in the usage text.
+
+```go
+var args struct {
+	Input    string   `arg:"positional" placeholder:"SRC"`
+	Output   []string `arg:"positional" placeholder:"DST"`
+	Optimize int      `arg:"-O" placeholder:"LEVEL"`
+	MaxJobs  int      `arg:"-j" placeholder:"N"`
+}
+arg.MustParse(&args)
+```
+```shell
+$ ./example -h
+Usage: example [--optimize LEVEL] [--maxjobs N] SRC [DST [DST ...]]
+
+Positional arguments:
+  SRC
+  DST
+
+Options:
+  --optimize LEVEL, -O LEVEL
+  --maxjobs N, -j N
+  --help, -h             display this help and exit
+```
+
 ### API Documentation
 
 https://godoc.org/github.com/alexflint/go-arg
 
-### Rationale
+### Migrating from v1.x
 
-There are many command line argument parsing libraries for Go, including one in the standard library, so why build another?
+Migrating IgnoreEnv to passing a nil environ
 
-The `flag` library that ships in the standard library seems awkward to me. Positional arguments must preceed options, so `./prog x --foo=1` does what you expect but `./prog --foo=1 x` does not. It also does not allow arguments to have both long (`--foo`) and short (`-f`) forms.
-
-Many third-party argument parsing libraries are great for writing sophisticated command line interfaces, but feel to me like overkill for a simple script with a few flags.
-
-The idea behind `go-arg` is that Go already has an excellent way to describe data structures using structs, so there is no need to develop additional levels of abstraction. Instead of one API to specify which arguments your program accepts, and then another API to get the values of those arguments, `go-arg` replaces both with a single struct.
-
-### Backward compatibility notes
-
-Earlier versions of this library required the help text to be part of the `arg` tag. This is still supported but is now deprecated. Instead, you should use a separate `help` tag, described above, which removes most of the limits on the text you can write. In particular, you will need to use the new `help` tag if your help text includes any commas.
+Migrating from IgnoreDefault to calling ProcessCommandLine
