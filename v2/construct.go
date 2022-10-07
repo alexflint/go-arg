@@ -234,8 +234,6 @@ func cmdFromStruct(name string, dest path, t reflect.Type) (*Command, error) {
 				arg.positional = true
 			case key == "separate":
 				arg.separate = true
-			case key == "help": // deprecated
-				arg.help = value
 			case key == "env":
 				// Use override name if provided
 				if value != "" {
