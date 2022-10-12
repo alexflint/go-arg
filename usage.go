@@ -4,11 +4,17 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sort"
 	"strings"
 )
 
 // the width of the left column
 const colWidth = 25
+
+const (
+	usageTemplate = "{{if ne .Version \"\"}}{{.Version}}\n{{end}}Usage: {{.Usage}}"
+	helpTemplate  = ""
+)
 
 // to allow monkey patching in tests
 var (
@@ -67,8 +73,7 @@ func (p *Parser) WriteUsageForSubcommand(w io.Writer, subcommand ...string) erro
 	return nil
 }
 
-// writeUsageForSubcommand writes usage information for the given subcommand
-func (p *Parser) writeUsageForSubcommand(w io.Writer, cmd *command) {
+func (p *Parser) buildUsageForSubcommand(cmd *command) string {
 	var positionals, longOptions, shortOptions []*spec
 	for _, spec := range cmd.specs {
 		switch {
@@ -81,10 +86,6 @@ func (p *Parser) writeUsageForSubcommand(w io.Writer, cmd *command) {
 		}
 	}
 
-	if p.version != "" {
-		fmt.Fprintln(w, p.version)
-	}
-
 	// make a list of ancestor commands so that we print with full context
 	var ancestors []string
 	ancestor := cmd
@@ -92,35 +93,36 @@ func (p *Parser) writeUsageForSubcommand(w io.Writer, cmd *command) {
 		ancestors = append(ancestors, ancestor.name)
 		ancestor = ancestor.parent
 	}
+	sort.SliceStable(ancestors, func(i, j int) bool {
+		return i > j
+	})
 
+	res := strings.Builder{}
 	// print the beginning of the usage string
-	fmt.Fprint(w, "Usage:")
-	for i := len(ancestors) - 1; i >= 0; i-- {
-		fmt.Fprint(w, " "+ancestors[i])
-	}
+	res.WriteString(strings.Join(ancestors, " "))
 
 	// write the option component of the usage message
 	for _, spec := range shortOptions {
 		// prefix with a space
-		fmt.Fprint(w, " ")
+		res.WriteString(" ")
 		if !spec.required {
-			fmt.Fprint(w, "[")
+			res.WriteString("[")
 		}
-		fmt.Fprint(w, synopsis(spec, "-"+spec.short))
+		res.WriteString(synopsis(spec, "-"+spec.short))
 		if !spec.required {
-			fmt.Fprint(w, "]")
+			res.WriteString("]")
 		}
 	}
 
 	for _, spec := range longOptions {
 		// prefix with a space
-		fmt.Fprint(w, " ")
+		res.WriteString(" ")
 		if !spec.required {
-			fmt.Fprint(w, "[")
+			res.WriteString("[")
 		}
-		fmt.Fprint(w, synopsis(spec, "--"+spec.long))
+		res.WriteString(synopsis(spec, "--"+spec.long))
 		if !spec.required {
-			fmt.Fprint(w, "]")
+			res.WriteString("]")
 		}
 	}
 
@@ -138,25 +140,36 @@ func (p *Parser) writeUsageForSubcommand(w io.Writer, cmd *command) {
 	//    REQUIRED1 REQUIRED2 [OPTIONAL1 [REPEATEDOPTIONAL [REPEATEDOPTIONAL ...]]]
 	var closeBrackets int
 	for _, spec := range positionals {
-		fmt.Fprint(w, " ")
+		res.WriteString(" ")
 		if !spec.required {
-			fmt.Fprint(w, "[")
+			res.WriteString("[")
 			closeBrackets += 1
 		}
 		if spec.cardinality == multiple {
-			fmt.Fprintf(w, "%s [%s ...]", spec.placeholder, spec.placeholder)
+			res.WriteString(fmt.Sprintf("%s [%s ...]", spec.placeholder, spec.placeholder))
 		} else {
-			fmt.Fprint(w, spec.placeholder)
+			res.WriteString(spec.placeholder)
 		}
 	}
-	fmt.Fprint(w, strings.Repeat("]", closeBrackets))
+	res.WriteString(strings.Repeat("]", closeBrackets))
 
 	// if the program supports subcommands, give a hint to the user about their existence
 	if len(cmd.subcommands) > 0 {
-		fmt.Fprint(w, " <command> [<args>]")
+		res.WriteString(" <command> [<args>]")
 	}
 
-	fmt.Fprint(w, "\n")
+	res.WriteString("\n")
+	return res.String()
+}
+
+// writeUsageForSubcommand writes usage information for the given subcommand
+func (p *Parser) writeUsageForSubcommand(w io.Writer, cmd *command) {
+	type tpldata struct {
+		Version string
+		Usage   string
+	}
+
+	p.usageTemplate.Execute(w, tpldata{Version: p.version, Usage: p.buildUsageForSubcommand(cmd)})
 }
 
 func printTwoCols(w io.Writer, left, help string, defaultVal string, envVal string) {

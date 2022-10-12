@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
+	"text/template"
 
 	scalar "github.com/alexflint/go-scalar"
 )
@@ -127,6 +128,8 @@ type Parser struct {
 
 	// the following field changes during processing of command line arguments
 	lastCmd *command
+
+	usageTemplate *template.Template
 }
 
 // Versioned is the interface that the destination struct should implement to
@@ -192,6 +195,13 @@ func NewParser(config Config, dests ...interface{}) (*Parser, error) {
 		cmd:    &command{name: name},
 		config: config,
 	}
+
+	// build the usage template
+	tmpl, err := template.New("usage").Parse(usageTemplate)
+	if err != nil {
+		return nil, err
+	}
+	p.usageTemplate = tmpl
 
 	// make a list of roots
 	for _, dest := range dests {
