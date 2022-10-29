@@ -416,7 +416,7 @@ func cmdFromStruct(name string, dest path, t reflect.Type) (*command, error) {
 
 			// parse the default value
 			spec.defaultString = defaultString
-			if field.Type.Kind() == reflect.Pointer {
+			if field.Type.Kind() == reflect.Ptr {
 				// here we have a field of type *T and we create a new T, no need to dereference
 				// in order for the value to be settable
 				spec.defaultValue = reflect.New(field.Type.Elem())
