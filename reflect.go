@@ -102,7 +102,7 @@ func isExported(field string) bool {
 // isZero returns true if v contains the zero value for its type
 func isZero(v reflect.Value) bool {
 	t := v.Type()
-	if t.Kind() == reflect.Pointer || t.Kind() == reflect.Slice || t.Kind() == reflect.Map || t.Kind() == reflect.Chan || t.Kind() == reflect.Interface {
+	if t.Kind() == reflect.Ptr || t.Kind() == reflect.Slice || t.Kind() == reflect.Map || t.Kind() == reflect.Chan || t.Kind() == reflect.Interface {
 		return v.IsNil()
 	}
 	if !t.Comparable() {
