@@ -213,9 +213,6 @@ func NewParser(config Config, dests ...interface{}) (*Parser, error) {
 		for _, spec := range cmd.specs {
 			// get the value
 			v := p.val(spec.dest)
-			if !v.IsValid() {
-				continue
-			}
 
 			// if the value is the "zero value" (e.g. nil pointer, empty struct) then ignore
 			if isZero(v) {
