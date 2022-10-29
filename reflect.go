@@ -16,9 +16,9 @@ var (
 )
 
 // cardinality tracks how many tokens are expected for a given spec
-//  - zero is a boolean, which does to expect any value
-//  - one is an ordinary option that will be parsed from a single token
-//  - multiple is a slice or map that can accept zero or more tokens
+//   - zero is a boolean, which does to expect any value
+//   - one is an ordinary option that will be parsed from a single token
+//   - multiple is a slice or map that can accept zero or more tokens
 type cardinality int
 
 const (
@@ -110,7 +110,7 @@ func isExported(field string) bool {
 // isZero returns true if v contains the zero value for its type
 func isZero(v reflect.Value) bool {
 	t := v.Type()
-	if t.Kind() == reflect.Slice || t.Kind() == reflect.Map {
+	if t.Kind() == reflect.Pointer || t.Kind() == reflect.Slice || t.Kind() == reflect.Map || t.Kind() == reflect.Chan || t.Kind() == reflect.Interface {
 		return v.IsNil()
 	}
 	if !t.Comparable() {

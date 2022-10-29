@@ -1321,13 +1321,21 @@ func TestDefaultOptionValues(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, 123, args.A)
-	assert.Equal(t, 123, *args.B)
+	if assert.NotNil(t, args.B) {
+		assert.Equal(t, 123, *args.B)
+	}
 	assert.Equal(t, "xyz", args.C)
-	assert.Equal(t, "abc", *args.D)
+	if assert.NotNil(t, args.D) {
+		assert.Equal(t, "abc", *args.D)
+	}
 	assert.Equal(t, 4.56, args.E)
-	assert.Equal(t, 1.23, *args.F)
+	if assert.NotNil(t, args.F) {
+		assert.Equal(t, 1.23, *args.F)
+	}
 	assert.True(t, args.G)
-	assert.True(t, args.G)
+	if assert.NotNil(t, args.H) {
+		assert.True(t, *args.H)
+	}
 }
 
 func TestDefaultUnparseable(t *testing.T) {
@@ -1336,7 +1344,7 @@ func TestDefaultUnparseable(t *testing.T) {
 	}
 
 	err := parse("", &args)
-	assert.EqualError(t, err, `error processing default value for --a: strconv.ParseInt: parsing "x": invalid syntax`)
+	assert.EqualError(t, err, `.A: error processing default value: strconv.ParseInt: parsing "x": invalid syntax`)
 }
 
 func TestDefaultPositionalValues(t *testing.T) {
@@ -1355,13 +1363,21 @@ func TestDefaultPositionalValues(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, 456, args.A)
-	assert.Equal(t, 789, *args.B)
+	if assert.NotNil(t, args.B) {
+		assert.Equal(t, 789, *args.B)
+	}
 	assert.Equal(t, "abc", args.C)
-	assert.Equal(t, "abc", *args.D)
+	if assert.NotNil(t, args.D) {
+		assert.Equal(t, "abc", *args.D)
+	}
 	assert.Equal(t, 1.23, args.E)
-	assert.Equal(t, 1.23, *args.F)
+	if assert.NotNil(t, args.F) {
+		assert.Equal(t, 1.23, *args.F)
+	}
 	assert.True(t, args.G)
-	assert.True(t, args.G)
+	if assert.NotNil(t, args.H) {
+		assert.True(t, *args.H)
+	}
 }
 
 func TestDefaultValuesNotAllowedWithRequired(t *testing.T) {
@@ -1375,7 +1391,7 @@ func TestDefaultValuesNotAllowedWithRequired(t *testing.T) {
 
 func TestDefaultValuesNotAllowedWithSlice(t *testing.T) {
 	var args struct {
-		A []int `default:"123"` // required not allowed with default!
+		A []int `default:"invalid"` // default values not allowed with slices
 	}
 
 	err := parse("", &args)

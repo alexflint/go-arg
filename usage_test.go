@@ -474,7 +474,7 @@ Options:
 		ShortOnly2 string `arg:"-b,--,required" help:"some help2"`
 	}
 	p, err := NewParser(Config{Program: "example"}, &args)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	var help bytes.Buffer
 	p.WriteHelp(&help)
