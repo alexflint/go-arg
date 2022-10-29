@@ -210,6 +210,8 @@ func NewParser(config Config, dests ...interface{}) (*Parser, error) {
 		}
 
 		// for backwards compatibility, add nonzero field values as defaults
+		// this applies only to the top-level command, not to subcommands (this inconsistency
+		// is the reason that this method for setting default values was deprecated)
 		for _, spec := range cmd.specs {
 			// get the value
 			v := p.val(spec.dest)
