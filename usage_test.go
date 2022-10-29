@@ -601,3 +601,35 @@ error: something went wrong
 	assert.Equal(t, expectedStdout[1:], b.String())
 	assert.Equal(t, -1, exitCode)
 }
+
+type lengthOf struct {
+	Length int
+}
+
+func (p *lengthOf) UnmarshalText(b []byte) error {
+	p.Length = len(b)
+	return nil
+}
+
+func TestHelpShowsDefaultValueFromOriginalTag(t *testing.T) {
+	// check that the usage text prints the original string from the default tag, not
+	// the serialization of the parsed value
+
+	expectedHelp := `
+Usage: example [--test TEST]
+
+Options:
+  --test TEST [default: some_default_value]
+  --help, -h             display this help and exit
+`
+
+	var args struct {
+		Test *lengthOf `default:"some_default_value"`
+	}
+	p, err := NewParser(Config{Program: "example"}, &args)
+	require.NoError(t, err)
+
+	var help bytes.Buffer
+	p.WriteHelp(&help)
+	assert.Equal(t, expectedHelp[1:], help.String())
+}
