@@ -83,18 +83,7 @@ func MustParse(dest ...interface{}) *Parser {
 		return nil // just in case osExit was monkey-patched
 	}
 
-	err = p.Parse(flags())
-	switch {
-	case err == ErrHelp:
-		p.writeHelpForSubcommand(stdout, p.lastCmd)
-		osExit(0)
-	case err == ErrVersion:
-		fmt.Fprintln(stdout, p.version)
-		osExit(0)
-	case err != nil:
-		p.failWithSubcommand(err.Error(), p.lastCmd)
-	}
-
+	p.MustParse(flags())
 	return p
 }
 
@@ -122,6 +111,10 @@ type Config struct {
 
 	// IgnoreEnv instructs the library not to read environment variables
 	IgnoreEnv bool
+
+	// IgnoreDefault instructs the library not to reset the variables to the
+	// default values, including pointers to sub commands
+	IgnoreDefault bool
 }
 
 // Parser represents a set of command line options with destination values
@@ -131,6 +124,7 @@ type Parser struct {
 	config      Config
 	version     string
 	description string
+	epilogue    string
 
 	// the following field changes during processing of command line arguments
 	lastCmd *command
@@ -150,6 +144,14 @@ type Described interface {
 	// Description returns the string that will be printed on a line by itself
 	// at the top of the help message.
 	Description() string
+}
+
+// Epilogued is the interface that the destination struct should implement to
+// add an epilogue string at the bottom of the help message.
+type Epilogued interface {
+	// Epilogue returns the string that will be printed on a line by itself
+	// at the end of the help message.
+	Epilogue() string
 }
 
 // walkFields calls a function for each field of a struct, recursively expanding struct fields.
@@ -245,6 +247,9 @@ func NewParser(config Config, dests ...interface{}) (*Parser, error) {
 		}
 		if dest, ok := dest.(Described); ok {
 			p.description = dest.Description()
+		}
+		if dest, ok := dest.(Epilogued); ok {
+			p.epilogue = dest.Epilogue()
 		}
 	}
 
@@ -470,6 +475,20 @@ func (p *Parser) Parse(args []string) error {
 	return err
 }
 
+func (p *Parser) MustParse(args []string) {
+	err := p.Parse(args)
+	switch {
+	case err == ErrHelp:
+		p.writeHelpForSubcommand(stdout, p.lastCmd)
+		osExit(0)
+	case err == ErrVersion:
+		fmt.Fprintln(stdout, p.version)
+		osExit(0)
+	case err != nil:
+		p.failWithSubcommand(err.Error(), p.lastCmd)
+	}
+}
+
 // process environment vars for the given arguments
 func (p *Parser) captureEnvVars(specs []*spec, wasPresent map[*spec]bool) error {
 	for _, spec := range specs {
@@ -564,7 +583,9 @@ func (p *Parser) process(args []string) error {
 
 			// instantiate the field to point to a new struct
 			v := p.val(subcmd.dest)
-			v.Set(reflect.New(v.Type().Elem())) // we already checked that all subcommands are struct pointers
+			if v.IsNil() {
+				v.Set(reflect.New(v.Type().Elem())) // we already checked that all subcommands are struct pointers
+			}
 
 			// add the new options to the set of allowed options
 			specs = append(specs, subcmd.specs...)
@@ -696,7 +717,13 @@ func (p *Parser) process(args []string) error {
 			}
 			return errors.New(msg)
 		}
-		if spec.defaultValue.IsValid() {
+
+		if spec.defaultValue.IsValid() && !p.config.IgnoreDefault {
+			// One issue here is that if the user now modifies the value then
+			// the default value stored in the spec will be corrupted. There
+			// is no general way to "deep-copy" values in Go, and we still
+			// support the old-style method for specifying defaults as
+			// Go values assigned directly to the struct field, so we are stuck.
 			p.val(spec.dest).Set(spec.defaultValue)
 		}
 	}

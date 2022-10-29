@@ -96,6 +96,21 @@ func TestInt(t *testing.T) {
 	assert.EqualValues(t, 8, *args.Ptr)
 }
 
+func TestHexOctBin(t *testing.T) {
+	var args struct {
+		Hex int
+		Oct int
+		Bin int
+		Underscored int
+	}
+	err := parse("--hex 0xA --oct 0o10 --bin 0b101 --underscored 123_456", &args)
+	require.NoError(t, err)
+	assert.EqualValues(t, 10, args.Hex)
+	assert.EqualValues(t, 8, args.Oct)
+	assert.EqualValues(t, 5, args.Bin)
+	assert.EqualValues(t, 123456, args.Underscored)
+}
+
 func TestNegativeInt(t *testing.T) {
 	var args struct {
 		Foo int
@@ -817,6 +832,19 @@ func TestEnvironmentVariableIgnored(t *testing.T) {
 	assert.Equal(t, "", args.Foo)
 }
 
+func TestDefaultValuesIgnored(t *testing.T) {
+	var args struct {
+		Foo string `default:"bad"`
+	}
+
+	p, err := NewParser(Config{IgnoreDefault: true}, &args)
+	require.NoError(t, err)
+
+	err = p.Parse(nil)
+	assert.NoError(t, err)
+	assert.Equal(t, "", args.Foo)
+}
+
 func TestEnvironmentVariableInSubcommandIgnored(t *testing.T) {
 	var args struct {
 		Sub *struct {
@@ -831,6 +859,54 @@ func TestEnvironmentVariableInSubcommandIgnored(t *testing.T) {
 	err = p.Parse([]string{"sub"})
 	assert.NoError(t, err)
 	assert.Equal(t, "", args.Sub.Foo)
+}
+
+func TestParserMustParseEmptyArgs(t *testing.T) {
+	// this mirrors TestEmptyArgs
+	p, err := NewParser(Config{}, &struct{}{})
+	require.NoError(t, err)
+	assert.NotNil(t, p)
+	p.MustParse(nil)
+}
+
+func TestParserMustParse(t *testing.T) {
+	tests := []struct {
+		name    string
+		args    versioned
+		cmdLine []string
+		code    int
+		output  string
+	}{
+		{name: "help", args: struct{}{}, cmdLine: []string{"--help"}, code: 0, output: "display this help and exit"},
+		{name: "version", args: versioned{}, cmdLine: []string{"--version"}, code: 0, output: "example 3.2.1"},
+		{name: "invalid", args: struct{}{}, cmdLine: []string{"invalid"}, code: -1, output: ""},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			originalExit := osExit
+			originalStdout := stdout
+			defer func() {
+				osExit = originalExit
+				stdout = originalStdout
+			}()
+
+			var exitCode *int
+			osExit = func(code int) { exitCode = &code }
+			var b bytes.Buffer
+			stdout = &b
+
+			p, err := NewParser(Config{}, &tt.args)
+			require.NoError(t, err)
+			assert.NotNil(t, p)
+
+			p.MustParse(tt.cmdLine)
+			assert.NotNil(t, exitCode)
+			assert.Equal(t, tt.code, *exitCode)
+			assert.Contains(t, b.String(), tt.output)
+		})
+	}
 }
 
 type textUnmarshaler struct {

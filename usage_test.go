@@ -284,6 +284,37 @@ Options:
 	assert.Equal(t, expectedUsage, strings.TrimSpace(usage.String()))
 }
 
+type epilogued struct{}
+
+// Epilogued returns the epilogue for this program
+func (epilogued) Epilogue() string {
+	return "For more information visit github.com/alexflint/go-arg"
+}
+
+func TestUsageWithEpilogue(t *testing.T) {
+	expectedUsage := "Usage: example"
+
+	expectedHelp := `
+Usage: example
+
+Options:
+  --help, -h             display this help and exit
+
+For more information visit github.com/alexflint/go-arg
+`
+	os.Args[0] = "example"
+	p, err := NewParser(Config{}, &epilogued{})
+	require.NoError(t, err)
+
+	var help bytes.Buffer
+	p.WriteHelp(&help)
+	assert.Equal(t, expectedHelp[1:], help.String())
+
+	var usage bytes.Buffer
+	p.WriteUsage(&usage)
+	assert.Equal(t, expectedUsage, strings.TrimSpace(usage.String()))
+}
+
 func TestUsageForRequiredPositionals(t *testing.T) {
 	expectedUsage := "Usage: example REQUIRED1 REQUIRED2\n"
 	var args struct {
