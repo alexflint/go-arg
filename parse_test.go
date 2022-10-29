@@ -2,6 +2,7 @@ package arg
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"net"
 	"net/mail"
@@ -1396,13 +1397,21 @@ func TestDefaultOptionValues(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, 123, args.A)
-	assert.Equal(t, 123, *args.B)
+	if assert.NotNil(t, args.B) {
+		assert.Equal(t, 123, *args.B)
+	}
 	assert.Equal(t, "xyz", args.C)
-	assert.Equal(t, "abc", *args.D)
+	if assert.NotNil(t, args.D) {
+		assert.Equal(t, "abc", *args.D)
+	}
 	assert.Equal(t, 4.56, args.E)
-	assert.Equal(t, 1.23, *args.F)
+	if assert.NotNil(t, args.F) {
+		assert.Equal(t, 1.23, *args.F)
+	}
 	assert.True(t, args.G)
-	assert.True(t, args.G)
+	if assert.NotNil(t, args.H) {
+		assert.True(t, *args.H)
+	}
 }
 
 func TestDefaultUnparseable(t *testing.T) {
@@ -1411,7 +1420,7 @@ func TestDefaultUnparseable(t *testing.T) {
 	}
 
 	err := parse("", &args)
-	assert.EqualError(t, err, `error processing default value for --a: strconv.ParseInt: parsing "x": invalid syntax`)
+	assert.EqualError(t, err, `.A: error processing default value: strconv.ParseInt: parsing "x": invalid syntax`)
 }
 
 func TestDefaultPositionalValues(t *testing.T) {
@@ -1430,13 +1439,21 @@ func TestDefaultPositionalValues(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, 456, args.A)
-	assert.Equal(t, 789, *args.B)
+	if assert.NotNil(t, args.B) {
+		assert.Equal(t, 789, *args.B)
+	}
 	assert.Equal(t, "abc", args.C)
-	assert.Equal(t, "abc", *args.D)
+	if assert.NotNil(t, args.D) {
+		assert.Equal(t, "abc", *args.D)
+	}
 	assert.Equal(t, 1.23, args.E)
-	assert.Equal(t, 1.23, *args.F)
+	if assert.NotNil(t, args.F) {
+		assert.Equal(t, 1.23, *args.F)
+	}
 	assert.True(t, args.G)
-	assert.True(t, args.G)
+	if assert.NotNil(t, args.H) {
+		assert.True(t, *args.H)
+	}
 }
 
 func TestDefaultValuesNotAllowedWithRequired(t *testing.T) {
@@ -1450,7 +1467,7 @@ func TestDefaultValuesNotAllowedWithRequired(t *testing.T) {
 
 func TestDefaultValuesNotAllowedWithSlice(t *testing.T) {
 	var args struct {
-		A []int `default:"123"` // required not allowed with default!
+		A []int `default:"invalid"` // default values not allowed with slices
 	}
 
 	err := parse("", &args)
@@ -1531,4 +1548,69 @@ func TestMustParsePrintsVersion(t *testing.T) {
 	require.NotNil(t, exitCode)
 	assert.Equal(t, 0, *exitCode)
 	assert.Equal(t, "example 3.2.1\n", b.String())
+}
+
+type mapWithUnmarshalText struct {
+	val map[string]string
+}
+
+func (v *mapWithUnmarshalText) UnmarshalText(data []byte) error {
+	return json.Unmarshal(data, &v.val)
+}
+
+func TestTextUnmarshalerEmpty(t *testing.T) {
+	// based on https://github.com/alexflint/go-arg/issues/184
+	var args struct {
+		Config mapWithUnmarshalText `arg:"--config"`
+	}
+
+	err := parse("", &args)
+	require.NoError(t, err)
+	assert.Empty(t, args.Config)
+}
+
+func TestTextUnmarshalerEmptyPointer(t *testing.T) {
+	// a slight variant on https://github.com/alexflint/go-arg/issues/184
+	var args struct {
+		Config *mapWithUnmarshalText `arg:"--config"`
+	}
+
+	err := parse("", &args)
+	require.NoError(t, err)
+	assert.Nil(t, args.Config)
+}
+
+// similar to the above but also implements MarshalText
+type mapWithMarshalText struct {
+	val map[string]string
+}
+
+func (v *mapWithMarshalText) MarshalText(data []byte) error {
+	return json.Unmarshal(data, &v.val)
+}
+
+func (v *mapWithMarshalText) UnmarshalText(data []byte) error {
+	return json.Unmarshal(data, &v.val)
+}
+
+func TestTextMarshalerUnmarshalerEmpty(t *testing.T) {
+	// based on https://github.com/alexflint/go-arg/issues/184
+	var args struct {
+		Config mapWithMarshalText `arg:"--config"`
+	}
+
+	err := parse("", &args)
+	require.NoError(t, err)
+	assert.Empty(t, args.Config)
+}
+
+func TestTextMarshalerUnmarshalerEmptyPointer(t *testing.T) {
+	// a slight variant on https://github.com/alexflint/go-arg/issues/184
+	var args struct {
+		Config *mapWithMarshalText `arg:"--config"`
+	}
+
+	err := parse("", &args)
+	require.NoError(t, err)
+	assert.Nil(t, args.Config)
 }

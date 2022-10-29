@@ -305,7 +305,7 @@ func (p *Parser) printOption(w io.Writer, spec *spec) {
 		ways = append(ways, synopsis(spec, "-"+spec.short))
 	}
 	if len(ways) > 0 {
-		printTwoCols(w, strings.Join(ways, ", "), spec.help, spec.defaultVal, spec.env)
+		printTwoCols(w, strings.Join(ways, ", "), spec.help, spec.defaultString, spec.env)
 	}
 }
 
