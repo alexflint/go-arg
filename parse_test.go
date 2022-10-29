@@ -1458,18 +1458,18 @@ func TestMustParsePrintsVersion(t *testing.T) {
 	assert.Equal(t, "example 3.2.1\n", b.String())
 }
 
-type jsonMap struct {
+type mapWithUnmarshalText struct {
 	val map[string]string
 }
 
-func (v *jsonMap) UnmarshalText(data []byte) error {
+func (v *mapWithUnmarshalText) UnmarshalText(data []byte) error {
 	return json.Unmarshal(data, &v.val)
 }
 
-func TestTextUnmarshallerEmpty(t *testing.T) {
+func TestTextUnmarshalerEmpty(t *testing.T) {
 	// based on https://github.com/alexflint/go-arg/issues/184
 	var args struct {
-		Config jsonMap `arg:"--config"`
+		Config mapWithUnmarshalText `arg:"--config"`
 	}
 
 	err := parse("", &args)
@@ -1477,10 +1477,10 @@ func TestTextUnmarshallerEmpty(t *testing.T) {
 	assert.Empty(t, args.Config)
 }
 
-func TestTextUnmarshallerEmptyPointer(t *testing.T) {
+func TestTextUnmarshalerEmptyPointer(t *testing.T) {
 	// a slight variant on https://github.com/alexflint/go-arg/issues/184
 	var args struct {
-		Config *jsonMap `arg:"--config"`
+		Config *mapWithUnmarshalText `arg:"--config"`
 	}
 
 	err := parse("", &args)
@@ -1489,22 +1489,22 @@ func TestTextUnmarshallerEmptyPointer(t *testing.T) {
 }
 
 // similar to the above but also implements MarshalText
-type jsonMap2[T any] struct {
-	val T
+type mapWithMarshalText struct {
+	val map[string]string
 }
 
-func (v *jsonMap2[T]) MarshalText(data []byte) error {
+func (v *mapWithMarshalText) MarshalText(data []byte) error {
 	return json.Unmarshal(data, &v.val)
 }
 
-func (v *jsonMap2[T]) UnmarshalText(data []byte) error {
+func (v *mapWithMarshalText) UnmarshalText(data []byte) error {
 	return json.Unmarshal(data, &v.val)
 }
 
-func TestTextMarshallerUnmarshallerEmpty(t *testing.T) {
+func TestTextMarshalerUnmarshalerEmpty(t *testing.T) {
 	// based on https://github.com/alexflint/go-arg/issues/184
 	var args struct {
-		Config jsonMap2[map[string]string] `arg:"--config"`
+		Config mapWithMarshalText `arg:"--config"`
 	}
 
 	err := parse("", &args)
@@ -1512,10 +1512,10 @@ func TestTextMarshallerUnmarshallerEmpty(t *testing.T) {
 	assert.Empty(t, args.Config)
 }
 
-func TestTextMarshallerUnmarshallerEmptyPointer(t *testing.T) {
+func TestTextMarshalerUnmarshalerEmptyPointer(t *testing.T) {
 	// a slight variant on https://github.com/alexflint/go-arg/issues/184
 	var args struct {
-		Config *jsonMap2[map[string]string] `arg:"--config"`
+		Config *mapWithMarshalText `arg:"--config"`
 	}
 
 	err := parse("", &args)
