@@ -50,7 +50,7 @@ Options:
   --optimize OPTIMIZE, -O OPTIMIZE
                          optimization level
   --ids IDS              Ids
-  --values VALUES        Values
+  --values VALUES        Values [default: [3.14 42 256]]
   --workers WORKERS, -w WORKERS
                          number of workers to start [default: 10, env: WORKERS]
   --testenv TESTENV, -a TESTENV [env: TEST_ENV]
@@ -74,6 +74,7 @@ Options:
 	}
 	args.Name = "Foo Bar"
 	args.Value = 42
+	args.Values = []float64{3.14, 42, 256}
 	args.File = &NameDotName{"scratch", "txt"}
 	p, err := NewParser(Config{Program: "example"}, &args)
 	require.NoError(t, err)
@@ -489,6 +490,200 @@ func TestNonexistentSubcommand(t *testing.T) {
 	assert.Error(t, err)
 }
 
+func TestUsageWithOptionGroup(t *testing.T) {
+	expectedUsage := "Usage: example [--verbose] [--insecure] [--host HOST] [--port PORT] [--user USER] OUTPUT"
+
+	expectedHelp := `
+Usage: example [--verbose] [--insecure] [--host HOST] [--port PORT] [--user USER] OUTPUT
+
+Positional arguments:
+  OUTPUT
+
+Options:
+  --verbose, -v          verbosity level
+
+Database options:
+
+This block represents related arguments.
+
+  --insecure, -i         disable tls
+  --host HOST            hostname to connect to [default: localhost, env: DB_HOST]
+  --port PORT            port to connect to [default: 3306, env: DB_PORT]
+  --user USER            username to connect as [env: DB_USERNAME]
+
+Global options:
+  --help, -h             display this help and exit
+`
+
+	type database struct {
+		Insecure bool   `arg:"-i,--insecure" help:"disable tls"`
+		Host     string `arg:"--host,env:DB_HOST" help:"hostname to connect to" default:"localhost"`
+		Port     string `arg:"--port,env:DB_PORT" help:"port to connect to" default:"3306"`
+		User     string `arg:"--user,env:DB_USERNAME" help:"username to connect as"`
+		Password string `arg:"--,env:DB_PASSWORD" help:"password to connect with"`
+	}
+
+	var args struct {
+		Verbose  bool      `arg:"-v" help:"verbosity level"`
+		Database *database `arg:"group" help:"This block represents related arguments."`
+		Output   string    `arg:"positional,required"`
+	}
+
+	os.Args[0] = "example"
+	p, err := NewParser(Config{}, &args)
+	require.NoError(t, err)
+
+	_ = p.Parse([]string{})
+
+	var help bytes.Buffer
+	p.WriteHelp(&help)
+	assert.Equal(t, expectedHelp[1:], help.String())
+
+	var usage bytes.Buffer
+	p.WriteUsage(&usage)
+	assert.Equal(t, expectedUsage, strings.TrimSpace(usage.String()))
+}
+
+func TestUsageWithoutSubcommandAndOptionGroup(t *testing.T) {
+	expectedUsage := "Usage: example [-s] [--global] <command> [<args>]"
+
+	expectedHelp := `
+Usage: example [-s] [--global] <command> [<args>]
+
+Options:
+  --global, -g           global option
+
+Global group options:
+
+This block represents related arguments.
+
+  -s                     global something
+
+Global options:
+  --help, -h             display this help and exit
+
+Commands:
+  foo                    Command A
+  bar                    Command B
+`
+
+	var args struct {
+		Global      bool `arg:"-g" help:"global option"`
+		GlobalGroup *struct {
+			Something bool `arg:"-s,--" help:"global something"`
+		} `arg:"group:Global group" help:"This block represents related arguments."`
+		CommandA *struct {
+			OptionA bool `arg:"-a,--" help:"option for sub A"`
+			GroupA  *struct {
+				GroupA bool `arg:"--group-a" help:"group belonging to cmd A"`
+			} `arg:"group:Group A" help:"This block belongs to command A."`
+		} `arg:"subcommand:foo" help:"Command A"`
+		CommandB *struct {
+			OptionB bool `arg:"-b,--" help:"option for sub B"`
+			GroupB  *struct {
+				GroupB      bool `arg:"--group-b" help:"group belonging to cmd B"`
+				NestedGroup *struct {
+					NestedGroup bool `arg:"--nested-group" help:"nested group belonging to group B of cmd B"`
+				} `arg:"group:Nested Group" help:"This block belongs to group B of command B."`
+			} `arg:"group:Group B" help:"This block belongs to command B."`
+		} `arg:"subcommand:bar" help:"Command B"`
+	}
+
+	os.Args[0] = "example"
+	p, err := NewParser(Config{}, &args)
+	require.NoError(t, err)
+
+	_ = p.Parse([]string{})
+
+	var help bytes.Buffer
+	p.WriteHelp(&help)
+	assert.Equal(t, expectedHelp[1:], help.String())
+
+	var help2 bytes.Buffer
+	p.WriteHelpForSubcommand(&help2)
+	assert.Equal(t, expectedHelp[1:], help2.String())
+
+	var usage bytes.Buffer
+	p.WriteUsage(&usage)
+	assert.Equal(t, expectedUsage, strings.TrimSpace(usage.String()))
+
+	var usage2 bytes.Buffer
+	p.WriteUsageForSubcommand(&usage2)
+	assert.Equal(t, expectedUsage, strings.TrimSpace(usage2.String()))
+}
+
+func TestUsageWithSubcommandAndOptionGroup(t *testing.T) {
+
+	expectedUsage := "Usage: example bar [-b] [--group-b] [--nested-group]"
+	expectedHelp := `
+Usage: example bar [-b] [--group-b] [--nested-group]
+
+Options:
+  -b                     option for sub B
+
+Group B options:
+
+This block belongs to command B.
+
+  --group-b              group belonging to cmd B
+
+Nested Group options:
+
+This block belongs to group B of command B.
+
+  --nested-group         nested group belonging to group B of cmd B
+
+Global options:
+  --global, -g           global option
+  -s                     global something
+  --help, -h             display this help and exit
+`
+
+	var args struct {
+		Global      bool `arg:"-g" help:"global option"`
+		GlobalGroup *struct {
+			Something bool `arg:"-s,--" help:"global something"`
+		} `arg:"group:Global group" help:"This block represents related arguments."`
+		CommandA *struct {
+			OptionA bool `arg:"-a,--" help:"option for sub A"`
+			GroupA  *struct {
+				GroupA bool `arg:"--group-a" help:"group belonging to cmd A"`
+			} `arg:"group:Group A" help:"This block belongs to command A."`
+		} `arg:"subcommand:foo" help:"Command A"`
+		CommandB *struct {
+			OptionB bool `arg:"-b,--" help:"option for sub B"`
+			GroupB  *struct {
+				GroupB      bool `arg:"--group-b" help:"group belonging to cmd B"`
+				NestedGroup *struct {
+					NestedGroup bool `arg:"--nested-group" help:"nested group belonging to group B of cmd B"`
+				} `arg:"group:Nested Group" help:"This block belongs to group B of command B."`
+			} `arg:"group:Group B" help:"This block belongs to command B."`
+		} `arg:"subcommand:bar" help:"Command B"`
+	}
+
+	os.Args[0] = "example"
+	p, err := NewParser(Config{}, &args)
+	require.NoError(t, err)
+
+	_ = p.Parse([]string{"bar"})
+
+	var help bytes.Buffer
+	p.WriteHelp(&help)
+	assert.Equal(t, expectedHelp[1:], help.String())
+
+	var help2 bytes.Buffer
+	p.WriteHelpForSubcommand(&help2, "bar")
+	assert.Equal(t, expectedHelp[1:], help2.String())
+
+	var usage bytes.Buffer
+	p.WriteUsage(&usage)
+	assert.Equal(t, expectedUsage, strings.TrimSpace(usage.String()))
+
+	var usage2 bytes.Buffer
+	p.WriteUsageForSubcommand(&usage2, "bar")
+	assert.Equal(t, expectedUsage, strings.TrimSpace(usage2.String()))
+}
+
 func TestUsageWithoutLongNames(t *testing.T) {
 	expectedUsage := "Usage: example [-a PLACEHOLDER] -b SHORTONLY2"
 
@@ -505,7 +700,7 @@ Options:
 		ShortOnly2 string `arg:"-b,--,required" help:"some help2"`
 	}
 	p, err := NewParser(Config{Program: "example"}, &args)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	var help bytes.Buffer
 	p.WriteHelp(&help)

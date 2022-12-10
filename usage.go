@@ -70,7 +70,7 @@ func (p *Parser) WriteUsageForSubcommand(w io.Writer, subcommand ...string) erro
 // writeUsageForSubcommand writes usage information for the given subcommand
 func (p *Parser) writeUsageForSubcommand(w io.Writer, cmd *command) {
 	var positionals, longOptions, shortOptions []*spec
-	for _, spec := range cmd.specs {
+	for _, spec := range cmd.specs() {
 		switch {
 		case spec.positional:
 			positionals = append(positionals, spec)
@@ -216,24 +216,18 @@ func (p *Parser) WriteHelpForSubcommand(w io.Writer, subcommand ...string) error
 
 // writeHelp writes the usage string for the given subcommand
 func (p *Parser) writeHelpForSubcommand(w io.Writer, cmd *command) {
-	var positionals, longOptions, shortOptions []*spec
-	for _, spec := range cmd.specs {
-		switch {
-		case spec.positional:
-			positionals = append(positionals, spec)
-		case spec.long != "":
-			longOptions = append(longOptions, spec)
-		case spec.short != "":
-			shortOptions = append(shortOptions, spec)
-		}
-	}
-
 	if p.description != "" {
 		fmt.Fprintln(w, p.description)
 	}
 	p.writeUsageForSubcommand(w, cmd)
 
 	// write the list of positionals
+	var positionals []*spec
+	for _, spec := range cmd.options {
+		if spec.positional {
+			positionals = append(positionals, spec)
+		}
+	}
 	if len(positionals) > 0 {
 		fmt.Fprint(w, "\nPositional arguments:\n")
 		for _, spec := range positionals {
@@ -242,26 +236,18 @@ func (p *Parser) writeHelpForSubcommand(w io.Writer, cmd *command) {
 	}
 
 	// write the list of options with the short-only ones first to match the usage string
-	if len(shortOptions)+len(longOptions) > 0 || cmd.parent == nil {
-		fmt.Fprint(w, "\nOptions:\n")
-		for _, spec := range shortOptions {
-			p.printOption(w, spec)
-		}
-		for _, spec := range longOptions {
-			p.printOption(w, spec)
-		}
-	}
+	p.writeHelpForArguments(w, cmd, "Options", "")
 
 	// obtain a flattened list of options from all ancestors
 	var globals []*spec
 	ancestor := cmd.parent
 	for ancestor != nil {
-		globals = append(globals, ancestor.specs...)
+		globals = append(globals, ancestor.specs()...)
 		ancestor = ancestor.parent
 	}
 
 	// write the list of global options
-	if len(globals) > 0 {
+	if len(globals) > 0 || len(cmd.groups) > 0 {
 		fmt.Fprint(w, "\nGlobal options:\n")
 		for _, spec := range globals {
 			p.printOption(w, spec)
@@ -296,6 +282,45 @@ func (p *Parser) writeHelpForSubcommand(w io.Writer, cmd *command) {
 	}
 }
 
+// writeHelpForArguments writes the list of short, long, and environment-only
+// options in order.
+func (p *Parser) writeHelpForArguments(w io.Writer, cmd *command, header, help string) {
+	var positionals, longOptions, shortOptions []*spec
+	for _, spec := range cmd.options {
+		switch {
+		case spec.positional:
+			positionals = append(positionals, spec)
+		case spec.long != "":
+			longOptions = append(longOptions, spec)
+		case spec.short != "":
+			shortOptions = append(shortOptions, spec)
+		}
+	}
+
+	if cmd.parent != nil && len(shortOptions)+len(longOptions) == 0 {
+		return
+	}
+
+	// write the list of options with the short-only ones first to match the usage string
+	fmt.Fprintf(w, "\n%v:\n", header)
+	if help != "" {
+		fmt.Fprintf(w, "\n%v\n\n", help)
+	}
+	for _, spec := range shortOptions {
+		p.printOption(w, spec)
+	}
+	for _, spec := range longOptions {
+		p.printOption(w, spec)
+	}
+
+	// write the list of argument groups
+	if len(cmd.groups) > 0 {
+		for _, grpCmd := range cmd.groups {
+			p.writeHelpForArguments(w, grpCmd, fmt.Sprintf("%s options", grpCmd.name), grpCmd.help)
+		}
+	}
+}
+
 func (p *Parser) printOption(w io.Writer, spec *spec) {
 	ways := make([]string, 0, 2)
 	if spec.long != "" {
@@ -303,6 +328,9 @@ func (p *Parser) printOption(w io.Writer, spec *spec) {
 	}
 	if spec.short != "" {
 		ways = append(ways, synopsis(spec, "-"+spec.short))
+	}
+	if spec.env != "" && len(ways) == 0 {
+		ways = append(ways, "(environment only)")
 	}
 	if len(ways) > 0 {
 		printTwoCols(w, strings.Join(ways, ", "), spec.help, spec.defaultString, spec.env)

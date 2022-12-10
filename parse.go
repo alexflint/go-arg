@@ -63,9 +63,21 @@ type command struct {
 	name        string
 	help        string
 	dest        path
-	specs       []*spec
+	options     []*spec
 	subcommands []*command
+	groups      []*command
 	parent      *command
+}
+
+// specs gets all the specs from this command plus all nested option groups,
+// recursively through descendants
+func (cmd command) specs() []*spec {
+	var specs []*spec
+	specs = append(specs, cmd.options...)
+	for _, grpcmd := range cmd.groups {
+		specs = append(specs, grpcmd.specs()...)
+	}
+	return specs
 }
 
 // ErrHelp indicates that -h or --help were provided
@@ -206,7 +218,7 @@ func NewParser(config Config, dests ...interface{}) (*Parser, error) {
 			panic(fmt.Sprintf("%s is not a pointer (did you forget an ampersand?)", t))
 		}
 
-		err := p.cmd.parseFieldsFromStructPointer(t)
+		err := p.cmd.parseFieldsFromStructPointer(t, false)
 		if err != nil {
 			return nil, err
 		}
@@ -214,7 +226,7 @@ func NewParser(config Config, dests ...interface{}) (*Parser, error) {
 		// for backwards compatibility, add nonzero field values as defaults
 		// this applies only to the top-level command, not to subcommands (this inconsistency
 		// is the reason that this method for setting default values was deprecated)
-		for _, spec := range p.cmd.specs {
+		for _, spec := range p.cmd.specs() {
 			// get the value
 			defaultString, defaultValue, err := p.defaultVal(spec.dest)
 			if err != nil {
@@ -248,7 +260,7 @@ func NewParser(config Config, dests ...interface{}) (*Parser, error) {
 // parseFieldsFromStructPointer ensures the destination structure is a pointer
 // to a struct. This function should be called when parsing commands or
 // subcommands as they can only be a struct pointer.
-func (cmd *command) parseFieldsFromStructPointer(t reflect.Type) error {
+func (cmd *command) parseFieldsFromStructPointer(t reflect.Type, insideGroup bool) error {
 	// commands can only be created from pointers to structs
 	if t.Kind() != reflect.Ptr {
 		return fmt.Errorf("subcommands must be pointers to structs but %s is a %s",
@@ -260,7 +272,33 @@ func (cmd *command) parseFieldsFromStructPointer(t reflect.Type) error {
 		return fmt.Errorf("subcommands must be pointers to structs but %s is a pointer to %s",
 			cmd.dest, t.Kind())
 	}
+	return cmd.parseStruct(t, insideGroup)
+}
 
+// parseFieldsFromStructOrStructPointer ensures the destination structure is
+// either a pointer to a struct, or a struct. This function should be called
+// when parsing option groups as they can only be a struct, or a pointer to one.
+func (cmd *command) parseFieldsFromStructOrStructPointer(t reflect.Type, insideGroup bool) error {
+	// option groups can only be created from structs or pointers to structs
+	typeHint := ""
+	if t.Kind() == reflect.Ptr {
+		typeHint = "a pointer to "
+		t = t.Elem()
+	}
+
+	if t.Kind() != reflect.Struct {
+		return fmt.Errorf("option groups must be structs or pointers to structs, but %s is %s%s",
+			cmd.dest, typeHint, t.Kind())
+	}
+
+	return cmd.parseStruct(t, insideGroup)
+}
+
+// parseStruct populates the command instance based on the type and annotations
+// of the target struct. As these command instances are used for either (sub)
+// commands or option groups, please refer to the parseFieldsFromStructPointer
+// or parseFieldsFromStructOrStructPointer respectively.
+func (cmd *command) parseStruct(t reflect.Type, insideGroup bool) error {
 	var errs []string
 	walkFields(t, func(field reflect.StructField, t reflect.Type) bool {
 		// check for the ignore switch in the tag
@@ -342,19 +380,47 @@ func (cmd *command) parseFieldsFromStructPointer(t reflect.Type) error {
 				}
 				cmd.subcommands = append(cmd.subcommands, &subCmd)
 
+				if insideGroup {
+					errs = append(errs, fmt.Sprintf("%s.%s: %s subcommands cannot be part of option groups",
+						t.Name(), field.Name, field.Type.String()))
+					return false
+				}
+
 				// decide on a name for the subcommand
 				if subCmd.name == "" {
 					subCmd.name = strings.ToLower(field.Name)
 				}
 
 				// parse the subcommand recursively
-				err := subCmd.parseFieldsFromStructPointer(field.Type)
+				err := subCmd.parseFieldsFromStructPointer(field.Type, false)
 				if err != nil {
 					errs = append(errs, err.Error())
 					return false
 				}
 
 				return true
+			case key == "group":
+				// parse the option group recursively
+				optGrp := command{
+					name:   value,
+					dest:   subdest,
+					parent: cmd,
+					help:   field.Tag.Get("help"),
+				}
+				cmd.groups = append(cmd.groups, &optGrp)
+
+				// decide on a name for the group
+				if optGrp.name == "" {
+					optGrp.name = strings.Title(field.Name)
+				}
+
+				err := optGrp.parseFieldsFromStructOrStructPointer(field.Type, true)
+				if err != nil {
+					errs = append(errs, err.Error())
+					return false
+				}
+
+				return false
 			default:
 				errs = append(errs, fmt.Sprintf("unrecognized tag '%s' on field %s", key, tag))
 				return false
@@ -417,7 +483,7 @@ func (cmd *command) parseFieldsFromStructPointer(t reflect.Type) error {
 		}
 
 		// add the spec to the list of specs
-		cmd.specs = append(cmd.specs, &spec)
+		cmd.options = append(cmd.options, &spec)
 
 		// if this was an embedded field then we already returned true up above
 		return false
@@ -429,7 +495,7 @@ func (cmd *command) parseFieldsFromStructPointer(t reflect.Type) error {
 
 	// check that we don't have both positionals and subcommands
 	var hasPositional bool
-	for _, spec := range cmd.specs {
+	for _, spec := range cmd.options {
 		if spec.positional {
 			hasPositional = true
 		}
@@ -531,8 +597,7 @@ func (p *Parser) process(args []string) error {
 	p.lastCmd = curCmd
 
 	// make a copy of the specs because we will add to this list each time we expand a subcommand
-	specs := make([]*spec, len(curCmd.specs))
-	copy(specs, curCmd.specs)
+	specs := curCmd.specs()
 
 	// deal with environment vars
 	if !p.config.IgnoreEnv {
@@ -571,11 +636,11 @@ func (p *Parser) process(args []string) error {
 			p.val(subcmd.dest)
 
 			// add the new options to the set of allowed options
-			specs = append(specs, subcmd.specs...)
+			specs = append(specs, subcmd.specs()...)
 
 			// capture environment vars for these new options
 			if !p.config.IgnoreEnv {
-				err := p.captureEnvVars(subcmd.specs, wasPresent)
+				err := p.captureEnvVars(subcmd.specs(), wasPresent)
 				if err != nil {
 					return err
 				}

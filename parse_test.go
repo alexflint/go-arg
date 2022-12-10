@@ -288,6 +288,220 @@ func TestLongFlag(t *testing.T) {
 	assert.Equal(t, "xyz", args.Foo)
 }
 
+func TestGroupRequired(t *testing.T) {
+	var args struct {
+		Foo *struct {
+			Bar string `arg:"required"`
+		} `arg:"group"`
+	}
+	err := parse("", &args)
+	require.Error(t, err, "--bar is required")
+}
+
+func TestNonPointerGroup(t *testing.T) {
+	var args struct {
+		Group struct {
+			Foo string
+		} `arg:"group"`
+	}
+
+	_, err := NewParser(Config{IgnoreEnv: true}, &args)
+	require.NoError(t, err)
+}
+
+func TestNonStructGroup(t *testing.T) {
+	var args struct {
+		NotGroup int `arg:"group"`
+	}
+
+	_, err := NewParser(Config{IgnoreEnv: true}, &args)
+	require.Error(t, err, "option groups must be structs or pointers to structs, but args.NotGroup is int")
+}
+
+func TestNonStructPtrGroup(t *testing.T) {
+	var args struct {
+		NotGroup *int `arg:"group"`
+	}
+
+	_, err := NewParser(Config{IgnoreEnv: true}, &args)
+	require.Error(t, err, "option groups must be structs or pointers to structs, but args.NotGroup is a pointer to int")
+}
+
+func TestNoSubcommandInGroup(t *testing.T) {
+	var args struct {
+		Group struct {
+			Sub *struct{} `arg:"subcommand"`
+		} `arg:"group"`
+	}
+
+	_, err := NewParser(Config{IgnoreEnv: true}, &args)
+	require.Error(t, err, "subcommands cannot be part of option groups")
+}
+
+func TestGroupParsingWithoutArguments(t *testing.T) {
+	type perm struct {
+		Anent string
+	}
+
+	type opt struct {
+		Ional string
+	}
+
+	type def struct {
+		Ault string `default:"permanent"`
+	}
+
+	type args struct {
+		Foo                 string
+		PermanentGroup      perm   `arg:"group:Permanent"`
+		OptionalGroup       *opt   `arg:"group:Optional"`
+		OptionalWithDefault *def   `arg:"group:With default"`
+		Input               string `arg:"positional"`
+	}
+
+	var opts args
+	err := parse("", &opts)
+	require.NoError(t, err)
+	assert.Equal(t, args{
+		OptionalWithDefault: &def{
+			Ault: "permanent",
+		},
+	}, opts)
+}
+
+func TestGroupParsingWithPositional(t *testing.T) {
+	type perm struct {
+		Anent string
+	}
+
+	type opt struct {
+		Ional string
+	}
+
+	type def struct {
+		Ault string `default:"permanent"`
+	}
+
+	type args struct {
+		Foo                 string
+		PermanentGroup      perm   `arg:"group:Permanent"`
+		OptionalGroup       *opt   `arg:"group:Optional"`
+		OptionalWithDefault *def   `arg:"group:With default"`
+		Input               string `arg:"positional"`
+	}
+
+	var opts args
+	err := parse("input", &opts)
+	require.NoError(t, err)
+	assert.Equal(t, args{
+		OptionalWithDefault: &def{
+			Ault: "permanent",
+		},
+		Input: "input",
+	}, opts)
+}
+
+func TestGroupParsingOfGroupPointer(t *testing.T) {
+	type perm struct {
+		Anent string
+	}
+
+	type opt struct {
+		Ional string
+	}
+
+	type def struct {
+		Ault string `default:"permanent"`
+	}
+
+	type args struct {
+		Foo                 string
+		PermanentGroup      perm   `arg:"group:Permanent"`
+		OptionalGroup       *opt   `arg:"group:Optional"`
+		OptionalWithDefault *def   `arg:"group:With default"`
+		Input               string `arg:"positional"`
+	}
+
+	var opts args
+	err := parse("--ional pointer", &opts)
+	require.NoError(t, err)
+	assert.Equal(t, args{
+		OptionalGroup: &opt{
+			Ional: "pointer",
+		},
+		OptionalWithDefault: &def{
+			Ault: "permanent",
+		},
+	}, opts)
+}
+
+func TestGroupParsingOfGroupStruct(t *testing.T) {
+	type perm struct {
+		Anent string
+	}
+
+	type opt struct {
+		Ional string
+	}
+
+	type def struct {
+		Ault string `default:"permanent"`
+	}
+
+	type args struct {
+		Foo                 string
+		PermanentGroup      perm   `arg:"group:Permanent"`
+		OptionalGroup       *opt   `arg:"group:Optional"`
+		OptionalWithDefault *def   `arg:"group:With default"`
+		Input               string `arg:"positional"`
+	}
+
+	var opts args
+	err := parse("--anent struct", &opts)
+	require.NoError(t, err)
+	assert.Equal(t, args{
+		PermanentGroup: perm{
+			Anent: "struct",
+		},
+		OptionalWithDefault: &def{
+			Ault: "permanent",
+		},
+	}, opts)
+}
+
+func TestGroupParsingWithMixedTypes(t *testing.T) {
+	type perm struct {
+		Anent string
+	}
+
+	type opt struct {
+		Ional string
+	}
+
+	type def struct {
+		Ault string `default:"permanent"`
+	}
+
+	type args struct {
+		Foo                 string
+		PermanentGroup      perm   `arg:"group:Permanent"`
+		OptionalGroup       *opt   `arg:"group:Optional"`
+		OptionalWithDefault *def   `arg:"group:With default"`
+		Input               string `arg:"positional"`
+	}
+
+	var opts args
+	err := parse("--foo bar -ional pointer --anent struct last", &opts)
+	require.NoError(t, err)
+	assert.Equal(t, args{
+		Foo:                 "bar",
+		OptionalGroup:       &opt{Ional: "pointer"},
+		PermanentGroup:      perm{Anent: "struct"},
+		OptionalWithDefault: &def{Ault: "permanent"},
+		Input:               "last",
+	}, opts)
+}
+
 func TestSlice(t *testing.T) {
 	var args struct {
 		Strings []string
@@ -703,6 +917,84 @@ func TestMustParse(t *testing.T) {
 	parser := MustParse(&args)
 	assert.Equal(t, "bar", args.Foo)
 	assert.NotNil(t, parser)
+}
+
+func TestNewParserWithEnv(t *testing.T) {
+	type simpleEnv struct {
+		Foo string `arg:"env"`
+	}
+
+	// No env, no command line: value is empty
+	dest := &simpleEnv{}
+	_, err := parseWithEnv("", []string{}, dest)
+	require.NoError(t, err)
+	assert.Equal(t, &simpleEnv{Foo: ""}, dest)
+
+	// With env, no command line: value takes environment
+	dest = &simpleEnv{}
+	_, err = parseWithEnv("", []string{"FOO=env"}, dest)
+	require.NoError(t, err)
+	assert.Equal(t, &simpleEnv{Foo: "env"}, dest)
+
+	// No env, with command line: value takes argument
+	dest = &simpleEnv{}
+	_, err = parseWithEnv("--foo=cmd", []string{}, dest)
+	require.NoError(t, err)
+	assert.Equal(t, &simpleEnv{Foo: "cmd"}, dest)
+
+	// With env, with command line: value takes argument
+	dest = &simpleEnv{}
+	_, err = parseWithEnv("--foo=cmd", []string{"FOO=env"}, dest)
+	require.NoError(t, err)
+	assert.Equal(t, &simpleEnv{Foo: "cmd"}, dest)
+}
+
+func TestNewParserWithEnvAndDefault(t *testing.T) {
+	type envWithDefault struct {
+		Foo string `arg:"env" default:"def"`
+	}
+
+	// No env, no command line: value takes default
+	dest := &envWithDefault{}
+	_, err := parseWithEnv("", []string{}, dest)
+	require.NoError(t, err)
+	assert.Equal(t, &envWithDefault{Foo: "def"}, dest)
+
+	// With env, no command line: value takes environment
+	dest = &envWithDefault{}
+	_, err = parseWithEnv("", []string{"FOO=env"}, dest)
+	require.NoError(t, err)
+	assert.Equal(t, &envWithDefault{Foo: "env"}, dest)
+
+	// No env, with command line: value takes argument
+	dest = &envWithDefault{}
+	_, err = parseWithEnv("--foo=cmd", []string{}, dest)
+	require.NoError(t, err)
+	assert.Equal(t, &envWithDefault{Foo: "cmd"}, dest)
+
+	// With env, with command line: value takes argument
+	dest = &envWithDefault{}
+	_, err = parseWithEnv("--foo=cmd", []string{"FOO=env"}, dest)
+	require.NoError(t, err)
+	assert.Equal(t, &envWithDefault{Foo: "cmd"}, dest)
+}
+
+func TestNewParserWithoutArgumentWithEnvAndDefault(t *testing.T) {
+	type noArgWithEnvAndWithDefault struct {
+		Foo string `arg:"--,env" default:"def"`
+	}
+
+	// No env, no command line: value takes default
+	dest := &noArgWithEnvAndWithDefault{}
+	_, err := parseWithEnv("", []string{}, dest)
+	require.NoError(t, err)
+	assert.Equal(t, &noArgWithEnvAndWithDefault{Foo: "def"}, dest)
+
+	// With env, no command line: value takes environment
+	dest = &noArgWithEnvAndWithDefault{}
+	_, err = parseWithEnv("", []string{"FOO=env"}, dest)
+	require.NoError(t, err)
+	assert.Equal(t, &noArgWithEnvAndWithDefault{Foo: "env"}, dest)
 }
 
 func TestEnvironmentVariable(t *testing.T) {

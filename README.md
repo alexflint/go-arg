@@ -583,6 +583,70 @@ if p.Subcommand() == nil {
 }
 ```
 
+### Option groups
+
+Option groups are a hybrid between subcommands and embedded structs. Option
+groups create logical collections of related arguments with a help description,
+and can be embedded in other groups and subcommands. Option groups can combine
+configuration structs of multiple modules without requiring embedding.
+
+```go
+type Repository struct {
+    URL      string       `arg:"--host" help:"URL of the repository" default:"docker.io"`
+    User     string       `arg:"--user,env:REPO_USERNAME" help:"username to connect as"`
+    Password string       `arg:"--,env:REPO_PASSWORD" help:"password to connect with"`
+}
+type BuildCmd struct {
+        Context  string
+        Tag      string
+}
+type PushCmd struct {
+        Repo     Repository  `arg:"group:Repository" help:"Change the default registry to push to."`
+        Tag      string `help:"Tag"`
+}
+var args struct {
+        Build    *BuildCmd    `arg:"subcommand:build"`
+        Push     *PushCmd     `arg:"subcommand:push"`
+        Quiet    bool         `arg:"-q" help:"Quiet"` // this flag is global to all subcommands
+}
+
+arg.MustParse(&args)
+
+switch {
+case args.Build != nil:
+        fmt.Printf("build %s as %q\n", args.Build.Context, args.Build.Tag)
+case args.Push != nil:
+        fmt.Printf("push %q to %q\n", args.Push.Tag, args.Push.Repo.URL)
+}
+```
+
+The push command help message would look like:
+
+```text
+Usage: example push [--tag TAG] [--host HOST] [--user USER]
+
+Options:
+  --tag TAG              Tag
+
+Repository options:
+
+Change the default registry to push to.
+
+  --host HOST            URL of the repository [default: docker.io]
+  --user USER            username to connect as [env: REPO_USERNAME]
+
+Global options:
+  --quiet, -q            Quiet
+  --help, -h             display this help and exit
+```
+
+Some additional rules apply when working with option groups:
+* The `group` tag can only be used with fields that are structs or pointers to structs.
+* Specifying default values in nested struct pointers _always_ result in an initialized struct.
+* Option groups may not contain any positionals.
+* Option groups cannot contain sub-commands.
+```
+
 ### API Documentation
 
 https://godoc.org/github.com/alexflint/go-arg
