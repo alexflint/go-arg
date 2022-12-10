@@ -44,12 +44,33 @@ func parseWithEnv(cmdline string, env []string, dest interface{}) (*Parser, erro
 	}
 
 	// split the environment vars
+	newEnv := map[string]string{}
+	oldEnv := map[string]string{}
 	for _, s := range env {
 		pos := strings.Index(s, "=")
 		if pos == -1 {
 			return nil, fmt.Errorf("missing equals sign in %q", s)
 		}
-		err := os.Setenv(s[:pos], s[pos+1:])
+
+		if orig, ok := os.LookupEnv(s[:pos]); ok {
+			oldEnv[s[:pos]] = orig
+		}
+
+		newEnv[s[:pos]] = s[pos+1:]
+	}
+
+	defer func() {
+		for key, _ := range newEnv {
+			if orig, ok := oldEnv[key]; ok {
+				_ = os.Setenv(key, orig)
+			} else {
+				_ = os.Unsetenv(key)
+			}
+		}
+	}()
+
+	for key, val := range newEnv {
+		err := os.Setenv(key, val)
 		if err != nil {
 			return nil, err
 		}
@@ -98,9 +119,9 @@ func TestInt(t *testing.T) {
 
 func TestHexOctBin(t *testing.T) {
 	var args struct {
-		Hex int
-		Oct int
-		Bin int
+		Hex         int
+		Oct         int
+		Bin         int
 		Underscored int
 	}
 	err := parse("--hex 0xA --oct 0o10 --bin 0b101 --underscored 123_456", &args)
