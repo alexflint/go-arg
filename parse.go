@@ -200,13 +200,13 @@ func NewParser(config Config, dests ...interface{}) (*Parser, error) {
 	}
 
 	// process each of the destination values
-	for i, dest := range dests {
+	for _, dest := range dests {
 		t := reflect.TypeOf(dest)
 		if t.Kind() != reflect.Ptr {
 			panic(fmt.Sprintf("%s is not a pointer (did you forget an ampersand?)", t))
 		}
 
-		cmd, err := cmdFromStruct(name, path{root: i}, t)
+		err := p.cmd.parseFieldsFromStructPointer(t)
 		if err != nil {
 			return nil, err
 		}
@@ -214,7 +214,7 @@ func NewParser(config Config, dests ...interface{}) (*Parser, error) {
 		// for backwards compatibility, add nonzero field values as defaults
 		// this applies only to the top-level command, not to subcommands (this inconsistency
 		// is the reason that this method for setting default values was deprecated)
-		for _, spec := range cmd.specs {
+		for _, spec := range p.cmd.specs {
 			// get the value
 			v := p.val(spec.dest)
 
@@ -239,9 +239,6 @@ func NewParser(config Config, dests ...interface{}) (*Parser, error) {
 			}
 		}
 
-		p.cmd.specs = append(p.cmd.specs, cmd.specs...)
-		p.cmd.subcommands = append(p.cmd.subcommands, cmd.subcommands...)
-
 		if dest, ok := dest.(Versioned); ok {
 			p.version = dest.Version()
 		}
@@ -256,22 +253,20 @@ func NewParser(config Config, dests ...interface{}) (*Parser, error) {
 	return &p, nil
 }
 
-func cmdFromStruct(name string, dest path, t reflect.Type) (*command, error) {
+// parseFieldsFromStructPointer ensures the destination structure is a pointer
+// to a struct. This function should be called when parsing commands or
+// subcommands as they can only be a struct pointer.
+func (cmd *command) parseFieldsFromStructPointer(t reflect.Type) error {
 	// commands can only be created from pointers to structs
 	if t.Kind() != reflect.Ptr {
-		return nil, fmt.Errorf("subcommands must be pointers to structs but %s is a %s",
-			dest, t.Kind())
+		return fmt.Errorf("subcommands must be pointers to structs but %s is a %s",
+			cmd.dest, t.Kind())
 	}
 
 	t = t.Elem()
 	if t.Kind() != reflect.Struct {
-		return nil, fmt.Errorf("subcommands must be pointers to structs but %s is a pointer to %s",
-			dest, t.Kind())
-	}
-
-	cmd := command{
-		name: name,
-		dest: dest,
+		return fmt.Errorf("subcommands must be pointers to structs but %s is a pointer to %s",
+			cmd.dest, t.Kind())
 	}
 
 	var errs []string
@@ -295,7 +290,7 @@ func cmdFromStruct(name string, dest path, t reflect.Type) (*command, error) {
 		}
 
 		// duplicate the entire path to avoid slice overwrites
-		subdest := dest.Child(field)
+		subdest := cmd.dest.Child(field)
 		spec := spec{
 			dest:  subdest,
 			field: field,
@@ -308,7 +303,6 @@ func cmdFromStruct(name string, dest path, t reflect.Type) (*command, error) {
 		}
 
 		// Look at the tag
-		var isSubcommand bool // tracks whether this field is a subcommand
 		for _, key := range strings.Split(tag, ",") {
 			if key == "" {
 				continue
@@ -348,24 +342,27 @@ func cmdFromStruct(name string, dest path, t reflect.Type) (*command, error) {
 					spec.env = strings.ToUpper(field.Name)
 				}
 			case key == "subcommand":
+				subCmd := command{
+					name:   value,
+					dest:   subdest,
+					parent: cmd,
+					help:   field.Tag.Get("help"),
+				}
+				cmd.subcommands = append(cmd.subcommands, &subCmd)
+
 				// decide on a name for the subcommand
-				cmdname := value
-				if cmdname == "" {
-					cmdname = strings.ToLower(field.Name)
+				if subCmd.name == "" {
+					subCmd.name = strings.ToLower(field.Name)
 				}
 
 				// parse the subcommand recursively
-				subcmd, err := cmdFromStruct(cmdname, subdest, field.Type)
+				err := subCmd.parseFieldsFromStructPointer(field.Type)
 				if err != nil {
 					errs = append(errs, err.Error())
 					return false
 				}
 
-				subcmd.parent = &cmd
-				subcmd.help = field.Tag.Get("help")
-
-				cmd.subcommands = append(cmd.subcommands, subcmd)
-				isSubcommand = true
+				return true
 			default:
 				errs = append(errs, fmt.Sprintf("unrecognized tag '%s' on field %s", key, tag))
 				return false
@@ -379,11 +376,6 @@ func cmdFromStruct(name string, dest path, t reflect.Type) (*command, error) {
 			spec.placeholder = strings.ToUpper(spec.long)
 		} else {
 			spec.placeholder = strings.ToUpper(spec.field.Name)
-		}
-
-		// if this is a subcommand then we've done everything we need to do
-		if isSubcommand {
-			return false
 		}
 
 		// check whether this field is supported. It's good to do this here rather than
@@ -440,7 +432,7 @@ func cmdFromStruct(name string, dest path, t reflect.Type) (*command, error) {
 	})
 
 	if len(errs) > 0 {
-		return nil, errors.New(strings.Join(errs, "\n"))
+		return errors.New(strings.Join(errs, "\n"))
 	}
 
 	// check that we don't have both positionals and subcommands
@@ -451,10 +443,12 @@ func cmdFromStruct(name string, dest path, t reflect.Type) (*command, error) {
 		}
 	}
 	if hasPositional && len(cmd.subcommands) > 0 {
-		return nil, fmt.Errorf("%s cannot have both subcommands and positional arguments", dest)
+		return fmt.Errorf("%s cannot have both subcommands and positional arguments",
+			cmd.dest)
+
 	}
 
-	return &cmd, nil
+	return nil
 }
 
 // Parse processes the given command line option, storing the results in the field
