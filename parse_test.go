@@ -930,6 +930,17 @@ func TestParserMustParse(t *testing.T) {
 	}
 }
 
+func TestNonPointerSubcommand(t *testing.T) {
+	var args struct {
+		Sub struct {
+			Foo string `arg:"env"`
+		} `arg:"subcommand"`
+	}
+
+	_, err := NewParser(Config{IgnoreEnv: true}, &args)
+	require.Error(t, err, "subcommands must be pointers to structs but args.Sub is a struct")
+}
+
 type textUnmarshaler struct {
 	val int
 }
