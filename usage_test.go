@@ -510,6 +510,7 @@ This block represents related arguments.
   --host HOST            hostname to connect to [default: localhost, env: DB_HOST]
   --port PORT            port to connect to [default: 3306, env: DB_PORT]
   --user USER            username to connect as [env: DB_USERNAME]
+  (environment only)     password to connect with [env: DB_PASSWORD]
 
 Global options:
   --help, -h             display this help and exit
@@ -746,6 +747,8 @@ Usage: example [-s SHORT]
 
 Options:
   -s SHORT [env: SHORT]
+  (environment only) [env: ENVONLY]
+  (environment only) [env: CUSTOM]
   --help, -h             display this help and exit
 `
 	var args struct {

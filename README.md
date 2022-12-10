@@ -634,6 +634,7 @@ Change the default registry to push to.
 
   --host HOST            URL of the repository [default: docker.io]
   --user USER            username to connect as [env: REPO_USERNAME]
+  (environment only)     password to connect with [env: REPO_PASSWORD]
 
 Global options:
   --quiet, -q            Quiet

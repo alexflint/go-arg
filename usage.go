@@ -285,7 +285,7 @@ func (p *Parser) writeHelpForSubcommand(w io.Writer, cmd *command) {
 // writeHelpForArguments writes the list of short, long, and environment-only
 // options in order.
 func (p *Parser) writeHelpForArguments(w io.Writer, cmd *command, header, help string) {
-	var positionals, longOptions, shortOptions []*spec
+	var positionals, longOptions, shortOptions, envOnly []*spec
 	for _, spec := range cmd.options {
 		switch {
 		case spec.positional:
@@ -294,10 +294,12 @@ func (p *Parser) writeHelpForArguments(w io.Writer, cmd *command, header, help s
 			longOptions = append(longOptions, spec)
 		case spec.short != "":
 			shortOptions = append(shortOptions, spec)
+		case spec.env != "":
+			envOnly = append(envOnly, spec)
 		}
 	}
 
-	if cmd.parent != nil && len(shortOptions)+len(longOptions) == 0 {
+	if cmd.parent != nil && len(shortOptions)+len(longOptions)+len(envOnly) == 0 {
 		return
 	}
 
@@ -310,6 +312,9 @@ func (p *Parser) writeHelpForArguments(w io.Writer, cmd *command, header, help s
 		p.printOption(w, spec)
 	}
 	for _, spec := range longOptions {
+		p.printOption(w, spec)
+	}
+	for _, spec := range envOnly {
 		p.printOption(w, spec)
 	}
 
