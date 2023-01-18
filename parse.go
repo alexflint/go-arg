@@ -115,6 +115,10 @@ type Config struct {
 	// IgnoreDefault instructs the library not to reset the variables to the
 	// default values, including pointers to sub commands
 	IgnoreDefault bool
+
+	// IgnoreDefault intructs the library not to allow global commands after
+	// subcommand
+	StrictSubcommands bool
 }
 
 // Parser represents a set of command line options with destination values
@@ -588,7 +592,12 @@ func (p *Parser) process(args []string) error {
 			}
 
 			// add the new options to the set of allowed options
-			specs = append(specs, subcmd.specs...)
+			if p.config.StrictSubcommands {
+				specs = make([]*spec, len(subcmd.specs))
+				copy(specs, subcmd.specs)
+			} else {
+				specs = append(specs, subcmd.specs...)
+			}
 
 			// capture environment vars for these new options
 			if !p.config.IgnoreEnv {
