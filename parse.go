@@ -116,7 +116,7 @@ type Config struct {
 	// default values, including pointers to sub commands
 	IgnoreDefault bool
 
-	// IgnoreDefault intructs the library not to allow global commands after
+	// StrictSubcommands intructs the library not to allow global commands after
 	// subcommand
 	StrictSubcommands bool
 }
