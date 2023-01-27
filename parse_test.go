@@ -98,9 +98,9 @@ func TestInt(t *testing.T) {
 
 func TestHexOctBin(t *testing.T) {
 	var args struct {
-		Hex int
-		Oct int
-		Bin int
+		Hex         int
+		Oct         int
+		Bin         int
 		Underscored int
 	}
 	err := parse("--hex 0xA --oct 0o10 --bin 0b101 --underscored 123_456", &args)
@@ -1613,4 +1613,80 @@ func TestTextMarshalerUnmarshalerEmptyPointer(t *testing.T) {
 	err := parse("", &args)
 	require.NoError(t, err)
 	assert.Nil(t, args.Config)
+}
+
+func TestSubcommandGlobalFlag_Before(t *testing.T) {
+	var args struct {
+		Global bool `arg:"-g"`
+		Sub    *struct {
+		} `arg:"subcommand"`
+	}
+
+	p, err := NewParser(Config{StrictSubcommands: false}, &args)
+	require.NoError(t, err)
+
+	err = p.Parse([]string{"-g", "sub"})
+	assert.NoError(t, err)
+	assert.True(t, args.Global)
+}
+
+func TestSubcommandGlobalFlag_InCommand(t *testing.T) {
+	var args struct {
+		Global bool `arg:"-g"`
+		Sub    *struct {
+		} `arg:"subcommand"`
+	}
+
+	p, err := NewParser(Config{StrictSubcommands: false}, &args)
+	require.NoError(t, err)
+
+	err = p.Parse([]string{"sub", "-g"})
+	assert.NoError(t, err)
+	assert.True(t, args.Global)
+}
+
+func TestSubcommandGlobalFlag_Before_Strict(t *testing.T) {
+	var args struct {
+		Global bool `arg:"-g"`
+		Sub    *struct {
+		} `arg:"subcommand"`
+	}
+
+	p, err := NewParser(Config{StrictSubcommands: true}, &args)
+	require.NoError(t, err)
+
+	err = p.Parse([]string{"-g", "sub"})
+	assert.NoError(t, err)
+	assert.True(t, args.Global)
+}
+
+func TestSubcommandGlobalFlag_InCommand_Strict(t *testing.T) {
+	var args struct {
+		Global bool `arg:"-g"`
+		Sub    *struct {
+		} `arg:"subcommand"`
+	}
+
+	p, err := NewParser(Config{StrictSubcommands: true}, &args)
+	require.NoError(t, err)
+
+	err = p.Parse([]string{"sub", "-g"})
+	assert.Error(t, err)
+}
+
+func TestSubcommandGlobalFlag_InCommand_Strict_Inner(t *testing.T) {
+	var args struct {
+		Global bool `arg:"-g"`
+		Sub    *struct {
+			Guard bool `arg:"-g"`
+		} `arg:"subcommand"`
+	}
+
+	p, err := NewParser(Config{StrictSubcommands: true}, &args)
+	require.NoError(t, err)
+
+	err = p.Parse([]string{"sub", "-g"})
+	assert.NoError(t, err)
+	assert.False(t, args.Global)
+	assert.True(t, args.Sub.Guard)
 }
