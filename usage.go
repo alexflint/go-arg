@@ -3,19 +3,11 @@ package arg
 import (
 	"fmt"
 	"io"
-	"os"
 	"strings"
 )
 
 // the width of the left column
 const colWidth = 25
-
-// to allow monkey patching in tests
-var (
-	stdout io.Writer = os.Stdout
-	stderr io.Writer = os.Stderr
-	osExit           = os.Exit
-)
 
 // Fail prints usage information to stderr and exits with non-zero status
 func (p *Parser) Fail(msg string) {
@@ -39,9 +31,9 @@ func (p *Parser) FailSubcommand(msg string, subcommand ...string) error {
 
 // failWithSubcommand prints usage information for the given subcommand to stderr and exits with non-zero status
 func (p *Parser) failWithSubcommand(msg string, cmd *command) {
-	p.writeUsageForSubcommand(p.stderr, cmd)
-	fmt.Fprintln(p.stderr, "error:", msg)
-	p.osExit(-1)
+	p.writeUsageForSubcommand(p.config.Out, cmd)
+	fmt.Fprintln(p.config.Out, "error:", msg)
+	p.config.Exit(-1)
 }
 
 // WriteUsage writes usage information to the given writer

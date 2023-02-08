@@ -572,18 +572,9 @@ Options:
 }
 
 func TestFail(t *testing.T) {
-	originalStderr := stderr
-	originalExit := osExit
-	defer func() {
-		stderr = originalStderr
-		osExit = originalExit
-	}()
-
-	var b bytes.Buffer
-	stderr = &b
-
+	var stdout bytes.Buffer
 	var exitCode int
-	osExit = func(code int) { exitCode = code }
+	exit := func(code int) { exitCode = code }
 
 	expectedStdout := `
 Usage: example [--foo FOO]
@@ -593,27 +584,18 @@ error: something went wrong
 	var args struct {
 		Foo int
 	}
-	p, err := NewParser(Config{Program: "example"}, &args)
+	p, err := NewParser(Config{Program: "example", Exit: exit, Out: &stdout}, &args)
 	require.NoError(t, err)
 	p.Fail("something went wrong")
 
-	assert.Equal(t, expectedStdout[1:], b.String())
+	assert.Equal(t, expectedStdout[1:], stdout.String())
 	assert.Equal(t, -1, exitCode)
 }
 
 func TestFailSubcommand(t *testing.T) {
-	originalStderr := stderr
-	originalExit := osExit
-	defer func() {
-		stderr = originalStderr
-		osExit = originalExit
-	}()
-
-	var b bytes.Buffer
-	stderr = &b
-
+	var stdout bytes.Buffer
 	var exitCode int
-	osExit = func(code int) { exitCode = code }
+	exit := func(code int) { exitCode = code }
 
 	expectedStdout := `
 Usage: example sub
@@ -623,13 +605,13 @@ error: something went wrong
 	var args struct {
 		Sub *struct{} `arg:"subcommand"`
 	}
-	p, err := NewParser(Config{Program: "example"}, &args)
+	p, err := NewParser(Config{Program: "example", Exit: exit, Out: &stdout}, &args)
 	require.NoError(t, err)
 
 	err = p.FailSubcommand("something went wrong", "sub")
 	require.NoError(t, err)
 
-	assert.Equal(t, expectedStdout[1:], b.String())
+	assert.Equal(t, expectedStdout[1:], stdout.String())
 	assert.Equal(t, -1, exitCode)
 }
 
