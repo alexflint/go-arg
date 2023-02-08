@@ -5,6 +5,7 @@ import (
 	"encoding/csv"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -119,6 +120,10 @@ type Config struct {
 	// StrictSubcommands intructs the library not to allow global commands after
 	// subcommand
 	StrictSubcommands bool
+
+	OsExit func(int)
+	Stdout io.Writer
+	Stderr io.Writer
 }
 
 // Parser represents a set of command line options with destination values
@@ -132,6 +137,10 @@ type Parser struct {
 
 	// the following field changes during processing of command line arguments
 	lastCmd *command
+
+	osExit func(int)
+	stdout io.Writer
+	stderr io.Writer
 }
 
 // Versioned is the interface that the destination struct should implement to
@@ -196,6 +205,20 @@ func NewParser(config Config, dests ...interface{}) (*Parser, error) {
 	p := Parser{
 		cmd:    &command{name: name},
 		config: config,
+
+		osExit: osExit,
+		stdout: stdout,
+		stderr: stderr,
+	}
+
+	if config.OsExit != nil {
+		p.osExit = config.OsExit
+	}
+	if config.Stdout != nil {
+		p.stdout = config.Stdout
+	}
+	if config.Stderr != nil {
+		p.stderr = config.Stderr
 	}
 
 	// make a list of roots
@@ -483,11 +506,11 @@ func (p *Parser) MustParse(args []string) {
 	err := p.Parse(args)
 	switch {
 	case err == ErrHelp:
-		p.writeHelpForSubcommand(stdout, p.lastCmd)
-		osExit(0)
+		p.writeHelpForSubcommand(p.stdout, p.lastCmd)
+		p.osExit(0)
 	case err == ErrVersion:
-		fmt.Fprintln(stdout, p.version)
-		osExit(0)
+		fmt.Fprintln(p.stdout, p.version)
+		p.osExit(0)
 	case err != nil:
 		p.failWithSubcommand(err.Error(), p.lastCmd)
 	}

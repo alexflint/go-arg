@@ -39,9 +39,9 @@ func (p *Parser) FailSubcommand(msg string, subcommand ...string) error {
 
 // failWithSubcommand prints usage information for the given subcommand to stderr and exits with non-zero status
 func (p *Parser) failWithSubcommand(msg string, cmd *command) {
-	p.writeUsageForSubcommand(stderr, cmd)
-	fmt.Fprintln(stderr, "error:", msg)
-	osExit(-1)
+	p.writeUsageForSubcommand(p.stderr, cmd)
+	fmt.Fprintln(p.stderr, "error:", msg)
+	p.osExit(-1)
 }
 
 // WriteUsage writes usage information to the given writer
