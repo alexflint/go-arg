@@ -5,6 +5,7 @@ import (
 	"encoding/csv"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -86,13 +87,28 @@ var ErrHelp = errors.New("help requested by user")
 // ErrVersion indicates that --version was provided
 var ErrVersion = errors.New("version requested by user")
 
+// for monkey patching in example code
+var mustParseExit = os.Exit
+
 // MustParse processes command line arguments and exits upon failure
 func MustParse(dest ...interface{}) *Parser {
-	p, err := NewParser(Config{}, dest...)
+	return mustParse(Config{Exit: mustParseExit}, dest...)
+}
+
+// mustParse is a helper that facilitates testing
+func mustParse(config Config, dest ...interface{}) *Parser {
+	if config.Exit == nil {
+		config.Exit = os.Exit
+	}
+	if config.Out == nil {
+		config.Out = os.Stdout
+	}
+
+	p, err := NewParser(config, dest...)
 	if err != nil {
-		fmt.Fprintln(stdout, err)
-		osExit(-1)
-		return nil // just in case osExit was monkey-patched
+		fmt.Fprintln(config.Out, err)
+		config.Exit(-1)
+		return nil
 	}
 
 	p.MustParse(flags())
@@ -127,6 +143,16 @@ type Config struct {
 	// IgnoreDefault instructs the library not to reset the variables to the
 	// default values, including pointers to sub commands
 	IgnoreDefault bool
+
+	// StrictSubcommands intructs the library not to allow global commands after
+	// subcommand
+	StrictSubcommands bool
+
+	// Exit is called to terminate the process with an error code (defaults to os.Exit)
+	Exit func(int)
+
+	// Out is where help text, usage text, and failure messages are printed (defaults to os.Stdout)
+	Out io.Writer
 }
 
 // Parser represents a set of command line options with destination values
@@ -189,6 +215,14 @@ func walkFieldsImpl(t reflect.Type, visit func(field reflect.StructField, owner 
 
 // NewParser constructs a parser from a list of destination structs
 func NewParser(config Config, dests ...interface{}) (*Parser, error) {
+	// fill in defaults
+	if config.Exit == nil {
+		config.Exit = os.Exit
+	}
+	if config.Out == nil {
+		config.Out = os.Stdout
+	}
+
 	// first pick a name for the command for use in the usage text
 	var name string
 	switch {
@@ -531,11 +565,11 @@ func (p *Parser) MustParse(args []string) {
 	err := p.Parse(args)
 	switch {
 	case err == ErrHelp:
-		p.writeHelpForSubcommand(stdout, p.lastCmd)
-		osExit(0)
+		p.writeHelpForSubcommand(p.config.Out, p.lastCmd)
+		p.config.Exit(0)
 	case err == ErrVersion:
-		fmt.Fprintln(stdout, p.version)
-		osExit(0)
+		fmt.Fprintln(p.config.Out, p.version)
+		p.config.Exit(0)
 	case err != nil:
 		p.failWithSubcommand(err.Error(), p.lastCmd)
 	}
@@ -636,7 +670,12 @@ func (p *Parser) process(args []string) error {
 			p.val(subcmd.dest)
 
 			// add the new options to the set of allowed options
-			specs = append(specs, subcmd.specs()...)
+			if p.config.StrictSubcommands {
+				specs = make([]*spec, len(subcmd.specs()))
+				copy(specs, subcmd.specs())
+			} else {
+				specs = append(specs, subcmd.specs()...)
+			}
 
 			// capture environment vars for these new options
 			if !p.config.IgnoreEnv {

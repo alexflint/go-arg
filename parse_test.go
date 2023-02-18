@@ -1198,26 +1198,18 @@ func TestParserMustParse(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			originalExit := osExit
-			originalStdout := stdout
-			defer func() {
-				osExit = originalExit
-				stdout = originalStdout
-			}()
+			var exitCode int
+			var stdout bytes.Buffer
+			exit := func(code int) { exitCode = code }
 
-			var exitCode *int
-			osExit = func(code int) { exitCode = &code }
-			var b bytes.Buffer
-			stdout = &b
-
-			p, err := NewParser(Config{}, &tt.args)
+			p, err := NewParser(Config{Exit: exit, Out: &stdout}, &tt.args)
 			require.NoError(t, err)
 			assert.NotNil(t, p)
 
 			p.MustParse(tt.cmdLine)
 			assert.NotNil(t, exitCode)
-			assert.Equal(t, tt.code, *exitCode)
-			assert.Contains(t, b.String(), tt.output)
+			assert.Equal(t, tt.code, exitCode)
+			assert.Contains(t, stdout.String(), tt.output)
 		})
 	}
 }
@@ -1808,70 +1800,53 @@ func TestUnexportedFieldsSkipped(t *testing.T) {
 }
 
 func TestMustParseInvalidParser(t *testing.T) {
-	originalExit := osExit
-	originalStdout := stdout
-	defer func() {
-		osExit = originalExit
-		stdout = originalStdout
-	}()
-
 	var exitCode int
-	osExit = func(code int) { exitCode = code }
-	stdout = &bytes.Buffer{}
+	var stdout bytes.Buffer
+	exit := func(code int) { exitCode = code }
 
 	var args struct {
 		CannotParse struct{}
 	}
-	parser := MustParse(&args)
+	parser := mustParse(Config{Out: &stdout, Exit: exit}, &args)
 	assert.Nil(t, parser)
 	assert.Equal(t, -1, exitCode)
 }
 
 func TestMustParsePrintsHelp(t *testing.T) {
-	originalExit := osExit
-	originalStdout := stdout
 	originalArgs := os.Args
 	defer func() {
-		osExit = originalExit
-		stdout = originalStdout
 		os.Args = originalArgs
 	}()
 
-	var exitCode *int
-	osExit = func(code int) { exitCode = &code }
 	os.Args = []string{"someprogram", "--help"}
-	stdout = &bytes.Buffer{}
+
+	var exitCode int
+	var stdout bytes.Buffer
+	exit := func(code int) { exitCode = code }
 
 	var args struct{}
-	parser := MustParse(&args)
+	parser := mustParse(Config{Out: &stdout, Exit: exit}, &args)
 	assert.NotNil(t, parser)
-	require.NotNil(t, exitCode)
-	assert.Equal(t, 0, *exitCode)
+	assert.Equal(t, 0, exitCode)
 }
 
 func TestMustParsePrintsVersion(t *testing.T) {
-	originalExit := osExit
-	originalStdout := stdout
 	originalArgs := os.Args
 	defer func() {
-		osExit = originalExit
-		stdout = originalStdout
 		os.Args = originalArgs
 	}()
 
-	var exitCode *int
-	osExit = func(code int) { exitCode = &code }
+	var exitCode int
+	var stdout bytes.Buffer
+	exit := func(code int) { exitCode = code }
+
 	os.Args = []string{"someprogram", "--version"}
 
-	var b bytes.Buffer
-	stdout = &b
-
 	var args versioned
-	parser := MustParse(&args)
+	parser := mustParse(Config{Out: &stdout, Exit: exit}, &args)
 	require.NotNil(t, parser)
-	require.NotNil(t, exitCode)
-	assert.Equal(t, 0, *exitCode)
-	assert.Equal(t, "example 3.2.1\n", b.String())
+	assert.Equal(t, 0, exitCode)
+	assert.Equal(t, "example 3.2.1\n", stdout.String())
 }
 
 type mapWithUnmarshalText struct {
@@ -1937,4 +1912,80 @@ func TestTextMarshalerUnmarshalerEmptyPointer(t *testing.T) {
 	err := parse("", &args)
 	require.NoError(t, err)
 	assert.Nil(t, args.Config)
+}
+
+func TestSubcommandGlobalFlag_Before(t *testing.T) {
+	var args struct {
+		Global bool `arg:"-g"`
+		Sub    *struct {
+		} `arg:"subcommand"`
+	}
+
+	p, err := NewParser(Config{StrictSubcommands: false}, &args)
+	require.NoError(t, err)
+
+	err = p.Parse([]string{"-g", "sub"})
+	assert.NoError(t, err)
+	assert.True(t, args.Global)
+}
+
+func TestSubcommandGlobalFlag_InCommand(t *testing.T) {
+	var args struct {
+		Global bool `arg:"-g"`
+		Sub    *struct {
+		} `arg:"subcommand"`
+	}
+
+	p, err := NewParser(Config{StrictSubcommands: false}, &args)
+	require.NoError(t, err)
+
+	err = p.Parse([]string{"sub", "-g"})
+	assert.NoError(t, err)
+	assert.True(t, args.Global)
+}
+
+func TestSubcommandGlobalFlag_Before_Strict(t *testing.T) {
+	var args struct {
+		Global bool `arg:"-g"`
+		Sub    *struct {
+		} `arg:"subcommand"`
+	}
+
+	p, err := NewParser(Config{StrictSubcommands: true}, &args)
+	require.NoError(t, err)
+
+	err = p.Parse([]string{"-g", "sub"})
+	assert.NoError(t, err)
+	assert.True(t, args.Global)
+}
+
+func TestSubcommandGlobalFlag_InCommand_Strict(t *testing.T) {
+	var args struct {
+		Global bool `arg:"-g"`
+		Sub    *struct {
+		} `arg:"subcommand"`
+	}
+
+	p, err := NewParser(Config{StrictSubcommands: true}, &args)
+	require.NoError(t, err)
+
+	err = p.Parse([]string{"sub", "-g"})
+	assert.Error(t, err)
+}
+
+func TestSubcommandGlobalFlag_InCommand_Strict_Inner(t *testing.T) {
+	var args struct {
+		Global bool `arg:"-g"`
+		Sub    *struct {
+			Guard bool `arg:"-g"`
+		} `arg:"subcommand"`
+	}
+
+	p, err := NewParser(Config{StrictSubcommands: true}, &args)
+	require.NoError(t, err)
+
+	err = p.Parse([]string{"sub", "-g"})
+	assert.NoError(t, err)
+	assert.False(t, args.Global)
+	assert.True(t, args.Sub.Guard)
 }

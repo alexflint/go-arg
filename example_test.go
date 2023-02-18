@@ -162,8 +162,7 @@ func Example_helpText() {
 	}
 
 	// This is only necessary when running inside golang's runnable example harness
-	osExit = func(int) {}
-	stdout = os.Stdout
+	mustParseExit = func(int) {}
 
 	MustParse(&args)
 
@@ -195,8 +194,7 @@ func Example_helpPlaceholder() {
 	}
 
 	// This is only necessary when running inside golang's runnable example harness
-	osExit = func(int) {}
-	stdout = os.Stdout
+	mustParseExit = func(int) {}
 
 	MustParse(&args)
 
@@ -236,8 +234,7 @@ func Example_helpTextWithSubcommand() {
 	}
 
 	// This is only necessary when running inside golang's runnable example harness
-	osExit = func(int) {}
-	stdout = os.Stdout
+	mustParseExit = func(int) {}
 
 	MustParse(&args)
 
@@ -276,11 +273,8 @@ func Example_helpTextWithGroups() {
 		Quiet bool      `arg:"-q" help:"Quiet"` // this flag is global to all subcommands
 	}
 
-	MustParse(&args)
-
 	// This is only necessary when running inside golang's runnable example harness
-	osExit = func(int) {}
-	stdout = os.Stdout
+	mustParseExit = func(int) {}
 
 	MustParse(&args)
 
@@ -324,8 +318,7 @@ func Example_helpTextWhenUsingSubcommand() {
 	}
 
 	// This is only necessary when running inside golang's runnable example harness
-	osExit = func(int) {}
-	stdout = os.Stdout
+	mustParseExit = func(int) {}
 
 	MustParse(&args)
 
@@ -361,10 +354,9 @@ func Example_writeHelpForSubcommand() {
 	}
 
 	// This is only necessary when running inside golang's runnable example harness
-	osExit = func(int) {}
-	stdout = os.Stdout
+	exit := func(int) {}
 
-	p, err := NewParser(Config{}, &args)
+	p, err := NewParser(Config{Exit: exit}, &args)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -410,10 +402,9 @@ func Example_writeHelpForSubcommandNested() {
 	}
 
 	// This is only necessary when running inside golang's runnable example harness
-	osExit = func(int) {}
-	stdout = os.Stdout
+	exit := func(int) {}
 
-	p, err := NewParser(Config{}, &args)
+	p, err := NewParser(Config{Exit: exit}, &args)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -447,8 +438,7 @@ func Example_errorText() {
 	}
 
 	// This is only necessary when running inside golang's runnable example harness
-	osExit = func(int) {}
-	stderr = os.Stdout
+	mustParseExit = func(int) {}
 
 	MustParse(&args)
 
@@ -471,8 +461,7 @@ func Example_errorTextForSubcommand() {
 	}
 
 	// This is only necessary when running inside golang's runnable example harness
-	osExit = func(int) {}
-	stderr = os.Stdout
+	mustParseExit = func(int) {}
 
 	MustParse(&args)
 
@@ -507,8 +496,7 @@ func Example_subcommand() {
 	}
 
 	// This is only necessary when running inside golang's runnable example harness
-	osExit = func(int) {}
-	stderr = os.Stdout
+	mustParseExit = func(int) {}
 
 	MustParse(&args)
 
