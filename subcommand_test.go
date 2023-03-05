@@ -1,7 +1,6 @@
 package arg
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -402,12 +401,8 @@ func TestValForNilStruct(t *testing.T) {
 		Sub *subcmd `arg:"subcommand"`
 	}
 
-	p, err := NewParser(Config{}, &cmd)
+	_, err := NewParser(Config{}, &cmd)
 	require.NoError(t, err)
 
-	typ := reflect.TypeOf(cmd)
-	subField, _ := typ.FieldByName("Sub")
-
-	v := p.val(path{fields: []reflect.StructField{subField, subField}})
-	assert.False(t, v.IsValid())
+	require.Nil(t, cmd.Sub)
 }
