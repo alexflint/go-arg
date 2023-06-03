@@ -84,12 +84,6 @@ func (p *Parser) writeUsageForSubcommand(w io.Writer, cmd *command) {
 		ancestors = append(ancestors, ancestor.name)
 		ancestor = ancestor.parent
 	}
-	// Print environment only variables
-	for _, spec := range cmd.specs {
-		if spec.short == "" && spec.long == "" {
-			ancestors = append(ancestors, "["+spec.env+"="+strings.ToLower(spec.env)+"_value"+"]")
-		}
-	}
 
 	// print the beginning of the usage string
 	fmt.Fprint(w, "Usage:")
