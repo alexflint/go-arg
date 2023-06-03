@@ -54,9 +54,10 @@ type spec struct {
 	separate      bool                // if true, each slice and map entry will have its own --flag
 	help          string              // the help text for this option
 	env           string              // the name of the environment variable for this option, or empty for none
-	defaultValue  reflect.Value       // default value for this option
-	defaultString string              // default value for this option, in string form to be displayed in help text
-	placeholder   string              // name of the data in help
+	envOnly       bool
+	defaultValue  reflect.Value // default value for this option
+	defaultString string        // default value for this option, in string form to be displayed in help text
+	placeholder   string        // name of the data in help
 }
 
 // command represents a named subcommand, or the top-level command
@@ -343,7 +344,9 @@ func cmdFromStruct(name string, dest path, t reflect.Type) (*command, error) {
 
 		// Look at the tag
 		var isSubcommand bool // tracks whether this field is a subcommand
-		for _, key := range strings.Split(tag, ",") {
+		kvPairs := strings.Split(tag, ",")
+
+		for _, key := range kvPairs {
 			if key == "" {
 				continue
 			}
@@ -360,7 +363,7 @@ func cmdFromStruct(name string, dest path, t reflect.Type) (*command, error) {
 			case strings.HasPrefix(key, "--"):
 				spec.long = key[2:]
 			case strings.HasPrefix(key, "-"):
-				if len(key) != 2 {
+				if len(key) > 2 {
 					errs = append(errs, fmt.Sprintf("%s.%s: short arguments must be one character only",
 						t.Name(), field.Name))
 					return false
@@ -413,6 +416,12 @@ func cmdFromStruct(name string, dest path, t reflect.Type) (*command, error) {
 			spec.placeholder = strings.ToUpper(spec.long)
 		} else {
 			spec.placeholder = strings.ToUpper(spec.field.Name)
+		}
+
+		if spec.env == "" && emptyLongAndShort(kvPairs) {
+			errs = append(errs, fmt.Sprintf("%s.%s: short arguments must be one character only",
+				t.Name(), field.Name))
+			return false
 		}
 
 		// if this is a subcommand then we've done everything we need to do
@@ -786,6 +795,22 @@ func nextIsNumeric(t reflect.Type, s string) bool {
 // isFlag returns true if a token is a flag such as "-v" or "--user" but not "-" or "--"
 func isFlag(s string) bool {
 	return strings.HasPrefix(s, "-") && strings.TrimLeft(s, "-") != ""
+}
+
+func emptyLongAndShort(kv []string) bool {
+	var noShort, noLong bool
+	for _, key := range kv {
+		if key == "-" {
+			noShort = true
+		}
+
+		if key == "--" {
+			noLong = true
+		}
+	}
+
+	return noShort && noLong
+
 }
 
 // val returns a reflect.Value corresponding to the current value for the

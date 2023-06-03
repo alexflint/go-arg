@@ -544,10 +544,10 @@ Options:
 }
 
 func TestUsageWithEnvOptions(t *testing.T) {
-	expectedUsage := "Usage: [CUSTOM=custom_value] [ENVONLY=envonly_value] example [-s SHORT]"
+	expectedUsage := "Usage: example [-s SHORT]"
 
 	expectedHelp := `
-Usage: [CUSTOM=custom_value] [ENVONLY=envonly_value] example [-s SHORT]
+Usage: example [-s SHORT]
 
 Options:
   -s SHORT [env: SHORT]
@@ -652,10 +652,10 @@ Options:
 }
 
 func TestFailEnvOnly(t *testing.T) {
-	expectedUsage := "Usage: [AUTH_KEY=auth_key_value] example [--arg ARG]"
+	expectedUsage := "Usage: example [--arg ARG]"
 
 	expectedHelp := `
-Usage: [AUTH_KEY=auth_key_value] example [--arg ARG]
+Usage: example [--arg ARG]
 
 Options:
   --arg ARG, -a ARG [env: MY_ARG]
