@@ -227,6 +227,14 @@ func TestRequiredWithEnv(t *testing.T) {
 	require.Error(t, err, "--foo is required (or environment variable FOO)")
 }
 
+func TestRequiredWithEnvOnly(t *testing.T) {
+	var args struct {
+		Foo string `arg:"required,--,-,env:FOO"`
+	}
+	_, err := parseWithEnv("", []string{}, &args)
+	require.Error(t, err, "environment variable FOO is required")
+}
+
 func TestShortFlag(t *testing.T) {
 	var args struct {
 		Foo string `arg:"-f"`
@@ -843,6 +851,24 @@ func TestDefaultValuesIgnored(t *testing.T) {
 	err = p.Parse(nil)
 	assert.NoError(t, err)
 	assert.Equal(t, "", args.Foo)
+}
+
+func TestRequiredEnvironmentOnlyVariableIsMissing(t *testing.T) {
+	var args struct {
+		Foo string `arg:"required,--,env:FOO"`
+	}
+
+	_, err := parseWithEnv("", []string{""}, &args)
+	assert.Error(t, err)
+}
+
+func TestOptionalEnvironmentOnlyVariable(t *testing.T) {
+	var args struct {
+		Foo string `arg:"env:FOO"`
+	}
+
+	_, err := parseWithEnv("", []string{}, &args)
+	assert.NoError(t, err)
 }
 
 func TestEnvironmentVariableInSubcommandIgnored(t *testing.T) {

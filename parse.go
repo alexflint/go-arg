@@ -418,10 +418,14 @@ func cmdFromStruct(name string, dest path, t reflect.Type) (*command, error) {
 			spec.placeholder = strings.ToUpper(spec.field.Name)
 		}
 
-		if spec.env == "" && emptyLongAndShort(kvPairs) {
+		noFormSpecs := emptyLongAndShort(kvPairs)
+
+		if spec.env == "" && noFormSpecs {
 			errs = append(errs, fmt.Sprintf("%s.%s: short arguments must be one character only",
 				t.Name(), field.Name))
 			return false
+		} else if spec.env != "" && noFormSpecs {
+			spec.envOnly = true
 		}
 
 		// if this is a subcommand then we've done everything we need to do
@@ -759,10 +763,16 @@ func (p *Parser) process(args []string) error {
 		}
 
 		if spec.required {
+			if spec.envOnly {
+				msg := fmt.Sprintf("environment variable %s is required", spec.env)
+				return errors.New(msg)
+			}
+
 			msg := fmt.Sprintf("%s is required", name)
 			if spec.env != "" {
 				msg += " (or environment variable " + spec.env + ")"
 			}
+
 			return errors.New(msg)
 		}
 

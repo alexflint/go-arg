@@ -312,7 +312,18 @@ func (p *Parser) printOption(w io.Writer, spec *spec) {
 }
 
 func (p *Parser) printEnvOnlyVar(w io.Writer, spec *spec) {
-	printTwoCols(w, spec.env, "", "", "")
+	ways := make([]string, 0, 2)
+	if spec.required {
+		ways = append(ways, "Required.")
+	} else {
+		ways = append(ways, "Optional.")
+	}
+
+	if spec.help != "" {
+		ways = append(ways, spec.help)
+	}
+
+	printTwoCols(w, spec.env, strings.Join(ways, " "), spec.defaultString, "")
 }
 
 // lookupCommand finds a subcommand based on a sequence of subcommand names. The
