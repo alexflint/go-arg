@@ -343,6 +343,7 @@ func cmdFromStruct(name string, dest path, t reflect.Type) (*command, error) {
 
 		// Look at the tag
 		var isSubcommand bool // tracks whether this field is a subcommand
+
 		for _, key := range strings.Split(tag, ",") {
 			if key == "" {
 				continue
@@ -360,7 +361,7 @@ func cmdFromStruct(name string, dest path, t reflect.Type) (*command, error) {
 			case strings.HasPrefix(key, "--"):
 				spec.long = key[2:]
 			case strings.HasPrefix(key, "-"):
-				if len(key) != 2 {
+				if len(key) > 2 {
 					errs = append(errs, fmt.Sprintf("%s.%s: short arguments must be one character only",
 						t.Name(), field.Name))
 					return false
@@ -661,7 +662,7 @@ func (p *Parser) process(args []string) error {
 		// lookup the spec for this option (note that the "specs" slice changes as
 		// we expand subcommands so it is better not to use a map)
 		spec := findOption(specs, opt)
-		if spec == nil {
+		if spec == nil || opt == "" {
 			return fmt.Errorf("unknown argument %s", arg)
 		}
 		wasPresent[spec] = true
@@ -750,10 +751,16 @@ func (p *Parser) process(args []string) error {
 		}
 
 		if spec.required {
+			if spec.short == "" && spec.long == "" {
+				msg := fmt.Sprintf("environment variable %s is required", spec.env)
+				return errors.New(msg)
+			}
+
 			msg := fmt.Sprintf("%s is required", name)
 			if spec.env != "" {
 				msg += " (or environment variable " + spec.env + ")"
 			}
+
 			return errors.New(msg)
 		}
 

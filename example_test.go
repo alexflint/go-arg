@@ -496,3 +496,45 @@ func Example_allSupportedTypes() {
 
 	// output:
 }
+
+func Example_envVarOnly() {
+	os.Args = split("./example")
+	_ = os.Setenv("AUTH_KEY", "my_key")
+
+	defer os.Unsetenv("AUTH_KEY")
+
+	var args struct {
+		AuthKey string `arg:"--,env:AUTH_KEY"`
+	}
+
+	MustParse(&args)
+
+	fmt.Println(args.AuthKey)
+	// output: my_key
+}
+
+func Example_envVarOnlyShouldIgnoreFlag() {
+	os.Args = split("./example --=my_key")
+
+	var args struct {
+		AuthKey string `arg:"--,env:AUTH_KEY"`
+	}
+
+	err := Parse(&args)
+
+	fmt.Println(err)
+	// output: unknown argument --=my_key
+}
+
+func Example_envVarOnlyShouldIgnoreShortFlag() {
+	os.Args = split("./example -=my_key")
+
+	var args struct {
+		AuthKey string `arg:"--,env:AUTH_KEY"`
+	}
+
+	err := Parse(&args)
+
+	fmt.Println(err)
+	// output: unknown argument -=my_key
+}

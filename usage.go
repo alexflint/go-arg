@@ -208,7 +208,7 @@ func (p *Parser) WriteHelpForSubcommand(w io.Writer, subcommand ...string) error
 
 // writeHelp writes the usage string for the given subcommand
 func (p *Parser) writeHelpForSubcommand(w io.Writer, cmd *command) {
-	var positionals, longOptions, shortOptions []*spec
+	var positionals, longOptions, shortOptions, envOnlyOptions []*spec
 	for _, spec := range cmd.specs {
 		switch {
 		case spec.positional:
@@ -217,6 +217,8 @@ func (p *Parser) writeHelpForSubcommand(w io.Writer, cmd *command) {
 			longOptions = append(longOptions, spec)
 		case spec.short != "":
 			shortOptions = append(shortOptions, spec)
+		case spec.short == "" && spec.long == "":
+			envOnlyOptions = append(envOnlyOptions, spec)
 		}
 	}
 
@@ -275,6 +277,14 @@ func (p *Parser) writeHelpForSubcommand(w io.Writer, cmd *command) {
 		})
 	}
 
+	// write the list of environment only variables
+	if len(envOnlyOptions) > 0 {
+		fmt.Fprint(w, "\nEnvironment variables:\n")
+		for _, spec := range envOnlyOptions {
+			p.printEnvOnlyVar(w, spec)
+		}
+	}
+
 	// write the list of subcommands
 	if len(cmd.subcommands) > 0 {
 		fmt.Fprint(w, "\nCommands:\n")
@@ -299,6 +309,21 @@ func (p *Parser) printOption(w io.Writer, spec *spec) {
 	if len(ways) > 0 {
 		printTwoCols(w, strings.Join(ways, ", "), spec.help, spec.defaultString, spec.env)
 	}
+}
+
+func (p *Parser) printEnvOnlyVar(w io.Writer, spec *spec) {
+	ways := make([]string, 0, 2)
+	if spec.required {
+		ways = append(ways, "Required.")
+	} else {
+		ways = append(ways, "Optional.")
+	}
+
+	if spec.help != "" {
+		ways = append(ways, spec.help)
+	}
+
+	printTwoCols(w, spec.env, strings.Join(ways, " "), spec.defaultString, "")
 }
 
 // lookupCommand finds a subcommand based on a sequence of subcommand names. The

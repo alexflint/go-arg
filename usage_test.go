@@ -56,6 +56,10 @@ Options:
   --testenv TESTENV, -a TESTENV [env: TEST_ENV]
   --file FILE, -f FILE   File with mandatory extension [default: scratch.txt]
   --help, -h             display this help and exit
+
+Environment variables:
+  API_KEY                Required. Only via env-var for security reasons
+  TRACE                  Optional. Record low-level trace
 `
 
 	var args struct {
@@ -70,6 +74,8 @@ Options:
 		Values   []float64    `help:"Values"`
 		Workers  int          `arg:"-w,env:WORKERS" help:"number of workers to start" default:"10"`
 		TestEnv  string       `arg:"-a,env:TEST_ENV"`
+		ApiKey   string       `arg:"required,-,--,env:API_KEY" help:"Only via env-var for security reasons"`
+		Trace    bool         `arg:"-,--,env" help:"Record low-level trace"`
 		File     *NameDotName `arg:"-f" help:"File with mandatory extension"`
 	}
 	args.Name = "Foo Bar"
@@ -552,13 +558,48 @@ Usage: example [-s SHORT]
 Options:
   -s SHORT [env: SHORT]
   --help, -h             display this help and exit
+
+Environment variables:
+  ENVONLY                Optional.
+  ENVONLY2               Optional.
+  CUSTOM                 Optional.
 `
 	var args struct {
 		Short            string `arg:"--,-s,env"`
 		EnvOnly          string `arg:"--,env"`
+		EnvOnly2         string `arg:"--,-,env"`
 		EnvOnlyOverriden string `arg:"--,env:CUSTOM"`
 	}
 
+	p, err := NewParser(Config{Program: "example"}, &args)
+	assert.NoError(t, err)
+
+	var help bytes.Buffer
+	p.WriteHelp(&help)
+	assert.Equal(t, expectedHelp[1:], help.String())
+
+	var usage bytes.Buffer
+	p.WriteUsage(&usage)
+	assert.Equal(t, expectedUsage, strings.TrimSpace(usage.String()))
+}
+
+func TestEnvOnlyArgs(t *testing.T) {
+	expectedUsage := "Usage: example [--arg ARG]"
+
+	expectedHelp := `
+Usage: example [--arg ARG]
+
+Options:
+  --arg ARG, -a ARG [env: MY_ARG]
+  --help, -h             display this help and exit
+
+Environment variables:
+  AUTH_KEY               Required.
+`
+	var args struct {
+		ArgParam string `arg:"-a,--arg,env:MY_ARG"`
+		AuthKey  string `arg:"required,--,env:AUTH_KEY"`
+	}
 	p, err := NewParser(Config{Program: "example"}, &args)
 	assert.NoError(t, err)
 
