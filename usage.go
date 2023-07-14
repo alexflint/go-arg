@@ -209,6 +209,7 @@ func (p *Parser) WriteHelpForSubcommand(w io.Writer, subcommand ...string) error
 // writeHelp writes the usage string for the given subcommand
 func (p *Parser) writeHelpForSubcommand(w io.Writer, cmd *command) {
 	var positionals, longOptions, shortOptions, envOnlyOptions []*spec
+	var hasVersionOption bool
 	for _, spec := range cmd.specs {
 		switch {
 		case spec.positional:
@@ -243,6 +244,9 @@ func (p *Parser) writeHelpForSubcommand(w io.Writer, cmd *command) {
 		}
 		for _, spec := range longOptions {
 			p.printOption(w, spec)
+			if spec.long == "version" {
+				hasVersionOption = true
+			}
 		}
 	}
 
@@ -259,6 +263,9 @@ func (p *Parser) writeHelpForSubcommand(w io.Writer, cmd *command) {
 		fmt.Fprint(w, "\nGlobal options:\n")
 		for _, spec := range globals {
 			p.printOption(w, spec)
+			if spec.long == "version" {
+				hasVersionOption = true
+			}
 		}
 	}
 
@@ -269,7 +276,7 @@ func (p *Parser) writeHelpForSubcommand(w io.Writer, cmd *command) {
 		short:       "h",
 		help:        "display this help and exit",
 	})
-	if p.version != "" {
+	if !hasVersionOption && p.version != "" {
 		p.printOption(w, &spec{
 			cardinality: zero,
 			long:        "version",
