@@ -69,10 +69,10 @@ type command struct {
 	parent      *command
 }
 
-// ErrHelp indicates that -h or --help were provided
+// ErrHelp indicates that the builtin -h or --help were provided
 var ErrHelp = errors.New("help requested by user")
 
-// ErrVersion indicates that --version was provided
+// ErrVersion indicates that the builtin --version was provided
 var ErrVersion = errors.New("version requested by user")
 
 // for monkey patching in example code
@@ -591,6 +591,15 @@ func (p *Parser) process(args []string) error {
 		}
 	}
 
+	// determine if the current command has a version option spec
+	var hasVersionOption bool
+	for _, spec := range curCmd.specs {
+		if spec.long == "version" {
+			hasVersionOption = true
+			break
+		}
+	}
+
 	// process each string from the command line
 	var allpositional bool
 	var positionals []string
@@ -648,7 +657,9 @@ func (p *Parser) process(args []string) error {
 		case "-h", "--help":
 			return ErrHelp
 		case "--version":
-			return ErrVersion
+			if !hasVersionOption && p.version != "" {
+				return ErrVersion
+			}
 		}
 
 		// check for an equals sign, as in "--foo=bar"

@@ -1380,11 +1380,55 @@ func TestReuseParser(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestVersion(t *testing.T) {
+func TestNoVersion(t *testing.T) {
 	var args struct{}
-	err := parse("--version", &args)
-	assert.Equal(t, ErrVersion, err)
 
+	p, err := NewParser(Config{}, &args)
+	require.NoError(t, err)
+
+	err = p.Parse([]string{"--version"})
+	assert.Error(t, err)
+	assert.NotEqual(t, ErrVersion, err)
+}
+
+func TestBuiltinVersion(t *testing.T) {
+	var args struct{}
+
+	p, err := NewParser(Config{}, &args)
+	require.NoError(t, err)
+
+	p.version = "example 3.2.1"
+
+	err = p.Parse([]string{"--version"})
+	assert.Equal(t, ErrVersion, err)
+}
+
+func TestArgsVersion(t *testing.T) {
+	var args struct {
+		Version bool `arg:"--version"`
+	}
+
+	p, err := NewParser(Config{}, &args)
+	require.NoError(t, err)
+
+	err = p.Parse([]string{"--version"})
+	require.NoError(t, err)
+	require.Equal(t, args.Version, true)
+}
+
+func TestArgsAndBuiltinVersion(t *testing.T) {
+	var args struct {
+		Version bool `arg:"--version"`
+	}
+
+	p, err := NewParser(Config{}, &args)
+	require.NoError(t, err)
+
+	p.version = "example 3.2.1"
+
+	err = p.Parse([]string{"--version"})
+	require.NoError(t, err)
+	require.Equal(t, args.Version, true)
 }
 
 func TestMultipleTerminates(t *testing.T) {
