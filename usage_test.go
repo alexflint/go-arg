@@ -260,28 +260,23 @@ Options:
 	assert.Equal(t, expectedUsage, strings.TrimSpace(usage.String()))
 }
 
-type userDefinedVersionFlag struct {
-	ShowVersion bool `arg:"--version" help:"this is a user-defined version flag"`
-}
-
-// Version returns the version for this program
-func (userDefinedVersionFlag) Version() string {
-	return "example 3.2.1"
-}
-
 func TestUsageWithUserDefinedVersionFlag(t *testing.T) {
-	expectedUsage := "example 3.2.1\nUsage: example [--version]"
+	expectedUsage := "Usage: example [--version]"
 
 	expectedHelp := `
-example 3.2.1
 Usage: example [--version]
 
 Options:
   --version              this is a user-defined version flag
   --help, -h             display this help and exit
 `
+
+	var args struct {
+		ShowVersion bool `arg:"--version" help:"this is a user-defined version flag"`
+	}
+
 	os.Args[0] = "example"
-	p, err := NewParser(Config{}, &userDefinedVersionFlag{})
+	p, err := NewParser(Config{}, &args)
 	require.NoError(t, err)
 
 	var help bytes.Buffer
@@ -289,6 +284,205 @@ Options:
 	assert.Equal(t, expectedHelp[1:], help.String())
 
 	var usage bytes.Buffer
+	p.WriteUsage(&usage)
+	assert.Equal(t, expectedUsage, strings.TrimSpace(usage.String()))
+}
+
+func TestUsageWithVersionAndUserDefinedVersionFlag(t *testing.T) {
+	expectedUsage := "Usage: example [--version]"
+
+	expectedHelp := `
+Usage: example [--version]
+
+Options:
+  --version              this is a user-defined version flag
+  --help, -h             display this help and exit
+`
+
+	var args struct {
+		versioned
+		ShowVersion bool `arg:"--version" help:"this is a user-defined version flag"`
+	}
+
+	os.Args[0] = "example"
+	p, err := NewParser(Config{}, &args)
+	require.NoError(t, err)
+
+	var help bytes.Buffer
+	p.WriteHelp(&help)
+	assert.Equal(t, expectedHelp[1:], help.String())
+
+	var usage bytes.Buffer
+	p.WriteUsage(&usage)
+	assert.Equal(t, expectedUsage, strings.TrimSpace(usage.String()))
+}
+
+type subcommand struct {
+	Number int `arg:"-n,--number" help:"compute something on the given number"`
+}
+
+func TestUsageWithVersionAndSubcommand(t *testing.T) {
+	expectedUsage := "example 3.2.1\nUsage: example <command> [<args>]"
+
+	expectedHelp := `
+example 3.2.1
+Usage: example <command> [<args>]
+
+Options:
+  --help, -h             display this help and exit
+  --version              display version and exit
+
+Commands:
+  cmd
+`
+
+	var args struct {
+		versioned
+		Cmd *subcommand `arg:"subcommand"`
+	}
+
+	os.Args[0] = "example"
+	p, err := NewParser(Config{}, &args)
+	require.NoError(t, err)
+
+	var help bytes.Buffer
+	p.WriteHelp(&help)
+	assert.Equal(t, expectedHelp[1:], help.String())
+
+	var usage bytes.Buffer
+	p.WriteUsage(&usage)
+	assert.Equal(t, expectedUsage, strings.TrimSpace(usage.String()))
+
+	expectedUsage = "example 3.2.1\nUsage: example cmd [--number NUMBER]"
+
+	expectedHelp = `
+example 3.2.1
+Usage: example cmd [--number NUMBER]
+
+Options:
+  --number NUMBER, -n NUMBER
+                         compute something on the given number
+  --help, -h             display this help and exit
+  --version              display version and exit
+`
+	_ = p.Parse([]string{"cmd"})
+
+	help = bytes.Buffer{}
+	p.WriteHelp(&help)
+	assert.Equal(t, expectedHelp[1:], help.String())
+
+	usage = bytes.Buffer{}
+	p.WriteUsage(&usage)
+	assert.Equal(t, expectedUsage, strings.TrimSpace(usage.String()))
+}
+
+func TestUsageWithUserDefinedVersionFlagAndSubcommand(t *testing.T) {
+	expectedUsage := "Usage: example [--version] <command> [<args>]"
+
+	expectedHelp := `
+Usage: example [--version] <command> [<args>]
+
+Options:
+  --version              this is a user-defined version flag
+  --help, -h             display this help and exit
+
+Commands:
+  cmd
+`
+
+	var args struct {
+		Cmd         *subcommand `arg:"subcommand"`
+		ShowVersion bool        `arg:"--version" help:"this is a user-defined version flag"`
+	}
+
+	os.Args[0] = "example"
+	p, err := NewParser(Config{}, &args)
+	require.NoError(t, err)
+
+	var help bytes.Buffer
+	p.WriteHelp(&help)
+	assert.Equal(t, expectedHelp[1:], help.String())
+
+	var usage bytes.Buffer
+	p.WriteUsage(&usage)
+	assert.Equal(t, expectedUsage, strings.TrimSpace(usage.String()))
+
+	expectedUsage = "Usage: example cmd [--number NUMBER]"
+
+	expectedHelp = `
+Usage: example cmd [--number NUMBER]
+
+Options:
+  --number NUMBER, -n NUMBER
+                         compute something on the given number
+
+Global options:
+  --version              this is a user-defined version flag
+  --help, -h             display this help and exit
+`
+	_ = p.Parse([]string{"cmd"})
+
+	help = bytes.Buffer{}
+	p.WriteHelp(&help)
+	assert.Equal(t, expectedHelp[1:], help.String())
+
+	usage = bytes.Buffer{}
+	p.WriteUsage(&usage)
+	assert.Equal(t, expectedUsage, strings.TrimSpace(usage.String()))
+}
+
+func TestUsageWithVersionAndUserDefinedVersionFlagAndSubcommand(t *testing.T) {
+	expectedUsage := "Usage: example [--version] <command> [<args>]"
+
+	expectedHelp := `
+Usage: example [--version] <command> [<args>]
+
+Options:
+  --version              this is a user-defined version flag
+  --help, -h             display this help and exit
+
+Commands:
+  cmd
+`
+
+	var args struct {
+		versioned
+		Cmd         *subcommand `arg:"subcommand"`
+		ShowVersion bool        `arg:"--version" help:"this is a user-defined version flag"`
+	}
+
+	os.Args[0] = "example"
+	p, err := NewParser(Config{}, &args)
+	require.NoError(t, err)
+
+	var help bytes.Buffer
+	p.WriteHelp(&help)
+	assert.Equal(t, expectedHelp[1:], help.String())
+
+	var usage bytes.Buffer
+	p.WriteUsage(&usage)
+	assert.Equal(t, expectedUsage, strings.TrimSpace(usage.String()))
+
+	expectedUsage = "Usage: example cmd [--number NUMBER]"
+
+	expectedHelp = `
+Usage: example cmd [--number NUMBER]
+
+Options:
+  --number NUMBER, -n NUMBER
+                         compute something on the given number
+
+Global options:
+  --version              this is a user-defined version flag
+  --help, -h             display this help and exit
+`
+	_ = p.Parse([]string{"cmd"})
+
+	help = bytes.Buffer{}
+	p.WriteHelp(&help)
+	assert.Equal(t, expectedHelp[1:], help.String())
+
+	usage = bytes.Buffer{}
 	p.WriteUsage(&usage)
 	assert.Equal(t, expectedUsage, strings.TrimSpace(usage.String()))
 }
