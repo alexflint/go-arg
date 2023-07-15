@@ -208,11 +208,29 @@ func (p *Parser) WriteHelpForSubcommand(w io.Writer, subcommand ...string) error
 			positionals = append(positionals, spec)
 		case spec.long != "":
 			longOptions = append(longOptions, spec)
+			if spec.long == "version" {
+				hasVersionOption = true
+			}
 		case spec.short != "":
 			shortOptions = append(shortOptions, spec)
 		case spec.short == "" && spec.long == "":
 			envOnlyOptions = append(envOnlyOptions, spec)
 		}
+	}
+
+	// obtain a flattened list of options from all ancestors
+	// also determine if any ancestor has a version option spec
+	var globals []*spec
+	ancestor := cmd.parent
+	for ancestor != nil {
+		for _, spec := range ancestor.specs {
+			if spec.long == "version" {
+				hasVersionOption = true
+				break
+			}
+		}
+		globals = append(globals, ancestor.specs...)
+		ancestor = ancestor.parent
 	}
 
 	if p.description != "" {
@@ -236,18 +254,7 @@ func (p *Parser) WriteHelpForSubcommand(w io.Writer, subcommand ...string) error
 		}
 		for _, spec := range longOptions {
 			p.printOption(w, spec)
-			if spec.long == "version" {
-				hasVersionOption = true
-			}
 		}
-	}
-
-	// obtain a flattened list of options from all ancestors
-	var globals []*spec
-	ancestor := cmd.parent
-	for ancestor != nil {
-		globals = append(globals, ancestor.specs...)
-		ancestor = ancestor.parent
 	}
 
 	// write the list of global options
@@ -255,9 +262,6 @@ func (p *Parser) WriteHelpForSubcommand(w io.Writer, subcommand ...string) error
 		fmt.Fprint(w, "\nGlobal options:\n")
 		for _, spec := range globals {
 			p.printOption(w, spec)
-			if spec.long == "version" {
-				hasVersionOption = true
-			}
 		}
 	}
 
