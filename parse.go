@@ -513,10 +513,10 @@ func (p *Parser) Parse(args []string) error {
 func (p *Parser) MustParse(args []string) {
 	err := p.Parse(args)
 	switch {
-	case err == ErrHelp:
+	case errors.Is(err, ErrHelp):
 		p.writeHelpForSubcommand(p.config.Out, p.lastCmd)
 		p.config.Exit(0)
-	case err == ErrVersion:
+	case errors.Is(err, ErrVersion):
 		fmt.Fprintln(p.config.Out, p.version)
 		p.config.Exit(0)
 	case err != nil:
