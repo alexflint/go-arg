@@ -7,7 +7,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	scalar "github.com/alexflint/go-scalar"
+	"github.com/alexflint/go-scalar"
 )
 
 var textUnmarshalerType = reflect.TypeOf([]encoding.TextUnmarshaler{}).Elem()

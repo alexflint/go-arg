@@ -59,7 +59,7 @@ func TestCardinalityOf(t *testing.T) {
 
 type implementsTextUnmarshaler struct{}
 
-func (*implementsTextUnmarshaler) UnmarshalText(text []byte) error {
+func (*implementsTextUnmarshaler) UnmarshalText(_ []byte) error {
 	return nil
 }
 

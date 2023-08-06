@@ -199,13 +199,13 @@ func Example_helpPlaceholder() {
 	MustParse(&args)
 
 	// output:
-
+	//
 	// Usage: example [--optimize LEVEL] [--maxjobs N] SRC [DST [DST ...]]
-
+	//
 	// Positional arguments:
 	//   SRC
 	//   DST
-
+	//
 	// Options:
 	//   --optimize LEVEL, -O LEVEL
 	//                          optimization level
@@ -501,7 +501,9 @@ func Example_envVarOnly() {
 	os.Args = split("./example")
 	_ = os.Setenv("AUTH_KEY", "my_key")
 
-	defer os.Unsetenv("AUTH_KEY")
+	defer func() {
+		_ = os.Unsetenv("AUTH_KEY")
+	}()
 
 	var args struct {
 		AuthKey string `arg:"--,env:AUTH_KEY"`

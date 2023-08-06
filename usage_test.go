@@ -97,12 +97,12 @@ Environment variables:
 
 type MyEnum int
 
-func (n *MyEnum) UnmarshalText(b []byte) error {
+func (n *MyEnum) UnmarshalText(_ []byte) error {
 	return nil
 }
 
 func (n *MyEnum) MarshalText() ([]byte, error) {
-	return nil, errors.New("There was a problem")
+	return nil, errors.New("there was a problem")
 }
 
 func TestUsageWithDefaults(t *testing.T) {
@@ -142,7 +142,7 @@ func TestUsageCannotMarshalToString(t *testing.T) {
 	v := MyEnum(42)
 	args.Name = &v
 	_, err := NewParser(Config{Program: "example"}, &args)
-	assert.EqualError(t, err, `args.Name: error marshaling default value to string: There was a problem`)
+	assert.EqualError(t, err, `args.Name: error marshaling default value to string: there was a problem`)
 }
 
 func TestUsageLongPositionalWithHelp_legacyForm(t *testing.T) {
@@ -455,7 +455,8 @@ Global options:
 	assert.Equal(t, expectedHelp[1:], help.String())
 
 	var help2 bytes.Buffer
-	p.WriteHelpForSubcommand(&help2, "child", "nested")
+	err = p.WriteHelpForSubcommand(&help2, "child", "nested")
+	require.NoError(t, err)
 	assert.Equal(t, expectedHelp[1:], help2.String())
 
 	var usage bytes.Buffer
@@ -463,7 +464,8 @@ Global options:
 	assert.Equal(t, expectedUsage, strings.TrimSpace(usage.String()))
 
 	var usage2 bytes.Buffer
-	p.WriteUsageForSubcommand(&usage2, "child", "nested")
+	err = p.WriteUsageForSubcommand(&usage2, "child", "nested")
+	require.NoError(t, err)
 	assert.Equal(t, expectedUsage, strings.TrimSpace(usage2.String()))
 }
 
