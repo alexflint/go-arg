@@ -11,7 +11,7 @@ import (
 	"reflect"
 	"strings"
 
-	scalar "github.com/alexflint/go-scalar"
+	"github.com/alexflint/go-scalar"
 )
 
 // path represents a sequence of steps to find the output location for an
@@ -94,7 +94,7 @@ func mustParse(config Config, dest ...interface{}) *Parser {
 
 	p, err := NewParser(config, dest...)
 	if err != nil {
-		fmt.Fprintln(config.Out, err)
+		_, _ = fmt.Fprintln(config.Out, err)
 		config.Exit(-1)
 		return nil
 	}
@@ -517,7 +517,7 @@ func (p *Parser) MustParse(args []string) {
 		p.writeHelpForSubcommand(p.config.Out, p.lastCmd)
 		p.config.Exit(0)
 	case errors.Is(err, ErrVersion):
-		fmt.Fprintln(p.config.Out, p.version)
+		_, _ = fmt.Fprintln(p.config.Out, p.version)
 		p.config.Exit(0)
 	case err != nil:
 		p.failWithSubcommand(err.Error(), p.lastCmd)

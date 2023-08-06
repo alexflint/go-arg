@@ -32,7 +32,7 @@ func (p *Parser) FailSubcommand(msg string, subcommand ...string) error {
 // failWithSubcommand prints usage information for the given subcommand to stderr and exits with non-zero status
 func (p *Parser) failWithSubcommand(msg string, cmd *command) {
 	p.writeUsageForSubcommand(p.config.Out, cmd)
-	fmt.Fprintln(p.config.Out, "error:", msg)
+	_, _ = fmt.Fprintln(p.config.Out, "error:", msg)
 	p.config.Exit(-1)
 }
 
@@ -74,7 +74,7 @@ func (p *Parser) writeUsageForSubcommand(w io.Writer, cmd *command) {
 	}
 
 	if p.version != "" {
-		fmt.Fprintln(w, p.version)
+		_, _ = fmt.Fprintln(w, p.version)
 	}
 
 	// make a list of ancestor commands so that we print with full context
@@ -86,33 +86,33 @@ func (p *Parser) writeUsageForSubcommand(w io.Writer, cmd *command) {
 	}
 
 	// print the beginning of the usage string
-	fmt.Fprint(w, "Usage:")
+	_, _ = fmt.Fprint(w, "Usage:")
 	for i := len(ancestors) - 1; i >= 0; i-- {
-		fmt.Fprint(w, " "+ancestors[i])
+		_, _ = fmt.Fprint(w, " "+ancestors[i])
 	}
 
 	// write the option component of the usage message
 	for _, spec := range shortOptions {
 		// prefix with a space
-		fmt.Fprint(w, " ")
+		_, _ = fmt.Fprint(w, " ")
 		if !spec.required {
-			fmt.Fprint(w, "[")
+			_, _ = fmt.Fprint(w, "[")
 		}
-		fmt.Fprint(w, synopsis(spec, "-"+spec.short))
+		_, _ = fmt.Fprint(w, synopsis(spec, "-"+spec.short))
 		if !spec.required {
-			fmt.Fprint(w, "]")
+			_, _ = fmt.Fprint(w, "]")
 		}
 	}
 
 	for _, spec := range longOptions {
 		// prefix with a space
-		fmt.Fprint(w, " ")
+		_, _ = fmt.Fprint(w, " ")
 		if !spec.required {
-			fmt.Fprint(w, "[")
+			_, _ = fmt.Fprint(w, "[")
 		}
-		fmt.Fprint(w, synopsis(spec, "--"+spec.long))
+		_, _ = fmt.Fprint(w, synopsis(spec, "--"+spec.long))
 		if !spec.required {
-			fmt.Fprint(w, "]")
+			_, _ = fmt.Fprint(w, "]")
 		}
 	}
 
@@ -130,37 +130,37 @@ func (p *Parser) writeUsageForSubcommand(w io.Writer, cmd *command) {
 	//    REQUIRED1 REQUIRED2 [OPTIONAL1 [REPEATEDOPTIONAL [REPEATEDOPTIONAL ...]]]
 	var closeBrackets int
 	for _, spec := range positionals {
-		fmt.Fprint(w, " ")
+		_, _ = fmt.Fprint(w, " ")
 		if !spec.required {
-			fmt.Fprint(w, "[")
+			_, _ = fmt.Fprint(w, "[")
 			closeBrackets += 1
 		}
 		if spec.cardinality == multiple {
-			fmt.Fprintf(w, "%s [%s ...]", spec.placeholder, spec.placeholder)
+			_, _ = fmt.Fprintf(w, "%s [%s ...]", spec.placeholder, spec.placeholder)
 		} else {
-			fmt.Fprint(w, spec.placeholder)
+			_, _ = fmt.Fprint(w, spec.placeholder)
 		}
 	}
-	fmt.Fprint(w, strings.Repeat("]", closeBrackets))
+	_, _ = fmt.Fprint(w, strings.Repeat("]", closeBrackets))
 
 	// if the program supports subcommands, give a hint to the user about their existence
 	if len(cmd.subcommands) > 0 {
-		fmt.Fprint(w, " <command> [<args>]")
+		_, _ = fmt.Fprint(w, " <command> [<args>]")
 	}
 
-	fmt.Fprint(w, "\n")
+	_, _ = fmt.Fprint(w, "\n")
 }
 
 func printTwoCols(w io.Writer, left, help string, defaultVal string, envVal string) {
 	lhs := "  " + left
-	fmt.Fprint(w, lhs)
+	_, _ = fmt.Fprint(w, lhs)
 	if help != "" {
 		if len(lhs)+2 < colWidth {
-			fmt.Fprint(w, strings.Repeat(" ", colWidth-len(lhs)))
+			_, _ = fmt.Fprint(w, strings.Repeat(" ", colWidth-len(lhs)))
 		} else {
-			fmt.Fprint(w, "\n"+strings.Repeat(" ", colWidth))
+			_, _ = fmt.Fprint(w, "\n"+strings.Repeat(" ", colWidth))
 		}
-		fmt.Fprint(w, help)
+		_, _ = fmt.Fprint(w, help)
 	}
 
 	bracketsContent := []string{}
@@ -178,9 +178,9 @@ func printTwoCols(w io.Writer, left, help string, defaultVal string, envVal stri
 	}
 
 	if len(bracketsContent) > 0 {
-		fmt.Fprintf(w, " [%s]", strings.Join(bracketsContent, ", "))
+		_, _ = fmt.Fprintf(w, " [%s]", strings.Join(bracketsContent, ", "))
 	}
-	fmt.Fprint(w, "\n")
+	_, _ = fmt.Fprint(w, "\n")
 }
 
 // WriteHelp writes the usage string followed by the full help string for each option
@@ -224,13 +224,13 @@ func (p *Parser) writeHelpForSubcommand(w io.Writer, cmd *command) {
 	}
 
 	if p.description != "" {
-		fmt.Fprintln(w, p.description)
+		_, _ = fmt.Fprintln(w, p.description)
 	}
 	p.writeUsageForSubcommand(w, cmd)
 
 	// write the list of positionals
 	if len(positionals) > 0 {
-		fmt.Fprint(w, "\nPositional arguments:\n")
+		_, _ = fmt.Fprint(w, "\nPositional arguments:\n")
 		for _, spec := range positionals {
 			printTwoCols(w, spec.placeholder, spec.help, "", "")
 		}
@@ -238,7 +238,7 @@ func (p *Parser) writeHelpForSubcommand(w io.Writer, cmd *command) {
 
 	// write the list of options with the short-only ones first to match the usage string
 	if len(shortOptions)+len(longOptions) > 0 || cmd.parent == nil {
-		fmt.Fprint(w, "\nOptions:\n")
+		_, _ = fmt.Fprint(w, "\nOptions:\n")
 		for _, spec := range shortOptions {
 			p.printOption(w, spec)
 		}
@@ -260,7 +260,7 @@ func (p *Parser) writeHelpForSubcommand(w io.Writer, cmd *command) {
 
 	// write the list of global options
 	if len(globals) > 0 {
-		fmt.Fprint(w, "\nGlobal options:\n")
+		_, _ = fmt.Fprint(w, "\nGlobal options:\n")
 		for _, spec := range globals {
 			p.printOption(w, spec)
 			if spec.long == "version" {
@@ -286,7 +286,7 @@ func (p *Parser) writeHelpForSubcommand(w io.Writer, cmd *command) {
 
 	// write the list of environment only variables
 	if len(envOnlyOptions) > 0 {
-		fmt.Fprint(w, "\nEnvironment variables:\n")
+		_, _ = fmt.Fprint(w, "\nEnvironment variables:\n")
 		for _, spec := range envOnlyOptions {
 			p.printEnvOnlyVar(w, spec)
 		}
@@ -294,14 +294,14 @@ func (p *Parser) writeHelpForSubcommand(w io.Writer, cmd *command) {
 
 	// write the list of subcommands
 	if len(cmd.subcommands) > 0 {
-		fmt.Fprint(w, "\nCommands:\n")
+		_, _ = fmt.Fprint(w, "\nCommands:\n")
 		for _, subcmd := range cmd.subcommands {
 			printTwoCols(w, subcmd.name, subcmd.help, "", "")
 		}
 	}
 
 	if p.epilogue != "" {
-		fmt.Fprintln(w, "\n"+p.epilogue)
+		_, _ = fmt.Fprintln(w, "\n"+p.epilogue)
 	}
 }
 
