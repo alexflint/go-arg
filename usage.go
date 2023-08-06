@@ -163,7 +163,7 @@ func printTwoCols(w io.Writer, left, help string, defaultVal string, envVal stri
 		_, _ = fmt.Fprint(w, help)
 	}
 
-	bracketsContent := []string{}
+	var bracketsContent []string
 
 	if defaultVal != "" {
 		bracketsContent = append(bracketsContent,

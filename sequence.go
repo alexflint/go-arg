@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"strings"
 
-	scalar "github.com/alexflint/go-scalar"
+	"github.com/alexflint/go-scalar"
 )
 
 // setSliceOrMap parses a sequence of strings into a slice or map. If clear is
