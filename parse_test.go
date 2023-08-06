@@ -39,7 +39,13 @@ func parseWithEnv(tb testing.TB, cmdline string, env []string, dest interface{})
 }
 
 func parseWithEnvErr(tb testing.TB, cmdline string, env []string, dest interface{}) (*Parser, error) {
-	p, err := NewParser(Config{}, dest)
+	tb.Helper()
+	return parseWithConfigEnvErr(tb, Config{}, cmdline, env, dest)
+}
+
+func parseWithConfigEnvErr(tb testing.TB, config Config, cmdline string, env []string, dest interface{}) (*Parser, error) {
+	tb.Helper()
+	p, err := NewParser(config, dest)
 	if err != nil {
 		return nil, err
 	}
@@ -666,6 +672,24 @@ func TestEnvironmentVariable(t *testing.T) {
 		Foo string `arg:"env"`
 	}
 	parseWithEnv(t, "", []string{"FOO=bar"}, &args)
+	assert.Equal(t, "bar", args.Foo)
+}
+
+func TestEnvironmentVariableViaCustomEnvironment(t *testing.T) {
+	var args struct {
+		Foo string `arg:"env"`
+	}
+	_, err := parseWithConfigEnvErr(t, Config{Environment: map[string]string{"FOO": "bar"}}, "", nil, &args)
+	require.NoError(t, err)
+	assert.Equal(t, "bar", args.Foo)
+}
+
+func TestEnvironmentVariableOverriddenByCustomEnvironment(t *testing.T) {
+	var args struct {
+		Foo string `arg:"env"`
+	}
+	_, err := parseWithConfigEnvErr(t, Config{Environment: map[string]string{"FOO": "bar"}}, "", []string{"FOO=foo"}, &args)
+	require.NoError(t, err)
 	assert.Equal(t, "bar", args.Foo)
 }
 

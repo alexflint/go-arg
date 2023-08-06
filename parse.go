@@ -141,6 +141,9 @@ type Config struct {
 
 	// Out is where help text, usage text, and failure messages are printed (defaults to os.Stdout)
 	Out io.Writer
+
+	// Environment is a map of environment variables to override those in the process environment, or provide values to those not in the process environment.
+	Environment map[string]string
 }
 
 // Parser represents a set of command line options with destination values
@@ -531,7 +534,17 @@ func (p *Parser) captureEnvVars(specs []*spec, wasPresent map[*spec]bool) error 
 			continue
 		}
 
-		value, found := os.LookupEnv(spec.env)
+		var value string
+		var found bool
+
+		if !p.config.IgnoreEnv {
+			value, found = os.LookupEnv(spec.env)
+		}
+
+		if p.config.Environment != nil {
+			value, found = p.config.Environment[spec.env]
+		}
+
 		if !found {
 			continue
 		}
@@ -584,7 +597,7 @@ func (p *Parser) process(args []string) error {
 	copy(specs, curCmd.specs)
 
 	// deal with environment vars
-	if !p.config.IgnoreEnv {
+	if !p.config.IgnoreEnv || p.config.Environment != nil {
 		err := p.captureEnvVars(specs, wasPresent)
 		if err != nil {
 			return err
@@ -640,7 +653,7 @@ func (p *Parser) process(args []string) error {
 			}
 
 			// capture environment vars for these new options
-			if !p.config.IgnoreEnv {
+			if !p.config.IgnoreEnv || p.config.Environment != nil {
 				err := p.captureEnvVars(subcmd.specs, wasPresent)
 				if err != nil {
 					return err
