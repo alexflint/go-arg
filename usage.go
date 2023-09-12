@@ -223,9 +223,12 @@ func (p *Parser) writeHelpForSubcommand(w io.Writer, cmd *command) {
 		}
 	}
 
-	if p.description != "" {
+	if cmd.help != "" {
+		fmt.Fprintln(w, cmd.help)
+	} else if p.description != "" {
 		fmt.Fprintln(w, p.description)
 	}
+	
 	p.writeUsageForSubcommand(w, cmd)
 
 	// write the list of positionals

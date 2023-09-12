@@ -415,6 +415,37 @@ Options:
 	assert.Equal(t, expectedUsage, usage.String())
 }
 
+func TestHelpWithSubcommandWithHelpText(t *testing.T) {
+	expectedHelp := `
+Description of what this subcommand does
+Usage: example child [--values VALUES]
+
+Options:
+  --values VALUES        Values
+
+Global options:
+  --verbose, -v          verbosity level
+  --help, -h             display this help and exit
+`
+
+	var args struct {
+		Verbose bool `arg:"-v" help:"verbosity level"`
+		Child   *struct {
+			Values []float64 `help:"Values"`
+		} `arg:"subcommand:child" help:"Description of what this subcommand does"`
+	}
+
+	os.Args[0] = "example"
+	p, err := NewParser(Config{}, &args)
+	require.NoError(t, err)
+
+	_ = p.Parse([]string{"child"})
+
+	var help bytes.Buffer
+	p.WriteHelp(&help)
+	assert.Equal(t, expectedHelp[1:], help.String())
+}
+
 func TestUsageWithNestedSubcommands(t *testing.T) {
 	expectedUsage := "Usage: example child nested [--enable] OUTPUT"
 
