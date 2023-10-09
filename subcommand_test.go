@@ -495,3 +495,14 @@ func TestValForNilStruct(t *testing.T) {
 	v := p.val(path{fields: []reflect.StructField{subField, subField}})
 	assert.False(t, v.IsValid())
 }
+
+func TestSubcommandInvalidInternal(t *testing.T) {
+	// this situation should never arise in practice but still good to test for it
+	var cmd struct{}
+	p, err := NewParser(Config{}, &cmd)
+	require.NoError(t, err)
+
+	p.subcommand = []string{"should", "never", "happen"}
+	sub := p.Subcommand()
+	assert.Nil(t, sub)
+}
