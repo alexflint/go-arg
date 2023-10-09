@@ -450,6 +450,8 @@ Global options:
 
 	_ = p.Parse([]string{"child", "nested", "value"})
 
+	assert.Equal(t, []string{"child", "nested"}, p.SubcommandNames())
+
 	var help bytes.Buffer
 	p.WriteHelp(&help)
 	assert.Equal(t, expectedHelp[1:], help.String())
@@ -471,7 +473,7 @@ func TestNonexistentSubcommand(t *testing.T) {
 	var args struct {
 		sub *struct{} `arg:"subcommand"`
 	}
-	p, err := NewParser(Config{}, &args)
+	p, err := NewParser(Config{Exit: func(int) {}}, &args)
 	require.NoError(t, err)
 
 	var b bytes.Buffer
@@ -679,6 +681,32 @@ Options:
 
 	var args struct {
 		Test *lengthOf `default:"some_default_value"`
+	}
+	p, err := NewParser(Config{Program: "example"}, &args)
+	require.NoError(t, err)
+
+	var help bytes.Buffer
+	p.WriteHelp(&help)
+	assert.Equal(t, expectedHelp[1:], help.String())
+}
+
+func TestHelpShowsSubcommandAliases(t *testing.T) {
+	expectedHelp := `
+Usage: example <command> [<args>]
+
+Options:
+  --help, -h             display this help and exit
+
+Commands:
+  remove, rm, r          remove something from somewhere
+  simple                 do something simple
+  halt, stop             stop now
+`
+
+	var args struct {
+		Remove *struct{} `arg:"subcommand:remove|rm|r" help:"remove something from somewhere"`
+		Simple *struct{} `arg:"subcommand" help:"do something simple"`
+		Stop   *struct{} `arg:"subcommand:halt|stop" help:"stop now"`
 	}
 	p, err := NewParser(Config{Program: "example"}, &args)
 	require.NoError(t, err)

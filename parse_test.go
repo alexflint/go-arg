@@ -883,7 +883,8 @@ func TestEnvironmentVariableInSubcommandIgnored(t *testing.T) {
 	require.NoError(t, err)
 
 	err = p.Parse([]string{"sub"})
-	assert.NoError(t, err)
+	require.NoError(t, err)
+	require.NotNil(t, args.Sub)
 	assert.Equal(t, "", args.Sub.Foo)
 }
 
@@ -1731,7 +1732,8 @@ func TestSubcommandGlobalFlag_InCommand_Strict_Inner(t *testing.T) {
 	require.NoError(t, err)
 
 	err = p.Parse([]string{"sub", "-g"})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.False(t, args.Global)
+	require.NotNil(t, args.Sub)
 	assert.True(t, args.Sub.Guard)
 }

@@ -62,6 +62,7 @@ type spec struct {
 // command represents a named subcommand, or the top-level command
 type command struct {
 	name        string
+	aliases     []string
 	help        string
 	dest        path
 	specs       []*spec
@@ -153,7 +154,7 @@ type Parser struct {
 	epilogue    string
 
 	// the following field changes during processing of command line arguments
-	lastCmd *command
+	subcommand []string
 }
 
 // Versioned is the interface that the destination struct should implement to
@@ -384,18 +385,24 @@ func cmdFromStruct(name string, dest path, t reflect.Type) (*command, error) {
 				}
 			case key == "subcommand":
 				// decide on a name for the subcommand
-				cmdname := value
-				if cmdname == "" {
-					cmdname = strings.ToLower(field.Name)
+				var cmdnames []string
+				if value == "" {
+					cmdnames = []string{strings.ToLower(field.Name)}
+				} else {
+					cmdnames = strings.Split(value, "|")
+				}
+				for i := range cmdnames {
+					cmdnames[i] = strings.TrimSpace(cmdnames[i])
 				}
 
 				// parse the subcommand recursively
-				subcmd, err := cmdFromStruct(cmdname, subdest, field.Type)
+				subcmd, err := cmdFromStruct(cmdnames[0], subdest, field.Type)
 				if err != nil {
 					errs = append(errs, err.Error())
 					return false
 				}
 
+				subcmd.aliases = cmdnames[1:]
 				subcmd.parent = &cmd
 				subcmd.help = field.Tag.Get("help")
 
@@ -514,13 +521,13 @@ func (p *Parser) MustParse(args []string) {
 	err := p.Parse(args)
 	switch {
 	case err == ErrHelp:
-		p.writeHelpForSubcommand(p.config.Out, p.lastCmd)
+		p.WriteHelpForSubcommand(p.config.Out, p.subcommand...)
 		p.config.Exit(0)
 	case err == ErrVersion:
 		fmt.Fprintln(p.config.Out, p.version)
 		p.config.Exit(0)
 	case err != nil:
-		p.failWithSubcommand(err.Error(), p.lastCmd)
+		p.FailSubcommand(err.Error(), p.subcommand...)
 	}
 }
 
@@ -577,7 +584,7 @@ func (p *Parser) process(args []string) error {
 
 	// union of specs for the chain of subcommands encountered so far
 	curCmd := p.cmd
-	p.lastCmd = curCmd
+	p.subcommand = nil
 
 	// make a copy of the specs because we will add to this list each time we expand a subcommand
 	specs := make([]*spec, len(curCmd.specs))
@@ -648,7 +655,7 @@ func (p *Parser) process(args []string) error {
 			}
 
 			curCmd = subcmd
-			p.lastCmd = curCmd
+			p.subcommand = append(p.subcommand, arg)
 			continue
 		}
 
@@ -841,6 +848,11 @@ func findSubcommand(cmds []*command, name string) *command {
 	for _, cmd := range cmds {
 		if cmd.name == name {
 			return cmd
+		}
+		for _, alias := range cmd.aliases {
+			if alias == name {
+				return cmd
+			}
 		}
 	}
 	return nil
