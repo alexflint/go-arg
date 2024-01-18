@@ -48,18 +48,36 @@ func (p *Parser) WriteUsageForSubcommand(w io.Writer, subcommand ...string) erro
 	}
 
 	var positionals, longOptions, shortOptions []*spec
+	var hasVersionOption bool
 	for _, spec := range cmd.specs {
 		switch {
 		case spec.positional:
 			positionals = append(positionals, spec)
 		case spec.long != "":
 			longOptions = append(longOptions, spec)
+			if spec.long == "version" {
+				hasVersionOption = true
+			}
 		case spec.short != "":
 			shortOptions = append(shortOptions, spec)
 		}
 	}
 
-	if p.version != "" {
+	// make a list of ancestor commands so that we print with full context
+	// also determine if any ancestor has a version option spec
+	var ancestors []string
+	ancestor := cmd
+	for ancestor != nil {
+		for _, spec := range ancestor.specs {
+			if spec.long == "version" {
+				hasVersionOption = true
+			}
+		}
+		ancestors = append(ancestors, ancestor.name)
+		ancestor = ancestor.parent
+	}
+
+	if !hasVersionOption && p.version != "" {
 		fmt.Fprintln(w, p.version)
 	}
 
