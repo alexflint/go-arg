@@ -284,6 +284,9 @@ $ ./example --version
 someprogram 4.3.0
 ```
 
+> **Note**
+> If a `--version` flag is defined in `args` or any subcommand, it overrides the above functionality.
+
 ### Overriding option names
 
 ```go

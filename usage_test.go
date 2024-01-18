@@ -236,7 +236,7 @@ func (versioned) Version() string {
 	return "example 3.2.1"
 }
 
-func TestUsageWithVersion(t *testing.T) {
+func TestUsageWithBuiltinVersion(t *testing.T) {
 	expectedUsage := "example 3.2.1\nUsage: example"
 
 	expectedHelp := `
@@ -256,6 +256,230 @@ Options:
 	assert.Equal(t, expectedHelp[1:], help.String())
 
 	var usage bytes.Buffer
+	p.WriteUsage(&usage)
+	assert.Equal(t, expectedUsage, strings.TrimSpace(usage.String()))
+}
+
+func TestUsageWithArgsVersion(t *testing.T) {
+	var args struct {
+		Version bool `arg:"-V,--version" help:"display version and build info"`
+	}
+
+	expectedUsage := "Usage: example [--version]"
+
+	expectedHelp := `
+Usage: example [--version]
+
+Options:
+  --version, -V          display version and build info
+  --help, -h             display this help and exit
+`
+	os.Args[0] = "example"
+	p, err := NewParser(Config{}, &args)
+	require.NoError(t, err)
+
+	var help bytes.Buffer
+	p.WriteHelp(&help)
+	assert.Equal(t, expectedHelp[1:], help.String())
+
+	var usage bytes.Buffer
+	p.WriteUsage(&usage)
+	assert.Equal(t, expectedUsage, strings.TrimSpace(usage.String()))
+}
+
+func TestUsageWithBuiltinAndArgsVersion(t *testing.T) {
+	var args struct {
+		versioned
+		VersionFlag bool `arg:"-V,--version" help:"display version and build info"`
+	}
+
+	expectedUsage := "Usage: example [--version]"
+
+	expectedHelp := `
+Usage: example [--version]
+
+Options:
+  --version, -V          display version and build info
+  --help, -h             display this help and exit
+`
+	os.Args[0] = "example"
+	p, err := NewParser(Config{}, &args)
+	require.NoError(t, err)
+
+	var help bytes.Buffer
+	p.WriteHelp(&help)
+	assert.Equal(t, expectedHelp[1:], help.String())
+
+	var usage bytes.Buffer
+	p.WriteUsage(&usage)
+	assert.Equal(t, expectedUsage, strings.TrimSpace(usage.String()))
+}
+
+func TestUsageWithBuiltinVersionAndSubcommands(t *testing.T) {
+	type cmd struct {
+		Test int `arg:"-t,--test" help:"test number"`
+	}
+	var args struct {
+		versioned
+		Cmd *cmd `arg:"subcommand"`
+	}
+
+	expectedUsage := "example 3.2.1\nUsage: example <command> [<args>]"
+
+	expectedHelp := `
+example 3.2.1
+Usage: example <command> [<args>]
+
+Options:
+  --help, -h             display this help and exit
+  --version              display version and exit
+
+Commands:
+  cmd
+`
+	os.Args[0] = "example"
+	p, err := NewParser(Config{}, &args)
+	require.NoError(t, err)
+
+	var help bytes.Buffer
+	p.WriteHelp(&help)
+	assert.Equal(t, expectedHelp[1:], help.String())
+
+	var usage bytes.Buffer
+	p.WriteUsage(&usage)
+	assert.Equal(t, expectedUsage, strings.TrimSpace(usage.String()))
+
+	expectedUsage = "example 3.2.1\nUsage: example cmd [--test TEST]"
+
+	expectedHelp = `
+example 3.2.1
+Usage: example cmd [--test TEST]
+
+Options:
+  --test TEST, -t TEST   test number
+  --help, -h             display this help and exit
+  --version              display version and exit
+`
+	_ = p.Parse([]string{"cmd"})
+
+	help = bytes.Buffer{}
+	p.WriteHelp(&help)
+	assert.Equal(t, expectedHelp[1:], help.String())
+
+	usage = bytes.Buffer{}
+	p.WriteUsage(&usage)
+	assert.Equal(t, expectedUsage, strings.TrimSpace(usage.String()))
+}
+
+func TestUsageWithArgsVersionAndSubcommands(t *testing.T) {
+	type cmd struct {
+		Test int `arg:"-t,--test" help:"test number"`
+	}
+	var args struct {
+		Cmd     *cmd `arg:"subcommand"`
+		Version bool `arg:"-V,--version" help:"display version and build info"`
+	}
+
+	expectedUsage := "Usage: example [--version] <command> [<args>]"
+
+	expectedHelp := `
+Usage: example [--version] <command> [<args>]
+
+Options:
+  --version, -V          display version and build info
+  --help, -h             display this help and exit
+
+Commands:
+  cmd
+`
+	os.Args[0] = "example"
+	p, err := NewParser(Config{}, &args)
+	require.NoError(t, err)
+
+	var help bytes.Buffer
+	p.WriteHelp(&help)
+	assert.Equal(t, expectedHelp[1:], help.String())
+
+	var usage bytes.Buffer
+	p.WriteUsage(&usage)
+	assert.Equal(t, expectedUsage, strings.TrimSpace(usage.String()))
+
+	expectedUsage = "Usage: example cmd [--test TEST]"
+
+	expectedHelp = `
+Usage: example cmd [--test TEST]
+
+Options:
+  --test TEST, -t TEST   test number
+
+Global options:
+  --version, -V          display version and build info
+  --help, -h             display this help and exit
+`
+	_ = p.Parse([]string{"cmd"})
+
+	help = bytes.Buffer{}
+	p.WriteHelp(&help)
+	assert.Equal(t, expectedHelp[1:], help.String())
+
+	usage = bytes.Buffer{}
+	p.WriteUsage(&usage)
+	assert.Equal(t, expectedUsage, strings.TrimSpace(usage.String()))
+}
+
+func TestUsageWithBuiltinAndArgsVersionAndSubcommands(t *testing.T) {
+	type cmd struct {
+		Test int `arg:"-t,--test" help:"test number"`
+	}
+	var args struct {
+		versioned
+		Cmd     *cmd `arg:"subcommand"`
+		Version bool `arg:"-V,--version" help:"display version and build info"`
+	}
+
+	expectedUsage := "Usage: example [--version] <command> [<args>]"
+
+	expectedHelp := `
+Usage: example [--version] <command> [<args>]
+
+Options:
+  --version, -V          display version and build info
+  --help, -h             display this help and exit
+
+Commands:
+  cmd
+`
+	os.Args[0] = "example"
+	p, err := NewParser(Config{}, &args)
+	require.NoError(t, err)
+
+	var help bytes.Buffer
+	p.WriteHelp(&help)
+	assert.Equal(t, expectedHelp[1:], help.String())
+
+	var usage bytes.Buffer
+	p.WriteUsage(&usage)
+	assert.Equal(t, expectedUsage, strings.TrimSpace(usage.String()))
+
+	expectedUsage = "Usage: example cmd [--test TEST]"
+
+	expectedHelp = `
+Usage: example cmd [--test TEST]
+
+Options:
+  --test TEST, -t TEST   test number
+
+Global options:
+  --version, -V          display version and build info
+  --help, -h             display this help and exit
+`
+	_ = p.Parse([]string{"cmd"})
+
+	help = bytes.Buffer{}
+	p.WriteHelp(&help)
+	assert.Equal(t, expectedHelp[1:], help.String())
+
+	usage = bytes.Buffer{}
 	p.WriteUsage(&usage)
 	assert.Equal(t, expectedUsage, strings.TrimSpace(usage.String()))
 }
