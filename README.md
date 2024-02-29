@@ -120,6 +120,23 @@ $ WORKERS='1,99' ./example
 Workers: [1 99]
 ```
 
+You can also have an environment variable that doesn't match the arg name:
+
+```go
+var args struct {
+	Workers int `arg:"--count,env:NUM_WORKERS"`
+}
+arg.MustParse(&args)
+fmt.Println("Workers:", args.Workers)
+```
+
+```
+$ NUM_WORKERS=6 ./example
+Workers: 6
+$ NUM_WORKERS=6 ./example --count 4
+Workers: 4
+```
+
 ### Usage strings
 ```go
 var args struct {
