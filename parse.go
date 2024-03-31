@@ -85,13 +85,6 @@ func MustParse(dest ...interface{}) *Parser {
 
 // mustParse is a helper that facilitates testing
 func mustParse(config Config, dest ...interface{}) *Parser {
-	if config.Exit == nil {
-		config.Exit = os.Exit
-	}
-	if config.Out == nil {
-		config.Out = os.Stdout
-	}
-
 	p, err := NewParser(config, dest...)
 	if err != nil {
 		fmt.Fprintln(config.Out, err)

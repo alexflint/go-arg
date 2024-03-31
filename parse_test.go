@@ -1735,3 +1735,11 @@ func TestSubcommandGlobalFlag_InCommand_Strict_Inner(t *testing.T) {
 	assert.False(t, args.Global)
 	assert.True(t, args.Sub.Guard)
 }
+
+func TestExitFunctionAndOutStreamGetFilledIn(t *testing.T) {
+	var args struct{}
+	p, err := NewParser(Config{}, &args)
+	require.NoError(t, err)
+	assert.NotNil(t, p.config.Exit) // go prohibits function pointer comparison
+	assert.Equal(t, p.config.Out, os.Stdout)
+}
