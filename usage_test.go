@@ -260,6 +260,39 @@ Options:
 	assert.Equal(t, expectedUsage, strings.TrimSpace(usage.String()))
 }
 
+type userDefinedVersionFlag struct {
+	ShowVersion bool `arg:"--version" help:"this is a user-defined version flag"`
+}
+
+// Version returns the version for this program
+func (userDefinedVersionFlag) Version() string {
+	return "example 3.2.1"
+}
+
+func TestUsageWithUserDefinedVersionFlag(t *testing.T) {
+	expectedUsage := "example 3.2.1\nUsage: example [--version]"
+
+	expectedHelp := `
+example 3.2.1
+Usage: example [--version]
+
+Options:
+  --version              this is a user-defined version flag
+  --help, -h             display this help and exit
+`
+	os.Args[0] = "example"
+	p, err := NewParser(Config{}, &userDefinedVersionFlag{})
+	require.NoError(t, err)
+
+	var help bytes.Buffer
+	p.WriteHelp(&help)
+	assert.Equal(t, expectedHelp[1:], help.String())
+
+	var usage bytes.Buffer
+	p.WriteUsage(&usage)
+	assert.Equal(t, expectedUsage, strings.TrimSpace(usage.String()))
+}
+
 type described struct{}
 
 // Described returns the description for this program
