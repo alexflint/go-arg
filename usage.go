@@ -328,7 +328,10 @@ func (p *Parser) printEnvOnlyVar(w io.Writer, spec *spec) {
 }
 
 func synopsis(spec *spec, form string) string {
-	if spec.cardinality == zero {
+	// if the user omits the placeholder tag then we pick one automatically,
+	// but if the user explicitly specifies an empty placeholder then we
+	// leave out the placeholder in the help message
+	if spec.cardinality == zero || spec.placeholder == "" {
 		return form
 	}
 	return form + " " + spec.placeholder

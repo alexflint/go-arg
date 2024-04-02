@@ -56,7 +56,7 @@ type spec struct {
 	env           string              // the name of the environment variable for this option, or empty for none
 	defaultValue  reflect.Value       // default value for this option
 	defaultString string              // default value for this option, in string form to be displayed in help text
-	placeholder   string              // name of the data in help
+	placeholder   string              // placeholder string in help
 }
 
 // command represents a named subcommand, or the top-level command
@@ -335,9 +335,8 @@ func cmdFromStruct(name string, dest path, t reflect.Type) (*command, error) {
 			spec.help = help
 		}
 
-		// Look at the tag
-		var isSubcommand bool // tracks whether this field is a subcommand
-
+		// process each comma-separated part of the tag
+		var isSubcommand bool
 		for _, key := range strings.Split(tag, ",") {
 			if key == "" {
 				continue
@@ -407,6 +406,7 @@ func cmdFromStruct(name string, dest path, t reflect.Type) (*command, error) {
 			}
 		}
 
+		// placeholder is the string used in the help text like this: "--somearg PLACEHOLDER"
 		placeholder, hasPlaceholder := field.Tag.Lookup("placeholder")
 		if hasPlaceholder {
 			spec.placeholder = placeholder

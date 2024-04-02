@@ -601,6 +601,35 @@ Options:
 	assert.Equal(t, expectedUsage, strings.TrimSpace(usage.String()))
 }
 
+func TestUsageWithEmptyPlaceholder(t *testing.T) {
+	expectedUsage := "Usage: example [-a] [--b] [--c]"
+
+	expectedHelp := `
+Usage: example [-a] [--b] [--c]
+
+Options:
+  -a                     some help for a
+  --b                    some help for b
+  --c, -c                some help for c
+  --help, -h             display this help and exit
+`
+	var args struct {
+		ShortOnly string `arg:"-a,--" placeholder:"" help:"some help for a"`
+		LongOnly  string `arg:"--b" placeholder:"" help:"some help for b"`
+		Both      string `arg:"-c,--c" placeholder:"" help:"some help for c"`
+	}
+	p, err := NewParser(Config{Program: "example"}, &args)
+	require.NoError(t, err)
+
+	var help bytes.Buffer
+	p.WriteHelp(&help)
+	assert.Equal(t, expectedHelp[1:], help.String())
+
+	var usage bytes.Buffer
+	p.WriteUsage(&usage)
+	assert.Equal(t, expectedUsage, strings.TrimSpace(usage.String()))
+}
+
 func TestUsageWithShortFirst(t *testing.T) {
 	expectedUsage := "Usage: example [-c CAT] [--dog DOG]"
 
