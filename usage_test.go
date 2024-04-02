@@ -448,6 +448,50 @@ Options:
 	assert.Equal(t, expectedUsage, usage.String())
 }
 
+func TestUsageWithSubcommands(t *testing.T) {
+	expectedUsage := "Usage: example child [--values VALUES]"
+
+	expectedHelp := `
+Usage: example child [--values VALUES]
+
+Options:
+  --values VALUES        Values
+
+Global options:
+  --verbose, -v          verbosity level
+  --help, -h             display this help and exit
+`
+
+	var args struct {
+		Verbose bool `arg:"-v" help:"verbosity level"`
+		Child   *struct {
+			Values []float64 `help:"Values"`
+		} `arg:"subcommand:child"`
+	}
+
+	os.Args[0] = "example"
+	p, err := NewParser(Config{}, &args)
+	require.NoError(t, err)
+
+	_ = p.Parse([]string{"child"})
+
+	var help bytes.Buffer
+	p.WriteHelp(&help)
+	assert.Equal(t, expectedHelp[1:], help.String())
+
+	var help2 bytes.Buffer
+	p.WriteHelpForSubcommand(&help2, "child")
+	assert.Equal(t, expectedHelp[1:], help2.String())
+
+	var usage bytes.Buffer
+	p.WriteUsage(&usage)
+	assert.Equal(t, expectedUsage, strings.TrimSpace(usage.String()))
+
+	var usage2 bytes.Buffer
+	p.WriteUsageForSubcommand(&usage2, "child")
+	assert.Equal(t, expectedUsage, strings.TrimSpace(usage2.String()))
+}
+
 func TestUsageWithNestedSubcommands(t *testing.T) {
 	expectedUsage := "Usage: example child nested [--enable] OUTPUT"
 
