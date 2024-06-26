@@ -692,6 +692,21 @@ func TestMustParse(t *testing.T) {
 	assert.NotNil(t, parser)
 }
 
+func TestMustParseError(t *testing.T) {
+	var args struct {
+		Foo []string `default:""`
+	}
+	var exitCode int
+	var stdout bytes.Buffer
+	mustParseExit = func(code int) { exitCode = code }
+	mustParseOut = &stdout
+	os.Args = []string{"example"}
+	parser := MustParse(&args)
+	assert.Nil(t, parser)
+	assert.Equal(t, -1, exitCode)
+	assert.Contains(t, stdout.String(), "default values are not supported for slice or map fields")
+}
+
 func TestEnvironmentVariable(t *testing.T) {
 	var args struct {
 		Foo string `arg:"env"`
