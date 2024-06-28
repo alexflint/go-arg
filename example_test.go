@@ -163,6 +163,7 @@ func Example_helpText() {
 
 	// This is only necessary when running inside golang's runnable example harness
 	mustParseExit = func(int) {}
+	mustParseOut = os.Stdout
 
 	MustParse(&args)
 
@@ -195,6 +196,7 @@ func Example_helpPlaceholder() {
 
 	// This is only necessary when running inside golang's runnable example harness
 	mustParseExit = func(int) {}
+	mustParseOut = os.Stdout
 
 	MustParse(&args)
 
@@ -235,6 +237,7 @@ func Example_helpTextWithSubcommand() {
 
 	// This is only necessary when running inside golang's runnable example harness
 	mustParseExit = func(int) {}
+	mustParseOut = os.Stdout
 
 	MustParse(&args)
 
@@ -272,6 +275,7 @@ func Example_helpTextWhenUsingSubcommand() {
 
 	// This is only necessary when running inside golang's runnable example harness
 	mustParseExit = func(int) {}
+	mustParseOut = os.Stdout
 
 	MustParse(&args)
 
@@ -392,6 +396,7 @@ func Example_errorText() {
 
 	// This is only necessary when running inside golang's runnable example harness
 	mustParseExit = func(int) {}
+	mustParseOut = os.Stdout
 
 	MustParse(&args)
 
@@ -415,6 +420,7 @@ func Example_errorTextForSubcommand() {
 
 	// This is only necessary when running inside golang's runnable example harness
 	mustParseExit = func(int) {}
+	mustParseOut = os.Stdout
 
 	MustParse(&args)
 
@@ -450,6 +456,7 @@ func Example_subcommand() {
 
 	// This is only necessary when running inside golang's runnable example harness
 	mustParseExit = func(int) {}
+	mustParseOut = os.Stdout
 
 	MustParse(&args)
 
