@@ -738,7 +738,7 @@ error: something went wrong
 	p.Fail("something went wrong")
 
 	assert.Equal(t, expectedStdout[1:], stdout.String())
-	assert.Equal(t, -1, exitCode)
+	assert.Equal(t, 2, exitCode)
 }
 
 func TestFailSubcommand(t *testing.T) {
@@ -761,7 +761,7 @@ error: something went wrong
 	require.NoError(t, err)
 
 	assert.Equal(t, expectedStdout[1:], stdout.String())
-	assert.Equal(t, -1, exitCode)
+	assert.Equal(t, 2, exitCode)
 }
 
 type lengthOf struct {

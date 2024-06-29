@@ -703,7 +703,7 @@ func TestMustParseError(t *testing.T) {
 	os.Args = []string{"example"}
 	parser := MustParse(&args)
 	assert.Nil(t, parser)
-	assert.Equal(t, -1, exitCode)
+	assert.Equal(t, 2, exitCode)
 	assert.Contains(t, stdout.String(), "default values are not supported for slice or map fields")
 }
 
@@ -921,7 +921,7 @@ func TestParserMustParse(t *testing.T) {
 	}{
 		{name: "help", args: struct{}{}, cmdLine: []string{"--help"}, code: 0, output: "display this help and exit"},
 		{name: "version", args: versioned{}, cmdLine: []string{"--version"}, code: 0, output: "example 3.2.1"},
-		{name: "invalid", args: struct{}{}, cmdLine: []string{"invalid"}, code: -1, output: ""},
+		{name: "invalid", args: struct{}{}, cmdLine: []string{"invalid"}, code: 2, output: ""},
 	}
 
 	for _, tt := range tests {
@@ -1571,7 +1571,7 @@ func TestMustParseInvalidParser(t *testing.T) {
 	}
 	parser := mustParse(Config{Out: &stdout, Exit: exit}, &args)
 	assert.Nil(t, parser)
-	assert.Equal(t, -1, exitCode)
+	assert.Equal(t, 2, exitCode)
 }
 
 func TestMustParsePrintsHelp(t *testing.T) {
