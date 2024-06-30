@@ -201,13 +201,12 @@ func Example_helpPlaceholder() {
 	MustParse(&args)
 
 	// output:
-
 	// Usage: example [--optimize LEVEL] [--maxjobs N] SRC [DST [DST ...]]
-
+	//
 	// Positional arguments:
 	//   SRC
 	//   DST
-
+	//
 	// Options:
 	//   --optimize LEVEL, -O LEVEL
 	//                          optimization level
