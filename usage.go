@@ -9,13 +9,13 @@ import (
 // the width of the left column
 const colWidth = 25
 
-// Fail prints usage information to stderr and exits with non-zero status
+// Fail prints usage information to p.Config.Out and exits with status code 2.
 func (p *Parser) Fail(msg string) {
 	p.FailSubcommand(msg)
 }
 
-// FailSubcommand prints usage information for a specified subcommand to stderr,
-// then exits with non-zero status. To write usage information for a top-level
+// FailSubcommand prints usage information for a specified subcommand to p.Config.Out,
+// then exits with status code 2. To write usage information for a top-level
 // subcommand, provide just the name of that subcommand. To write usage
 // information for a subcommand that is nested under another subcommand, provide
 // a sequence of subcommand names starting with the top-level subcommand and so
@@ -27,7 +27,7 @@ func (p *Parser) FailSubcommand(msg string, subcommand ...string) error {
 	}
 
 	fmt.Fprintln(p.config.Out, "error:", msg)
-	p.config.Exit(-1)
+	p.config.Exit(2)
 	return nil
 }
 

@@ -90,7 +90,7 @@ func mustParse(config Config, dest ...interface{}) *Parser {
 	p, err := NewParser(config, dest...)
 	if err != nil {
 		fmt.Fprintln(config.Out, err)
-		config.Exit(-1)
+		config.Exit(2)
 		return nil
 	}
 
