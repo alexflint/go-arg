@@ -137,7 +137,28 @@ $ NUM_WORKERS=6 ./example --count 4
 Workers: 4
 ```
 
+You can configure a global environment variable name prefix:
+
+```go
+var args struct {
+	Workers int `arg:"--count,env:NUM_WORKERS"`
+}
+
+p, err := arg.NewParser(arg.Config{
+    EnvPrefix: "MYAPP",
+}, &args)
+
+p.MustParse(os.Args[1:])
+fmt.Println("Workers:", args.Workers)
+```
+
+```
+$ MYAPP_NUM_WORKERS=6 ./example
+Workers: 6
+```
+
 ### Usage strings
+
 ```go
 var args struct {
 	Input    string   `arg:"positional"`
@@ -212,10 +233,11 @@ p, err := arg.NewParser(arg.Config{
     IgnoreDefault: true,
 }, &args)
 
-err = p.Parse(os.Args)
+err = p.Parse(os.Args[1:])
 ```
 
 ### Arguments with multiple values
+
 ```go
 var args struct {
 	Database string
@@ -231,6 +253,7 @@ Fetching the following IDs from foo: [1 2 3]
 ```
 
 ### Arguments that can be specified multiple times, mixed with positionals
+
 ```go
 var args struct {
     Commands  []string `arg:"-c,separate"`
@@ -248,6 +271,7 @@ Databases [db1 db2 db3]
 ```
 
 ### Arguments with keys and values
+
 ```go
 var args struct {
 	UserIDs map[string]int
@@ -262,6 +286,7 @@ map[john:123 mary:456]
 ```
 
 ### Custom validation
+
 ```go
 var args struct {
 	Foo string

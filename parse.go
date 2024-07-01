@@ -131,6 +131,10 @@ type Config struct {
 	// subcommand
 	StrictSubcommands bool
 
+	// EnvPrefix instructs the library to use a prefix when reading environment variables.
+	// The prefix is prepended to the variable names using an underscore, e.g. PREFIX_NAME.
+	EnvPrefix string
+
 	// Exit is called to terminate the process with an error code (defaults to os.Exit)
 	Exit func(int)
 
@@ -235,7 +239,7 @@ func NewParser(config Config, dests ...interface{}) (*Parser, error) {
 			panic(fmt.Sprintf("%s is not a pointer (did you forget an ampersand?)", t))
 		}
 
-		cmd, err := cmdFromStruct(name, path{root: i}, t)
+		cmd, err := cmdFromStruct(name, path{root: i}, t, config.EnvPrefix)
 		if err != nil {
 			return nil, err
 		}
@@ -285,7 +289,7 @@ func NewParser(config Config, dests ...interface{}) (*Parser, error) {
 	return &p, nil
 }
 
-func cmdFromStruct(name string, dest path, t reflect.Type) (*command, error) {
+func cmdFromStruct(name string, dest path, t reflect.Type, envPrefix string) (*command, error) {
 	// commands can only be created from pointers to structs
 	if t.Kind() != reflect.Ptr {
 		return nil, fmt.Errorf("subcommands must be pointers to structs but %s is a %s",
@@ -370,11 +374,16 @@ func cmdFromStruct(name string, dest path, t reflect.Type) (*command, error) {
 			case key == "help": // deprecated
 				spec.help = value
 			case key == "env":
+				pfx := envPrefix
+				if pfx != "" {
+					pfx += "_"
+				}
+
 				// Use override name if provided
 				if value != "" {
-					spec.env = value
+					spec.env = pfx + value
 				} else {
-					spec.env = strings.ToUpper(field.Name)
+					spec.env = pfx + strings.ToUpper(field.Name)
 				}
 			case key == "subcommand":
 				// decide on a name for the subcommand
@@ -389,7 +398,7 @@ func cmdFromStruct(name string, dest path, t reflect.Type) (*command, error) {
 				}
 
 				// parse the subcommand recursively
-				subcmd, err := cmdFromStruct(cmdnames[0], subdest, field.Type)
+				subcmd, err := cmdFromStruct(cmdnames[0], subdest, field.Type, envPrefix)
 				if err != nil {
 					errs = append(errs, err.Error())
 					return false
