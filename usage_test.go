@@ -1015,3 +1015,72 @@ Commands:
 	p.WriteHelp(&help)
 	assert.Equal(t, expectedHelp[1:], help.String())
 }
+
+func TestHelpShowsPositionalWithDefault(t *testing.T) {
+	expectedHelp := `
+Usage: example [FOO]
+
+Positional arguments:
+  FOO                    this is a positional with a default [default: bar]
+
+Options:
+  --help, -h             display this help and exit
+`
+
+	var args struct {
+		Foo string `arg:"positional" default:"bar" help:"this is a positional with a default"`
+	}
+
+	p, err := NewParser(Config{Program: "example"}, &args)
+	require.NoError(t, err)
+
+	var help bytes.Buffer
+	p.WriteHelp(&help)
+	assert.Equal(t, expectedHelp[1:], help.String())
+}
+
+func TestHelpShowsPositionalWithEnv(t *testing.T) {
+	expectedHelp := `
+Usage: example [FOO]
+
+Positional arguments:
+  FOO                    this is a positional with an env variable [env: FOO]
+
+Options:
+  --help, -h             display this help and exit
+`
+
+	var args struct {
+		Foo string `arg:"positional,env:FOO" help:"this is a positional with an env variable"`
+	}
+
+	p, err := NewParser(Config{Program: "example"}, &args)
+	require.NoError(t, err)
+
+	var help bytes.Buffer
+	p.WriteHelp(&help)
+	assert.Equal(t, expectedHelp[1:], help.String())
+}
+
+func TestHelpShowsPositionalWithDefaultAndEnv(t *testing.T) {
+	expectedHelp := `
+Usage: example [FOO]
+
+Positional arguments:
+  FOO                    this is a positional with a default and an env variable [default: bar, env: FOO]
+
+Options:
+  --help, -h             display this help and exit
+`
+
+	var args struct {
+		Foo string `arg:"positional,env:FOO" default:"bar" help:"this is a positional with a default and an env variable"`
+	}
+
+	p, err := NewParser(Config{Program: "example"}, &args)
+	require.NoError(t, err)
+
+	var help bytes.Buffer
+	p.WriteHelp(&help)
+	assert.Equal(t, expectedHelp[1:], help.String())
+}
