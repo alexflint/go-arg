@@ -582,7 +582,7 @@ if p.Subcommand() == nil {
 ```
 
 
-### Programmatic error handling
+### Custom handling of --help and --version
 
 The following reproduces the internal logic of `MustParse` for the simple case where
 you are not using subcommands or --version. This allows you to respond
@@ -625,9 +625,6 @@ Usage: ./example --something SOMETHING
 $ ./example
 error: --something is required
 Usage: ./example --something SOMETHING
-
-$ ./example --something abc
-got "abc"
 ```
 
 To also handle --version programatically, use the following:
@@ -686,13 +683,10 @@ Usage: example --something SOMETHING
 $ ./example
 error: --something is required
 Usage: example --something SOMETHING
-
-$ ./example --something abc
-got "abc"
 ```
 
-To also handle subcommands, use this most general version (also works in absence of subcommands but
-is a bit more complex):
+To generate subcommand-specific help messages, use the following most general version
+(this also works in absence of subcommands but is a bit more complex):
 
 ```go
 type fetchCmd struct {
@@ -761,7 +755,7 @@ Global options:
 
 ### API Documentation
 
-https://godoc.org/github.com/alexflint/go-arg
+https://pkg.go.dev/github.com/alexflint/go-arg
 
 ### Rationale
 
