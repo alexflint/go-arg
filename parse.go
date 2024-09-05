@@ -493,8 +493,15 @@ func cmdFromStruct(name string, dest path, t reflect.Type) (*command, error) {
 	return &cmd, nil
 }
 
-// Parse processes the given command line option, storing the results in the field
-// of the structs from which NewParser was constructed
+// Parse processes the given command line option, storing the results in the fields
+// of the structs from which NewParser was constructed.
+//
+// It returns ErrHelp if "--help" is one of the command line args and ErrVersion if
+// "--version" is one of the command line args (the latter only applies if the
+// destination struct passed to NewParser implements Versioned.)
+//
+// To respond to --help and --version in the way that MustParse does, see examples
+// in the README under "Custom handling of --help and --version".
 func (p *Parser) Parse(args []string) error {
 	err := p.process(args)
 	if err != nil {
