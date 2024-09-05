@@ -493,7 +493,7 @@ func cmdFromStruct(name string, dest path, t reflect.Type) (*command, error) {
 	return &cmd, nil
 }
 
-// Parse processes the given command line option, storing the results in the field
+// Parse processes the given command line option, storing the results in the fields
 // of the structs from which NewParser was constructed.
 //
 // It returns ErrHelp if "--help" is one of the command line args and ErrVersion if
