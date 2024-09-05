@@ -237,7 +237,7 @@ func (versioned) Version() string {
 }
 
 func TestUsageWithVersion(t *testing.T) {
-	expectedUsage := "example 3.2.1\nUsage: example"
+	expectedUsage := "Usage: example"
 
 	expectedHelp := `
 example 3.2.1
@@ -322,7 +322,7 @@ type subcommand struct {
 }
 
 func TestUsageWithVersionAndSubcommand(t *testing.T) {
-	expectedUsage := "example 3.2.1\nUsage: example <command> [<args>]"
+	expectedUsage := "Usage: example <command> [<args>]"
 
 	expectedHelp := `
 example 3.2.1
@@ -353,7 +353,7 @@ Commands:
 	p.WriteUsage(&usage)
 	assert.Equal(t, expectedUsage, strings.TrimSpace(usage.String()))
 
-	expectedUsage = "example 3.2.1\nUsage: example cmd [--number NUMBER]"
+	expectedUsage = "Usage: example cmd [--number NUMBER]"
 
 	expectedHelp = `
 example 3.2.1
