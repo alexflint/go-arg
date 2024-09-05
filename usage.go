@@ -243,7 +243,7 @@ func (p *Parser) WriteHelpForSubcommand(w io.Writer, subcommand ...string) error
 	if len(positionals) > 0 {
 		fmt.Fprint(w, "\nPositional arguments:\n")
 		for _, spec := range positionals {
-			print(w, spec.placeholder, spec.help)
+			print(w, spec.placeholder, spec.help, withDefault(spec.defaultString), withEnv(spec.env))
 		}
 	}
 
