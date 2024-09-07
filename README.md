@@ -64,7 +64,7 @@ fmt.Println("Input:", args.Input)
 fmt.Println("Output:", args.Output)
 ```
 
-```
+```shell
 $ ./example src.txt x.out y.out z.out
 Input: src.txt
 Output: [x.out y.out z.out]
@@ -80,12 +80,12 @@ arg.MustParse(&args)
 fmt.Println("Workers:", args.Workers)
 ```
 
-```
+```shell
 $ WORKERS=4 ./example
 Workers: 4
 ```
 
-```
+```shell
 $ WORKERS=4 ./example --workers=6
 Workers: 6
 ```
@@ -100,7 +100,7 @@ arg.MustParse(&args)
 fmt.Println("Workers:", args.Workers)
 ```
 
-```
+```shell
 $ NUM_WORKERS=4 ./example
 Workers: 4
 ```
@@ -115,7 +115,7 @@ arg.MustParse(&args)
 fmt.Println("Workers:", args.Workers)
 ```
 
-```
+```shell
 $ WORKERS='1,99' ./example
 Workers: [1 99]
 ```
@@ -130,14 +130,35 @@ arg.MustParse(&args)
 fmt.Println("Workers:", args.Workers)
 ```
 
-```
+```shell
 $ NUM_WORKERS=6 ./example
 Workers: 6
 $ NUM_WORKERS=6 ./example --count 4
 Workers: 4
 ```
 
+Configuring a global environment variable name prefix is also possible:
+
+```go
+var args struct {
+	Workers int `arg:"--count,env:NUM_WORKERS"`
+}
+
+p, err := arg.NewParser(arg.Config{
+    EnvPrefix: "MYAPP_",
+}, &args)
+
+p.MustParse(os.Args[1:])
+fmt.Println("Workers:", args.Workers)
+```
+
+```shell
+$ MYAPP_NUM_WORKERS=6 ./example
+Workers: 6
+```
+
 ### Usage strings
+
 ```go
 var args struct {
 	Input    string   `arg:"positional"`
@@ -185,6 +206,7 @@ arg.MustParse(&args)
 ```
 
 #### Ignoring environment variables and/or default values
+
 ```go
 var args struct {
     Test  string `arg:"-t,env:TEST" default:"something"`
@@ -195,10 +217,11 @@ p, err := arg.NewParser(arg.Config{
     IgnoreDefault: true,
 }, &args)
 
-err = p.Parse(os.Args)
+err = p.Parse(os.Args[1:])
 ```
 
 ### Arguments with multiple values
+
 ```go
 var args struct {
 	Database string
@@ -214,6 +237,7 @@ Fetching the following IDs from foo: [1 2 3]
 ```
 
 ### Arguments that can be specified multiple times, mixed with positionals
+
 ```go
 var args struct {
     Commands  []string `arg:"-c,separate"`
@@ -231,6 +255,7 @@ Databases [db1 db2 db3]
 ```
 
 ### Arguments with keys and values
+
 ```go
 var args struct {
 	UserIDs map[string]int
@@ -245,6 +270,7 @@ map[john:123 mary:456]
 ```
 
 ### Version strings
+
 ```go
 type args struct {
 	...
@@ -269,6 +295,7 @@ someprogram 4.3.0
 > If a `--version` flag is defined in `args` or any subcommand, it overrides the built-in versioning.
 
 ### Custom validation
+
 ```go
 var args struct {
 	Foo string
@@ -310,13 +337,11 @@ Options:
   --help, -h             display this help and exit
 ```
 
-
 ### Embedded structs
 
 The fields of embedded structs are treated just like regular fields:
 
 ```go
-
 type DatabaseOptions struct {
 	Host     string
 	Username string
@@ -384,6 +409,7 @@ func main() {
 	fmt.Printf("%#v\n", args.Name)
 }
 ```
+
 ```shell
 $ ./example --name=foo.bar
 main.NameDotName{Head:"foo", Tail:"bar"}
@@ -420,6 +446,7 @@ func main() {
 	fmt.Printf("%#v\n", args.Name)
 }
 ```
+
 ```shell
 $ ./example --help
 Usage: test [--name NAME]
@@ -445,6 +472,7 @@ var args struct {
 }
 arg.MustParse(&args)
 ```
+
 ```shell
 $ ./example -h
 Usage: example [--optimize LEVEL] [--maxjobs N] SRC [DST [DST ...]]
@@ -580,7 +608,6 @@ if p.Subcommand() == nil {
     p.Fail("missing subcommand")
 }
 ```
-
 
 ### Custom handling of --help and --version
 
@@ -722,7 +749,8 @@ func main() {
 		p.WriteUsageForSubcommand(os.Stdout, p.SubcommandNames()...)
 		os.Exit(1)
 	}
-}```
+}
+```
 
 ```shell
 $ ./example --version
