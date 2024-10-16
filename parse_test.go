@@ -1760,3 +1760,18 @@ func TestExitFunctionAndOutStreamGetFilledIn(t *testing.T) {
 	assert.NotNil(t, p.config.Exit) // go prohibits function pointer comparison
 	assert.Equal(t, p.config.Out, os.Stdout)
 }
+
+func TestIgnoreUnknownCommands(t *testing.T) {
+	var args struct {
+		Known bool     `arg:"--known"`
+		Args  []string `arg:"positional"`
+	}
+	p, err := NewParser(Config{IgnoreUnknownCommands: true}, &args)
+	require.NoError(t, err)
+
+	err = p.Parse([]string{"--known", "foo", "bar", "--unknown"})
+	require.NoError(t, err)
+
+	assert.True(t, args.Known)
+	assert.Equal(t, []string{"foo", "bar", "--unknown"}, args.Args)
+}
