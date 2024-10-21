@@ -615,7 +615,7 @@ func (p *Parser) process(args []string) error {
 	// must use explicit for loop, not range, because we manipulate i inside the loop
 	for i := 0; i < len(args); i++ {
 		arg := args[i]
-		if arg == "--" {
+		if arg == "--" && !allpositional {
 			allpositional = true
 			continue
 		}

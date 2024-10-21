@@ -609,6 +609,15 @@ func TestNoMoreOptionsBeforeHelp(t *testing.T) {
 	assert.NotEqual(t, ErrHelp, err)
 }
 
+func TestNoMoreOptionsTwice(t *testing.T) {
+	var args struct {
+		X []string `arg:"positional"`
+	}
+	err := parse("-- --", &args)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"--"}, args.X)
+}
+
 func TestHelpFlag(t *testing.T) {
 	var args struct {
 		Foo string
