@@ -28,11 +28,11 @@ func parse(cmdline string, dest interface{}) error {
 }
 
 func pparse(cmdline string, dest interface{}) (*Parser, error) {
-	return parseWithEnv(cmdline, nil, dest)
+	return parseWithEnv(Config{}, cmdline, nil, dest)
 }
 
-func parseWithEnv(cmdline string, env []string, dest interface{}) (*Parser, error) {
-	p, err := NewParser(Config{}, dest)
+func parseWithEnv(config Config, cmdline string, env []string, dest interface{}) (*Parser, error) {
+	p, err := NewParser(config, dest)
 	if err != nil {
 		return nil, err
 	}
@@ -231,7 +231,7 @@ func TestRequiredWithEnvOnly(t *testing.T) {
 	var args struct {
 		Foo string `arg:"required,--,-,env:FOO"`
 	}
-	_, err := parseWithEnv("", []string{}, &args)
+	_, err := parseWithEnv(Config{}, "", []string{}, &args)
 	require.Error(t, err, "environment variable FOO is required")
 }
 
@@ -720,7 +720,7 @@ func TestEnvironmentVariable(t *testing.T) {
 	var args struct {
 		Foo string `arg:"env"`
 	}
-	_, err := parseWithEnv("", []string{"FOO=bar"}, &args)
+	_, err := parseWithEnv(Config{}, "", []string{"FOO=bar"}, &args)
 	require.NoError(t, err)
 	assert.Equal(t, "bar", args.Foo)
 }
@@ -729,7 +729,7 @@ func TestEnvironmentVariableNotPresent(t *testing.T) {
 	var args struct {
 		NotPresent string `arg:"env"`
 	}
-	_, err := parseWithEnv("", nil, &args)
+	_, err := parseWithEnv(Config{}, "", nil, &args)
 	require.NoError(t, err)
 	assert.Equal(t, "", args.NotPresent)
 }
@@ -738,7 +738,7 @@ func TestEnvironmentVariableOverrideName(t *testing.T) {
 	var args struct {
 		Foo string `arg:"env:BAZ"`
 	}
-	_, err := parseWithEnv("", []string{"BAZ=bar"}, &args)
+	_, err := parseWithEnv(Config{}, "", []string{"BAZ=bar"}, &args)
 	require.NoError(t, err)
 	assert.Equal(t, "bar", args.Foo)
 }
@@ -747,7 +747,7 @@ func TestEnvironmentVariableOverrideArgument(t *testing.T) {
 	var args struct {
 		Foo string `arg:"env"`
 	}
-	_, err := parseWithEnv("--foo zzz", []string{"FOO=bar"}, &args)
+	_, err := parseWithEnv(Config{}, "--foo zzz", []string{"FOO=bar"}, &args)
 	require.NoError(t, err)
 	assert.Equal(t, "zzz", args.Foo)
 }
@@ -756,7 +756,7 @@ func TestEnvironmentVariableError(t *testing.T) {
 	var args struct {
 		Foo int `arg:"env"`
 	}
-	_, err := parseWithEnv("", []string{"FOO=bar"}, &args)
+	_, err := parseWithEnv(Config{}, "", []string{"FOO=bar"}, &args)
 	assert.Error(t, err)
 }
 
@@ -764,7 +764,7 @@ func TestEnvironmentVariableRequired(t *testing.T) {
 	var args struct {
 		Foo string `arg:"env,required"`
 	}
-	_, err := parseWithEnv("", []string{"FOO=bar"}, &args)
+	_, err := parseWithEnv(Config{}, "", []string{"FOO=bar"}, &args)
 	require.NoError(t, err)
 	assert.Equal(t, "bar", args.Foo)
 }
@@ -773,7 +773,7 @@ func TestEnvironmentVariableSliceArgumentString(t *testing.T) {
 	var args struct {
 		Foo []string `arg:"env"`
 	}
-	_, err := parseWithEnv("", []string{`FOO=bar,"baz, qux"`}, &args)
+	_, err := parseWithEnv(Config{}, "", []string{`FOO=bar,"baz, qux"`}, &args)
 	require.NoError(t, err)
 	assert.Equal(t, []string{"bar", "baz, qux"}, args.Foo)
 }
@@ -782,7 +782,7 @@ func TestEnvironmentVariableSliceEmpty(t *testing.T) {
 	var args struct {
 		Foo []string `arg:"env"`
 	}
-	_, err := parseWithEnv("", []string{`FOO=`}, &args)
+	_, err := parseWithEnv(Config{}, "", []string{`FOO=`}, &args)
 	require.NoError(t, err)
 	assert.Len(t, args.Foo, 0)
 }
@@ -791,7 +791,7 @@ func TestEnvironmentVariableSliceArgumentInteger(t *testing.T) {
 	var args struct {
 		Foo []int `arg:"env"`
 	}
-	_, err := parseWithEnv("", []string{`FOO=1,99`}, &args)
+	_, err := parseWithEnv(Config{}, "", []string{`FOO=1,99`}, &args)
 	require.NoError(t, err)
 	assert.Equal(t, []int{1, 99}, args.Foo)
 }
@@ -800,7 +800,7 @@ func TestEnvironmentVariableSliceArgumentFloat(t *testing.T) {
 	var args struct {
 		Foo []float32 `arg:"env"`
 	}
-	_, err := parseWithEnv("", []string{`FOO=1.1,99.9`}, &args)
+	_, err := parseWithEnv(Config{}, "", []string{`FOO=1.1,99.9`}, &args)
 	require.NoError(t, err)
 	assert.Equal(t, []float32{1.1, 99.9}, args.Foo)
 }
@@ -809,7 +809,7 @@ func TestEnvironmentVariableSliceArgumentBool(t *testing.T) {
 	var args struct {
 		Foo []bool `arg:"env"`
 	}
-	_, err := parseWithEnv("", []string{`FOO=true,false,0,1`}, &args)
+	_, err := parseWithEnv(Config{}, "", []string{`FOO=true,false,0,1`}, &args)
 	require.NoError(t, err)
 	assert.Equal(t, []bool{true, false, false, true}, args.Foo)
 }
@@ -818,7 +818,7 @@ func TestEnvironmentVariableSliceArgumentWrongCsv(t *testing.T) {
 	var args struct {
 		Foo []int `arg:"env"`
 	}
-	_, err := parseWithEnv("", []string{`FOO=1,99\"`}, &args)
+	_, err := parseWithEnv(Config{}, "", []string{`FOO=1,99\"`}, &args)
 	assert.Error(t, err)
 }
 
@@ -826,7 +826,7 @@ func TestEnvironmentVariableSliceArgumentWrongType(t *testing.T) {
 	var args struct {
 		Foo []bool `arg:"env"`
 	}
-	_, err := parseWithEnv("", []string{`FOO=one,two`}, &args)
+	_, err := parseWithEnv(Config{}, "", []string{`FOO=one,two`}, &args)
 	assert.Error(t, err)
 }
 
@@ -834,7 +834,7 @@ func TestEnvironmentVariableMap(t *testing.T) {
 	var args struct {
 		Foo map[int]string `arg:"env"`
 	}
-	_, err := parseWithEnv("", []string{`FOO=1=one,99=ninetynine`}, &args)
+	_, err := parseWithEnv(Config{}, "", []string{`FOO=1=one,99=ninetynine`}, &args)
 	require.NoError(t, err)
 	assert.Len(t, args.Foo, 2)
 	assert.Equal(t, "one", args.Foo[1])
@@ -845,9 +845,19 @@ func TestEnvironmentVariableEmptyMap(t *testing.T) {
 	var args struct {
 		Foo map[int]string `arg:"env"`
 	}
-	_, err := parseWithEnv("", []string{`FOO=`}, &args)
+	_, err := parseWithEnv(Config{}, "", []string{`FOO=`}, &args)
 	require.NoError(t, err)
 	assert.Len(t, args.Foo, 0)
+}
+
+func TestEnvironmentVariableWithPrefix(t *testing.T) {
+	var args struct {
+		Foo string `arg:"env"`
+	}
+
+	_, err := parseWithEnv(Config{EnvPrefix: "MYAPP_"}, "", []string{"MYAPP_FOO=bar"}, &args)
+	require.NoError(t, err)
+	assert.Equal(t, "bar", args.Foo)
 }
 
 func TestEnvironmentVariableIgnored(t *testing.T) {
@@ -882,7 +892,7 @@ func TestRequiredEnvironmentOnlyVariableIsMissing(t *testing.T) {
 		Foo string `arg:"required,--,env:FOO"`
 	}
 
-	_, err := parseWithEnv("", []string{""}, &args)
+	_, err := parseWithEnv(Config{}, "", []string{""}, &args)
 	assert.Error(t, err)
 }
 
@@ -891,7 +901,7 @@ func TestOptionalEnvironmentOnlyVariable(t *testing.T) {
 		Foo string `arg:"env:FOO"`
 	}
 
-	_, err := parseWithEnv("", []string{}, &args)
+	_, err := parseWithEnv(Config{}, "", []string{}, &args)
 	assert.NoError(t, err)
 }
 
