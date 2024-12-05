@@ -746,13 +746,13 @@ func (p *Parser) process(args []string) error {
 		if spec.cardinality == multiple {
 			err := setSliceOrMap(p.val(spec.dest), positionals, true)
 			if err != nil {
-				return fmt.Errorf("error processing %s: %v", spec.field.Name, err)
+				return fmt.Errorf("error processing %s: %v", spec.placeholder, err)
 			}
 			positionals = nil
 		} else {
 			err := scalar.ParseValue(p.val(spec.dest), positionals[0])
 			if err != nil {
-				return fmt.Errorf("error processing %s: %v", spec.field.Name, err)
+				return fmt.Errorf("error processing %s: %v", spec.placeholder, err)
 			}
 			positionals = positionals[1:]
 		}
@@ -767,18 +767,13 @@ func (p *Parser) process(args []string) error {
 			continue
 		}
 
-		name := strings.ToLower(spec.field.Name)
-		if spec.long != "" && !spec.positional {
-			name = "--" + spec.long
-		}
-
 		if spec.required {
 			if spec.short == "" && spec.long == "" {
 				msg := fmt.Sprintf("environment variable %s is required", spec.env)
 				return errors.New(msg)
 			}
 
-			msg := fmt.Sprintf("%s is required", name)
+			msg := fmt.Sprintf("%s is required", spec.placeholder)
 			if spec.env != "" {
 				msg += " (or environment variable " + spec.env + ")"
 			}
