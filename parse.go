@@ -285,6 +285,13 @@ func NewParser(config Config, dests ...interface{}) (*Parser, error) {
 		}
 	}
 
+	// Set the parent of the subcommands to be the top-level command
+	// to make sure that global options work when there is more than one
+	// dest supplied.
+	for _, subcommand := range p.cmd.subcommands {
+		subcommand.parent = p.cmd
+	}
+
 	return &p, nil
 }
 
