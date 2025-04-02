@@ -127,6 +127,10 @@ type Config struct {
 	// default values, including pointers to sub commands
 	IgnoreDefault bool
 
+	// IgnoreHelpVersion instructs the library to ignores its special handling
+	// of `-h` allowing the user to use it
+	IgnoreShortHelp bool
+
 	// StrictSubcommands intructs the library not to allow global commands after
 	// subcommand
 	StrictSubcommands bool
@@ -672,7 +676,11 @@ func (p *Parser) process(args []string) error {
 
 		// check for special --help and --version flags
 		switch arg {
-		case "-h", "--help":
+		case "-h":
+			if !p.config.IgnoreShortHelp {
+				return ErrHelp
+			}
+		case "--help":
 			return ErrHelp
 		case "--version":
 			if !hasVersionOption && p.version != "" {

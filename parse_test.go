@@ -1779,3 +1779,17 @@ func TestExitFunctionAndOutStreamGetFilledIn(t *testing.T) {
 	assert.NotNil(t, p.config.Exit) // go prohibits function pointer comparison
 	assert.Equal(t, p.config.Out, os.Stdout)
 }
+
+func TestIgnoreShortHelp(t *testing.T) {
+	var args struct {
+		Host string `arg:"required,-h"`
+	}
+	_, err := parseWithEnv(Config{IgnoreShortHelp: true}, "-h 10.0.0.1", nil, &args)
+	require.NoError(t, err)
+	require.Equal(t, "10.0.0.1", args.Host)
+
+	// Check that help still works if you don't specify `IgnoreShortHelp`
+	_, err = parseWithEnv(Config{}, "-h 10.0.0.1", nil, &args)
+	require.Error(t, err)
+	require.Equal(t, ErrHelp.Error(), err.Error())
+}
