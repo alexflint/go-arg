@@ -3,6 +3,7 @@ package arg
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"net/mail"
@@ -1778,4 +1779,133 @@ func TestExitFunctionAndOutStreamGetFilledIn(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotNil(t, p.config.Exit) // go prohibits function pointer comparison
 	assert.Equal(t, p.config.Out, os.Stdout)
+}
+
+type RepeatedTest struct {
+	optstring string
+	count_a   int
+	count_c   int
+	err       error
+}
+
+var reptests = []RepeatedTest{
+	{"-a", 1, 0, nil},
+	{"-aa", 2, 0, nil},
+	{"-aaa", 3, 0, nil},
+	{"-a -a -a", 3, 0, nil},
+	{"-a=3", 3, 0, nil},
+	{"-ac", 2, 0, errors.New("mismatched repeat")},
+	{"-a -c", 1, 1, nil},
+	{"-a -cc", 1, 2, nil},
+	{"-a -aa -c -cc -ccc", 2, 3, nil}, // last option wins for "long" version
+	{"-bb", 0, 0, errors.New("unknown argument -bb")},
+	{"-aab", 0, 0, errors.New("mismatched repeat")},
+	{"-abba", 0, 0, errors.New("mismatched repeat")},
+	{"-a -a -c -c -a -c", 3, 3, nil},
+	{"-a -a -c -c -aa -cccc", 2, 4, nil},
+	{"-aa -cc -a -a -c", 4, 3, nil},
+	{"-aa -cc -a -a -c -aa -cc", 2, 2, nil},
+	{"-aa -cc -a -a -c -a=1 -c=1", 1, 1, nil},
+	{"-aa -cc -a -a -c -a=9 -c=7", 9, 7, nil},
+	{"-aa -cc -a -a -c -a=0 -c=1", 0, 1, nil},
+	{"-a=0 -c=1 -a -c", 1, 2, nil},
+	{"-a=0 -c=1 -aa -ccc", 2, 3, nil},
+	{"-a=0 -c=1 -aa -ccc -a -c", 3, 4, nil},
+}
+
+// TestRepeatedShort tests our counter parsing
+func TestRepeatedShort(t *testing.T) {
+	for _, v := range reptests {
+		t.Run(fmt.Sprintf("repeat opts=%s counts=%d:%d", v.optstring, v.count_a, v.count_c), func(t *testing.T) {
+			var args struct {
+				A int  `arg:"repeated,env"`
+				C *int `arg:"repeated,env"`
+				D int
+				F float64
+			}
+
+			err := parse(v.optstring, &args)
+			if v.err == nil {
+				require.NoError(t, err)
+				assert.Equal(t, v.count_a, args.A)
+				assert.Equal(t, 0, args.D)
+
+				// If an option with `*int` type isn't encountered, the struct
+				// field will remain `nil` which is unhelpful here yet idiomatic.
+				if v.count_c > 0 {
+					assert.Equal(t, v.count_c, *args.C)
+				} else {
+					assert.Nil(t, args.C)
+				}
+			} else {
+				require.Error(t, err)
+				// Not ideal but you can't match two `errors.New(X)` even if `X` is identical.
+				require.Equal(t, v.err.Error(), err.Error())
+			}
+		})
+	}
+}
+
+// TestRepeatedShortInt64 checks whether our counters work with `int64` too
+func TestRepeatedShortInt64(t *testing.T) {
+	for _, v := range reptests {
+		t.Run(fmt.Sprintf("repeat opts=%s counts=%d:%d", v.optstring, v.count_a, v.count_c), func(t *testing.T) {
+			var args struct {
+				A int64  `arg:"repeated,env"`
+				C *int64 `arg:"repeated,env"`
+				D int
+				F float64
+			}
+
+			err := parse(v.optstring, &args)
+			if v.err == nil {
+				require.NoError(t, err)
+				assert.Equal(t, int64(v.count_a), args.A)
+				assert.Equal(t, 0, args.D)
+
+				// If an option with `*int` type isn't encountered, the struct
+				// field will remain `nil` which is unhelpful here yet idiomatic.
+				if v.count_c > 0 {
+					assert.Equal(t, int64(v.count_c), *args.C)
+				} else {
+					assert.Nil(t, args.C)
+				}
+			} else {
+				require.Error(t, err)
+				// Not ideal but you can't match two `errors.New(X)` even if `X` is identical.
+				require.Equal(t, v.err.Error(), err.Error())
+			}
+		})
+	}
+}
+
+// TestRepeatedNotInt tests our error handling for non-int repeats
+func TestRepeatedNotInt(t *testing.T) {
+	var args struct {
+		A int  `arg:"repeated,env"`
+		C *int `arg:"repeated,env"`
+		D int
+		F float64 `arg:"repeated"`
+	}
+	optstring := "-f"
+
+	err := parse(optstring, &args)
+	require.Error(t, err)
+	require.Equal(t, ErrNotInt.Error(), err.Error())
+}
+
+// TestRepeatedLongNames tests what happens with no short option specified
+func TestRepeatedLongNames(t *testing.T) {
+	var args struct {
+		Apples int  `arg:"repeated,env"`
+		Cheese *int `arg:"repeated,env,-c"`
+		Durian int
+		F      float64
+	}
+	// Fails because `Apples` maps to `--apples` and we have no short option
+	optstring := "-a"
+
+	err := parse(optstring, &args)
+	require.Error(t, err)
+	require.Equal(t, ErrNoShortOption.Error(), err.Error())
 }
