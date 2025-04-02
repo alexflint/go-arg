@@ -1780,16 +1780,46 @@ func TestExitFunctionAndOutStreamGetFilledIn(t *testing.T) {
 	assert.Equal(t, p.config.Out, os.Stdout)
 }
 
-func TestIgnoreShortHelp(t *testing.T) {
-	var args struct {
-		Host string `arg:"required,-h"`
-	}
-	_, err := parseWithEnv(Config{IgnoreShortHelp: true}, "-h 10.0.0.1", nil, &args)
-	require.NoError(t, err)
-	require.Equal(t, "10.0.0.1", args.Host)
+type configHelpTest struct {
+	args     string
+	helpopts []string
+	err      error
+	name     string
+}
 
-	// Check that help still works if you don't specify `IgnoreShortHelp`
-	_, err = parseWithEnv(Config{}, "-h 10.0.0.1", nil, &args)
-	require.Error(t, err)
-	require.Equal(t, ErrHelp.Error(), err.Error())
+func TestConfigHelp(t *testing.T) {
+	var args struct {
+		Host  string `arg:"-h" default:"127.0.0.1"`
+		Queue string `arg:"-q"`
+	}
+	var argsLong struct {
+		Help bool `arg:"required,--help"`
+	}
+	var err error
+
+	tests := []configHelpTest{
+		{"-h 10.0.0.1", nil, ErrHelp, "nil config is default"},
+		{"-h 10.0.0.1", []string{}, nil, "empty config no help"},
+		{"-h 10.0.0.1", []string{"--help"}, nil, "long opt"},
+		{"--aidezmoi", []string{"--aidezmoi"}, ErrHelp, "custom long"},
+		{"-h 1.2.3.4 --help", []string{"--help"}, ErrHelp, "help wins"},
+		{"-q priority", nil, nil, "normal usage"},
+		{"-q priority -h 10.0.0.1", nil, ErrHelp, "normal usage"},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			_, err = parseWithEnv(Config{Help: test.helpopts}, test.args, nil, &args)
+			if test.err == nil {
+				require.NoError(t, err)
+			} else {
+				require.Equal(t, test.err.Error(), err.Error())
+			}
+		})
+	}
+
+	// Check that you can use `--help` as a long option if you want
+	_, err = parseWithEnv(Config{Help: []string{}}, "--help", nil, &argsLong)
+	require.NoError(t, err)
+	require.Equal(t, true, argsLong.Help)
 }

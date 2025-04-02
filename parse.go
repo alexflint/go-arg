@@ -127,9 +127,8 @@ type Config struct {
 	// default values, including pointers to sub commands
 	IgnoreDefault bool
 
-	// IgnoreHelpVersion instructs the library to ignores its special handling
-	// of `-h` allowing the user to use it
-	IgnoreShortHelp bool
+	// Help instructs the library to use only these strings as help triggers.
+	Help []string
 
 	// StrictSubcommands intructs the library not to allow global commands after
 	// subcommand
@@ -519,11 +518,12 @@ func cmdFromStruct(name string, dest path, t reflect.Type, envPrefix string) (*c
 func (p *Parser) Parse(args []string) error {
 	err := p.process(args)
 	if err != nil {
+		if errors.Is(err, ErrHelp) {
+			return ErrHelp
+		}
+
 		// If -h or --help were specified then make sure help text supercedes other errors
 		for _, arg := range args {
-			if arg == "-h" || arg == "--help" {
-				return ErrHelp
-			}
 			if arg == "--" {
 				break
 			}
@@ -596,6 +596,18 @@ func (p *Parser) captureEnvVars(specs []*spec, wasPresent map[*spec]bool) error 
 func (p *Parser) process(args []string) error {
 	// track the options we have seen
 	wasPresent := make(map[*spec]bool)
+
+	// make a lookup for our help options
+	helpOpts := make(map[string]bool)
+
+	// default to the usual help opts
+	if p.config.Help == nil {
+		p.config.Help = []string{"-h", "--help"}
+	}
+
+	for _, v := range p.config.Help {
+		helpOpts[v] = true
+	}
 
 	// union of specs for the chain of subcommands encountered so far
 	curCmd := p.cmd
@@ -674,15 +686,12 @@ func (p *Parser) process(args []string) error {
 			continue
 		}
 
-		// check for special --help and --version flags
-		switch arg {
-		case "-h":
-			if !p.config.IgnoreShortHelp {
-				return ErrHelp
-			}
-		case "--help":
+		_, ok := helpOpts[arg]
+		if ok {
 			return ErrHelp
-		case "--version":
+		}
+
+		if arg == "--version" {
 			if !hasVersionOption && p.version != "" {
 				return ErrVersion
 			}
