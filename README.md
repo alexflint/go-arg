@@ -288,8 +288,8 @@ fmt.Println(args.Verbosity)
 5
 ```
 
-The field must be `int`-like according to `reflect.CanInt()` (e.g. `int`, `int32`, `int64`).  If no short option is provided,
-the first character of the long option will be used.  Note that you cannot do `-v 5` to set the value, it must be `-v=5`.
+The field must be `int`-like according to `reflect.CanInt()` (e.g. `int`, `int32`, `int64`).  A short option must be
+provided.  Note that you cannot do `-v 5` to set the value, it must be `-v=5`.
 
 ### Version strings
 
