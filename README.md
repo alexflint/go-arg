@@ -617,6 +617,8 @@ Supplying an empty slice will prevent any options from triggering help.  A `nil`
 (ie. not setting `Help` explicitly) will default to `[]string{"-h", "--help"}` to emulate
 the original behaviour.
 
+At most one long and one short option should be supplied in `config.Help`.
+
 ```go
 var args struct {
 	Hostname string `arg:"-h" default:"127.0.0.1"`

@@ -1147,3 +1147,27 @@ Environment variables:
 	p.WriteUsage(&usage)
 	assert.Equal(t, expectedUsage, strings.TrimSpace(usage.String()))
 }
+
+func TestUsageWithMultipleHelpOptions(t *testing.T) {
+	expectedUsage := "Usage: example"
+
+	expectedHelp := `
+example 3.2.1
+Usage: example
+
+Options:
+  --aidezmoi, -a         display this help and exit
+  --version              display version and exit
+`
+	os.Args[0] = "example"
+	p, err := NewParser(Config{Help: []string{"-a", "--aidezmoi"}}, &versioned{})
+	require.NoError(t, err)
+
+	var help bytes.Buffer
+	p.WriteHelp(&help)
+	assert.Equal(t, expectedHelp[1:], help.String())
+
+	var usage bytes.Buffer
+	p.WriteUsage(&usage)
+	assert.Equal(t, expectedUsage, strings.TrimSpace(usage.String()))
+}
