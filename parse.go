@@ -211,6 +211,10 @@ func NewParser(config Config, dests ...interface{}) (*Parser, error) {
 	if config.Out == nil {
 		config.Out = os.Stdout
 	}
+	// default to the usual help opts
+	if config.Help == nil {
+		config.Help = []string{"-h", "--help"}
+	}
 
 	// first pick a name for the command for use in the usage text
 	var name string
@@ -597,18 +601,6 @@ func (p *Parser) process(args []string) error {
 	// track the options we have seen
 	wasPresent := make(map[*spec]bool)
 
-	// make a lookup for our help options
-	helpOpts := make(map[string]bool)
-
-	// default to the usual help opts
-	if p.config.Help == nil {
-		p.config.Help = []string{"-h", "--help"}
-	}
-
-	for _, v := range p.config.Help {
-		helpOpts[v] = true
-	}
-
 	// union of specs for the chain of subcommands encountered so far
 	curCmd := p.cmd
 	p.subcommand = nil
@@ -686,8 +678,15 @@ func (p *Parser) process(args []string) error {
 			continue
 		}
 
-		_, ok := helpOpts[arg]
-		if ok {
+		// From Go 1.21, this can be `slices.Contains(p.config.Help, arg)`
+		helpFound := false
+		for _, v := range p.config.Help {
+			if arg == v {
+				helpFound = true
+				break
+			}
+		}
+		if helpFound {
 			return ErrHelp
 		}
 
