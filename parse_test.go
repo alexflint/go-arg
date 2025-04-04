@@ -1791,6 +1791,7 @@ func TestConfigHelp(t *testing.T) {
 	var args struct {
 		Host  string `arg:"-h" default:"127.0.0.1"`
 		Queue string `arg:"-q"`
+		S     string
 	}
 	var argsLong struct {
 		Help bool `arg:"required,--help"`
@@ -1805,6 +1806,7 @@ func TestConfigHelp(t *testing.T) {
 		{"-h 1.2.3.4 --help", []string{"--help"}, ErrHelp, "help wins"},
 		{"-q priority", nil, nil, "normal usage"},
 		{"-q priority -h 10.0.0.1", nil, ErrHelp, "normal usage"},
+		{"--s --help", nil, ErrHelp, "help should win"},
 	}
 
 	for _, test := range tests {

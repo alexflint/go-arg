@@ -522,12 +522,11 @@ func cmdFromStruct(name string, dest path, t reflect.Type, envPrefix string) (*c
 func (p *Parser) Parse(args []string) error {
 	err := p.process(args)
 	if err != nil {
-		if errors.Is(err, ErrHelp) {
-			return ErrHelp
-		}
-
 		// If -h or --help were specified then make sure help text supercedes other errors
 		for _, arg := range args {
+			if p.argIsHelp(arg) {
+				return ErrHelp
+			}
 			if arg == "--" {
 				break
 			}
@@ -678,15 +677,7 @@ func (p *Parser) process(args []string) error {
 			continue
 		}
 
-		// From Go 1.21, this can be `slices.Contains(p.config.Help, arg)`
-		helpFound := false
-		for _, v := range p.config.Help {
-			if arg == v {
-				helpFound = true
-				break
-			}
-		}
-		if helpFound {
+		if p.argIsHelp(arg) {
 			return ErrHelp
 		}
 
@@ -878,4 +869,16 @@ func findSubcommand(cmds []*command, name string) *command {
 		}
 	}
 	return nil
+}
+
+// argIsHelp is a helper function to check if the supplied string is
+// present in the configuration's list of allowed help triggers.
+// From Go 1.21, this can be `return slices.Contains(p.config.Help, arg)`
+func (p *Parser) argIsHelp(arg string) bool {
+	for _, v := range p.config.Help {
+		if arg == v {
+			return true
+		}
+	}
+	return false
 }
