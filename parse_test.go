@@ -120,17 +120,91 @@ func TestNegativeInt(t *testing.T) {
 	assert.EqualValues(t, args.Foo, -100)
 }
 
+func TestNegativeFloat(t *testing.T) {
+	var args struct {
+		Foo float64
+	}
+	err := parse("-foo -99", &args)
+	require.NoError(t, err)
+	assert.EqualValues(t, args.Foo, -99)
+}
+
+func TestNumericFlag(t *testing.T) {
+	var args struct {
+		UseIPv6 bool `arg:"-6"`
+		Foo     int
+	}
+	err := parse("-6", &args)
+	require.NoError(t, err)
+	assert.EqualValues(t, args.UseIPv6, true)
+}
+
+func TestNumericFlagTakesPrecedence(t *testing.T) {
+	var args struct {
+		UseIPv6 bool `arg:"-6"`
+		Foo     int
+	}
+	err := parse("-foo -6", &args)
+	require.Error(t, err)
+}
+
+func TestRepeatedNegativeInts(t *testing.T) {
+	var args struct {
+		Ints []int `arg:"--numbers"`
+	}
+	err := parse("--numbers -1 -2 -6", &args)
+	require.NoError(t, err)
+	assert.EqualValues(t, args.Ints, []int{-1, -2, -6})
+}
+
+func TestRepeatedNegativeFloats(t *testing.T) {
+	var args struct {
+		Floats []float32 `arg:"--numbers"`
+	}
+	err := parse("--numbers -1 -2 -6", &args)
+	require.NoError(t, err)
+	assert.EqualValues(t, args.Floats, []float32{-1, -2, -6})
+}
+
+func TestRepeatedNegativeFloatsThenNumericFlag(t *testing.T) {
+	var args struct {
+		Floats  []float32 `arg:"--numbers"`
+		UseIPv6 bool      `arg:"-6"`
+	}
+	err := parse("--numbers -1 -2 -6", &args)
+	require.NoError(t, err)
+	assert.EqualValues(t, args.Floats, []float32{-1, -2})
+	assert.True(t, args.UseIPv6)
+}
+
+func TestRepeatedNegativeFloatsThenNonexistentFlag(t *testing.T) {
+	var args struct {
+		Floats  []float32 `arg:"--numbers"`
+		UseIPv6 bool      `arg:"-6"`
+	}
+	err := parse("--numbers -1 -2 -n", &args)
+	require.Error(t, err, "unknown argument -n")
+}
+
+func TestRepeatedNegativeIntsThenFloat(t *testing.T) {
+	var args struct {
+		Ints []int `arg:"--numbers"`
+	}
+	err := parse("--numbers -1 -2 -0.1", &args)
+	require.Error(t, err, "unknown argument -0.1")
+}
+
 func TestNegativeIntAndFloatAndTricks(t *testing.T) {
 	var args struct {
 		Foo int
 		Bar float64
 		N   int `arg:"--100"`
 	}
-	err := parse("-foo -100 -bar -60.14 -100 -100", &args)
+	err := parse("-foo -99 -bar -60.14 -100 -101", &args)
 	require.NoError(t, err)
-	assert.EqualValues(t, args.Foo, -100)
+	assert.EqualValues(t, args.Foo, -99)
 	assert.EqualValues(t, args.Bar, -60.14)
-	assert.EqualValues(t, args.N, -100)
+	assert.EqualValues(t, args.N, -101)
 }
 
 func TestUint(t *testing.T) {
@@ -523,15 +597,6 @@ func TestMissingValueInMiddle(t *testing.T) {
 	}
 	err := parse("--foo --bar=abc", &args)
 	assert.Error(t, err)
-}
-
-func TestNegativeValue(t *testing.T) {
-	var args struct {
-		Foo int
-	}
-	err := parse("--foo -123", &args)
-	require.NoError(t, err)
-	assert.Equal(t, -123, args.Foo)
 }
 
 func TestInvalidInt(t *testing.T) {

@@ -700,7 +700,7 @@ func (p *Parser) process(args []string) error {
 		if spec.cardinality == multiple {
 			var values []string
 			if value == "" {
-				for i+1 < len(args) && !isFlag(args[i+1]) && args[i+1] != "--" {
+				for i+1 < len(args) && isValue(args[i+1], spec.field.Type, specs) && args[i+1] != "--" {
 					values = append(values, args[i+1])
 					i++
 					if spec.separate {
@@ -728,7 +728,7 @@ func (p *Parser) process(args []string) error {
 			if i+1 == len(args) {
 				return fmt.Errorf("missing value for %s", arg)
 			}
-			if !nextIsNumeric(spec.field.Type, args[i+1]) && isFlag(args[i+1]) {
+			if !isValue(args[i+1], spec.field.Type, specs) {
 				return fmt.Errorf("missing value for %s", arg)
 			}
 			value = args[i+1]
@@ -801,22 +801,29 @@ func (p *Parser) process(args []string) error {
 	return nil
 }
 
-func nextIsNumeric(t reflect.Type, s string) bool {
-	switch t.Kind() {
-	case reflect.Ptr:
-		return nextIsNumeric(t.Elem(), s)
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Float32, reflect.Float64, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-		v := reflect.New(t)
-		err := scalar.ParseValue(v, s)
-		return err == nil
-	default:
-		return false
-	}
-}
-
 // isFlag returns true if a token is a flag such as "-v" or "--user" but not "-" or "--"
 func isFlag(s string) bool {
 	return strings.HasPrefix(s, "-") && strings.TrimLeft(s, "-") != ""
+}
+
+// isValue returns true if a token should be consumed as a value for a flag of type t. This
+// is almost always the inverse of isFlag. The one exception is for negative numbers, in which
+// case we check the list of active options and return true if its not present there.
+func isValue(s string, t reflect.Type, specs []*spec) bool {
+	switch t.Kind() {
+	case reflect.Ptr, reflect.Slice:
+		return isValue(s, t.Elem(), specs)
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Float32, reflect.Float64, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		v := reflect.New(t)
+		err := scalar.ParseValue(v, s)
+		// if value can be parsed and is not an explicit option declared elsewhere, then use it as a value
+		if err == nil && (!strings.HasPrefix(s, "-") || findOption(specs, strings.TrimPrefix(s, "-")) == nil) {
+			return true
+		}
+	}
+
+	// default case that is used in all cases other than negative numbers: inverse of isFlag
+	return !isFlag(s)
 }
 
 // val returns a reflect.Value corresponding to the current value for the
