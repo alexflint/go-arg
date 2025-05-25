@@ -127,6 +127,9 @@ type Config struct {
 	// default values, including pointers to sub commands
 	IgnoreDefault bool
 
+	// Help instructs the library to use only these strings as help triggers.
+	Help []string
+
 	// StrictSubcommands intructs the library not to allow global commands after
 	// subcommand
 	StrictSubcommands bool
@@ -207,6 +210,10 @@ func NewParser(config Config, dests ...interface{}) (*Parser, error) {
 	}
 	if config.Out == nil {
 		config.Out = os.Stdout
+	}
+	// default to the usual help opts
+	if config.Help == nil {
+		config.Help = []string{"-h", "--help"}
 	}
 
 	// first pick a name for the command for use in the usage text
@@ -517,7 +524,7 @@ func (p *Parser) Parse(args []string) error {
 	if err != nil {
 		// If -h or --help were specified then make sure help text supercedes other errors
 		for _, arg := range args {
-			if arg == "-h" || arg == "--help" {
+			if p.argIsHelp(arg) {
 				return ErrHelp
 			}
 			if arg == "--" {
@@ -670,11 +677,11 @@ func (p *Parser) process(args []string) error {
 			continue
 		}
 
-		// check for special --help and --version flags
-		switch arg {
-		case "-h", "--help":
+		if p.argIsHelp(arg) {
 			return ErrHelp
-		case "--version":
+		}
+
+		if arg == "--version" {
 			if !hasVersionOption && p.version != "" {
 				return ErrVersion
 			}
@@ -869,4 +876,16 @@ func findSubcommand(cmds []*command, name string) *command {
 		}
 	}
 	return nil
+}
+
+// argIsHelp is a helper function to check if the supplied string is
+// present in the configuration's list of allowed help triggers.
+// From Go 1.21, this can be `return slices.Contains(p.config.Help, arg)`
+func (p *Parser) argIsHelp(arg string) bool {
+	for _, v := range p.config.Help {
+		if arg == v {
+			return true
+		}
+	}
+	return false
 }
