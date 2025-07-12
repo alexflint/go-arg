@@ -1844,3 +1844,39 @@ func TestExitFunctionAndOutStreamGetFilledIn(t *testing.T) {
 	assert.NotNil(t, p.config.Exit) // go prohibits function pointer comparison
 	assert.Equal(t, p.config.Out, os.Stdout)
 }
+
+func TestNoPositionalsAfterPositionalSlice(t *testing.T) {
+	var args struct {
+		A []string `arg:"positional"`
+		B string   `arg:"positional"`
+	}
+	_, err := NewParser(Config{}, &args)
+	assert.Error(t, err)
+}
+
+func TestNoPositionalsAfterPositionalMap(t *testing.T) {
+	var args struct {
+		A map[int]float64 `arg:"positional"`
+		B string          `arg:"positional"`
+	}
+	_, err := NewParser(Config{}, &args)
+	assert.Error(t, err)
+}
+
+func TestNoPositionalSliceAfterPositionalSlice(t *testing.T) {
+	var args struct {
+		A []float64 `arg:"positional"`
+		B []float64 `arg:"positional"`
+	}
+	_, err := NewParser(Config{}, &args)
+	assert.Error(t, err)
+}
+
+func TestNoPositionalMapAfterPositionalMap(t *testing.T) {
+	var args struct {
+		A map[string]bool `arg:"positional"`
+		B map[int]bool    `arg:"positional"`
+	}
+	_, err := NewParser(Config{}, &args)
+	assert.Error(t, err)
+}
