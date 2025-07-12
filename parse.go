@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -314,6 +315,7 @@ func cmdFromStruct(name string, dest path, t reflect.Type, envPrefix string) (*c
 	}
 
 	var errs []string
+	var multiPositional string
 	walkFields(t, func(field reflect.StructField, t reflect.Type) bool {
 		// check for the ignore switch in the tag
 		tag := field.Tag.Get("arg")
@@ -375,6 +377,10 @@ func cmdFromStruct(name string, dest path, t reflect.Type, envPrefix string) (*c
 				spec.required = true
 			case key == "positional":
 				spec.positional = true
+				if multiPositional != "" {
+					errs = append(errs, fmt.Sprintf("%s.%s: cannot have more positionals after %s, which is a positional slice or map",
+						t.Name(), field.Name, multiPositional))
+				}
 			case key == "separate":
 				spec.separate = true
 			case key == "help": // deprecated
@@ -442,6 +448,11 @@ func cmdFromStruct(name string, dest path, t reflect.Type, envPrefix string) (*c
 			errs = append(errs, fmt.Sprintf("%s.%s: %s fields are not supported",
 				t.Name(), field.Name, field.Type.String()))
 			return false
+		}
+
+		if spec.cardinality == multiple && spec.positional {
+			multiPositional = t.Name() + "." + field.Name
+			log.Printf("setting multiPositional to %q", multiPositional)
 		}
 
 		defaultString, hasDefault := field.Tag.Lookup("default")
