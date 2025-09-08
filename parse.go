@@ -87,7 +87,8 @@ func MustParse(dest ...interface{}) *Parser {
 
 // mustParse is a helper that facilitates testing
 func mustParse(config Config, dest ...interface{}) *Parser {
-	p, err := NewParser(config, dest...)
+	dests := append(registrations, dest...)
+	p, err := NewParser(config, dests...)
 	if err != nil {
 		fmt.Fprintln(config.Out, err)
 		config.Exit(2)
@@ -100,7 +101,8 @@ func mustParse(config Config, dest ...interface{}) *Parser {
 
 // Parse processes command line arguments and stores them in dest
 func Parse(dest ...interface{}) error {
-	p, err := NewParser(Config{}, dest...)
+	dests := append(registrations, dest...)
+	p, err := NewParser(Config{}, dests...)
 	if err != nil {
 		return err
 	}
