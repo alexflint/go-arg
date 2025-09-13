@@ -609,6 +609,43 @@ if p.Subcommand() == nil {
 }
 ```
 
+### Reclaiming `-h`
+
+If you need `-h` for an option (such as hostname), you can supply the config option `Help`
+(a slice of strings) and only options matching those will trigger the help functionality.
+Supplying an empty slice will prevent any options from triggering help.  A `nil` slice
+(ie. not setting `Help` explicitly) will default to `[]string{"-h", "--help"}` to emulate
+the original behaviour.
+
+At most one long and one short option should be supplied in `config.Help`.
+
+```go
+var args struct {
+	Hostname string `arg:"-h" default:"127.0.0.1"`
+}
+
+p, err := arg.NewParser(arg.Config{Help:[]string{}}, &args)
+if err != nil {
+	log.Fatalf("there was an error in the definition of the Go struct: %v", err)
+}
+
+err = p.Parse(os.Args[1:])
+if err != nil {
+	fmt.Printf("error: %v\n", err)
+	p.WriteUsage(os.Stdout)
+	os.Exit(1)
+}
+fmt.Println(args.Hostname)
+```
+
+```shell
+$ go run ./example -h 10.0.0.2
+10.0.0.2
+
+$ go run ./example --help
+127.0.0.1
+```
+
 ### Custom handling of --help and --version
 
 The following reproduces the internal logic of `MustParse` for the simple case where

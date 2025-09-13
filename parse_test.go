@@ -1844,3 +1844,49 @@ func TestExitFunctionAndOutStreamGetFilledIn(t *testing.T) {
 	assert.NotNil(t, p.config.Exit) // go prohibits function pointer comparison
 	assert.Equal(t, p.config.Out, os.Stdout)
 }
+
+type configHelpTest struct {
+	args     string
+	helpopts []string
+	err      error
+	name     string
+}
+
+func TestConfigHelp(t *testing.T) {
+	var args struct {
+		Host  string `arg:"-h" default:"127.0.0.1"`
+		Queue string `arg:"-q"`
+		S     string
+	}
+	var argsLong struct {
+		Help bool `arg:"required,--help"`
+	}
+	var err error
+
+	tests := []configHelpTest{
+		{"-h 10.0.0.1", nil, ErrHelp, "nil config is default"},
+		{"-h 10.0.0.1", []string{}, nil, "empty config no help"},
+		{"-h 10.0.0.1", []string{"--help"}, nil, "long opt"},
+		{"--aidezmoi", []string{"--aidezmoi"}, ErrHelp, "custom long"},
+		{"-h 1.2.3.4 --help", []string{"--help"}, ErrHelp, "help wins"},
+		{"-q priority", nil, nil, "normal usage"},
+		{"-q priority -h 10.0.0.1", nil, ErrHelp, "normal usage"},
+		{"--s --help", nil, ErrHelp, "help should win"},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			_, err = parseWithEnv(Config{Help: test.helpopts}, test.args, nil, &args)
+			if test.err == nil {
+				require.NoError(t, err)
+			} else {
+				require.Equal(t, test.err.Error(), err.Error())
+			}
+		})
+	}
+
+	// Check that you can use `--help` as a long option if you want
+	_, err = parseWithEnv(Config{Help: []string{}}, "--help", nil, &argsLong)
+	require.NoError(t, err)
+	require.Equal(t, true, argsLong.Help)
+}

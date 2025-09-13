@@ -1084,3 +1084,90 @@ Options:
 	p.WriteHelp(&help)
 	assert.Equal(t, expectedHelp[1:], help.String())
 }
+
+func TestWriteUsageCustomHelp(t *testing.T) {
+	expectedUsage := "Usage: example [--name NAME] [--value VALUE] [--verbose] [--dataset DATASET] [--optimize OPTIMIZE] [--ids IDS] [--values VALUES] [--workers WORKERS] [--testenv TESTENV] [--file FILE] INPUT [OUTPUT [OUTPUT ...]]"
+
+	expectedHelp := `
+Usage: example [--name NAME] [--value VALUE] [--verbose] [--dataset DATASET] [--optimize OPTIMIZE] [--ids IDS] [--values VALUES] [--workers WORKERS] [--testenv TESTENV] [--file FILE] INPUT [OUTPUT [OUTPUT ...]]
+
+Positional arguments:
+  INPUT
+  OUTPUT                 list of outputs
+
+Options:
+  --name NAME            name to use [default: Foo Bar]
+  --value VALUE          secret value [default: 42]
+  --verbose, -v          verbosity level
+  --dataset DATASET      dataset to use
+  --optimize OPTIMIZE, -O OPTIMIZE
+                         optimization level
+  --ids IDS              Ids
+  --values VALUES        Values
+  --workers WORKERS, -w WORKERS
+                         number of workers to start [default: 10, env: WORKERS]
+  --testenv TESTENV, -a TESTENV [env: TEST_ENV]
+  --file FILE, -f FILE   File with mandatory extension [default: scratch.txt]
+  --capybara             display this help and exit
+
+Environment variables:
+  API_KEY                Required. Only via env-var for security reasons
+  TRACE                  Optional. Record low-level trace
+`
+
+	var args struct {
+		Input    string       `arg:"positional,required"`
+		Output   []string     `arg:"positional" help:"list of outputs"`
+		Name     string       `help:"name to use"`
+		Value    int          `help:"secret value"`
+		Verbose  bool         `arg:"-v" help:"verbosity level"`
+		Dataset  string       `help:"dataset to use"`
+		Optimize int          `arg:"-O" help:"optimization level"`
+		Ids      []int64      `help:"Ids"`
+		Values   []float64    `help:"Values"`
+		Workers  int          `arg:"-w,env:WORKERS" help:"number of workers to start" default:"10"`
+		TestEnv  string       `arg:"-a,env:TEST_ENV"`
+		ApiKey   string       `arg:"required,-,--,env:API_KEY" help:"Only via env-var for security reasons"`
+		Trace    bool         `arg:"-,--,env" help:"Record low-level trace"`
+		File     *NameDotName `arg:"-f" help:"File with mandatory extension"`
+	}
+	args.Name = "Foo Bar"
+	args.Value = 42
+	args.File = &NameDotName{"scratch", "txt"}
+	p, err := NewParser(Config{Program: "example", Help: []string{"--capybara"}}, &args)
+	require.NoError(t, err)
+
+	os.Args[0] = "example"
+
+	var help bytes.Buffer
+	p.WriteHelp(&help)
+	assert.Equal(t, expectedHelp[1:], help.String())
+
+	var usage bytes.Buffer
+	p.WriteUsage(&usage)
+	assert.Equal(t, expectedUsage, strings.TrimSpace(usage.String()))
+}
+
+func TestUsageWithMultipleHelpOptions(t *testing.T) {
+	expectedUsage := "Usage: example"
+
+	expectedHelp := `
+example 3.2.1
+Usage: example
+
+Options:
+  --aidezmoi, -a         display this help and exit
+  --version              display version and exit
+`
+	os.Args[0] = "example"
+	p, err := NewParser(Config{Help: []string{"-a", "--aidezmoi"}}, &versioned{})
+	require.NoError(t, err)
+
+	var help bytes.Buffer
+	p.WriteHelp(&help)
+	assert.Equal(t, expectedHelp[1:], help.String())
+
+	var usage bytes.Buffer
+	p.WriteUsage(&usage)
+	assert.Equal(t, expectedUsage, strings.TrimSpace(usage.String()))
+}
