@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strconv"
 	"strings"
 
 	scalar "github.com/alexflint/go-scalar"
@@ -57,6 +58,8 @@ type spec struct {
 	defaultValue  reflect.Value       // default value for this option
 	defaultString string              // default value for this option, in string form to be displayed in help text
 	placeholder   string              // placeholder string in help
+	noarg         bool                // whether this option has an argument (basically cheats cardinality check)
+	repeated      bool                // whether this is a `-xxxx` or `-x -x -x` counting option
 }
 
 // command represents a named subcommand, or the top-level command
@@ -75,6 +78,15 @@ var ErrHelp = errors.New("help requested by user")
 
 // ErrVersion indicates that the builtin --version was provided
 var ErrVersion = errors.New("version requested by user")
+
+// ErrRepeat indicates that a repeated option was not well-formed
+var ErrRepeat = errors.New("mismatched repeat")
+
+// ErrNotInt indicates that a repeated option was not an `int`able field
+var ErrNotInt = errors.New("repeats must be int")
+
+// ErrNoShortOption indicates that a repeated option was missing a short name
+var ErrNoShortOption = errors.New("short option missing")
 
 // for monkey patching in example and test code
 var mustParseExit = os.Exit
@@ -365,6 +377,8 @@ func cmdFromStruct(name string, dest path, t reflect.Type, envPrefix string) (*c
 			case strings.HasPrefix(key, "--"):
 				spec.long = key[2:]
 			case strings.HasPrefix(key, "-"):
+				// This is tricky to handle - `repeated` must be before the short argument
+				// Or handle it as a post-hoc check.
 				if len(key) > 2 {
 					errs = append(errs, fmt.Sprintf("%s.%s: short arguments must be one character only",
 						t.Name(), field.Name))
@@ -411,10 +425,29 @@ func cmdFromStruct(name string, dest path, t reflect.Type, envPrefix string) (*c
 
 				cmd.subcommands = append(cmd.subcommands, subcmd)
 				isSubcommand = true
+			case key == "noarg":
+				spec.noarg = true
+			case key == "repeated":
+				if !isIntable(field) {
+					errs = append(errs, ErrNotInt.Error()) // fmt.Sprintf("repeat only works on int-able fields: %s", field.Name))
+					return false
+				}
+				spec.repeated = true
 			default:
 				errs = append(errs, fmt.Sprintf("unrecognized tag '%s' on field %s", key, tag))
 				return false
 			}
+		}
+
+		if spec.repeated {
+			// If you don't specify an explicit short option, it'll be in `spec.long`.
+			if spec.short == "" && len(spec.long) > 1 {
+				errs = append(errs, ErrNoShortOption.Error())
+				return false
+			}
+
+			// Copy `long` to `short` and remove `long`
+			spec.short = spec.long
 		}
 
 		// placeholder is the string used in the help text like this: "--somearg PLACEHOLDER"
@@ -442,6 +475,11 @@ func cmdFromStruct(name string, dest path, t reflect.Type, envPrefix string) (*c
 			errs = append(errs, fmt.Sprintf("%s.%s: %s fields are not supported",
 				t.Name(), field.Name, field.Type.String()))
 			return false
+		}
+
+		// special case - `noarg` and `repeated` have cardinality of `zero`
+		if spec.noarg || spec.repeated {
+			spec.cardinality = zero
 		}
 
 		defaultString, hasDefault := field.Tag.Lookup("default")
@@ -717,6 +755,39 @@ func (p *Parser) process(args []string) error {
 			continue
 		}
 
+		// `-x=2` for a `repeat` flag sets the value directly.
+		if spec.repeated && value == "" {
+			// Bit faffy and cargo-culted from `scalar.ParseValue`
+			t := p.val(spec.dest)
+			if t.Kind() == reflect.Ptr {
+				if t.IsNil() {
+					t.Set(reflect.New(t.Type().Elem()))
+				}
+				t = t.Elem()
+			}
+
+			// Check whether we're an `int` field before we use it as such.
+			if !t.CanInt() {
+				return ErrNotInt
+			}
+
+			i := int(t.Int())
+
+			// Check for mismatches in `-xx...x` options.
+			if len(opt) >= 2 && strings.Count(opt, opt[0:1]) != len(opt) {
+				return ErrRepeat
+			}
+
+			switch {
+			// Simple `-x` case means increment by one
+			case len(opt) == 1:
+				value = strconv.Itoa(i + 1)
+			// Must be `-xx...x` which sets the length.
+			default:
+				value = strconv.Itoa(len(opt))
+			}
+		}
+
 		// if it's a flag and it has no value then set the value to true
 		// use boolean because this takes account of TextUnmarshaler
 		if spec.cardinality == zero && value == "" {
@@ -852,6 +923,12 @@ func findOption(specs []*spec, name string) *spec {
 		if spec.long == name || spec.short == name {
 			return spec
 		}
+		// Let's us find `-v` from `-vvvv`.  We don't need to worry about
+		// finding `-v` from, e.g., `-vavavoom` because that'll be blocked later
+		// as a mismatched repeat.
+		if spec.repeated && spec.short == name[0:1] {
+			return spec
+		}
 	}
 	return nil
 }
@@ -869,4 +946,13 @@ func findSubcommand(cmds []*command, name string) *command {
 		}
 	}
 	return nil
+}
+
+func isIntable(f reflect.StructField) bool {
+	ft := f.Type
+	z := reflect.Zero(ft)
+	if ft.Kind() == reflect.Ptr {
+		z = reflect.Zero(ft.Elem())
+	}
+	return z.CanInt()
 }

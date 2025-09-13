@@ -269,6 +269,28 @@ fmt.Println(args.UserIDs)
 map[john:123 mary:456]
 ```
 
+### Counting arguments
+
+```go
+var args struct {
+	Verbosity int `arg:"repeated"`
+}
+arg.MustParse(&args)
+fmt.Println(args.Verbosity)
+```
+
+```shell
+./example -v -v -v # increments each time
+3
+./example -vvvv    # sets to the length of the option repeat
+4
+./example -v=5     # sets directly to the value
+5
+```
+
+The field must be `int`-like according to `reflect.CanInt()` (e.g. `int`, `int32`, `int64`).  A short option must be
+provided.  Note that you cannot do `-v 5` to set the value, it must be `-v=5`.
+
 ### Version strings
 
 ```go
