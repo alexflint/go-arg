@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -450,9 +449,11 @@ func cmdFromStruct(name string, dest path, t reflect.Type, envPrefix string) (*c
 			return false
 		}
 
+		// record the existence of a slice or map that will consume all remaining
+		// positional arguments so that we can throw an error if further positionals
+		// are found later
 		if spec.cardinality == multiple && spec.positional {
 			multiPositional = t.Name() + "." + field.Name
-			log.Printf("setting multiPositional to %q", multiPositional)
 		}
 
 		defaultString, hasDefault := field.Tag.Lookup("default")
