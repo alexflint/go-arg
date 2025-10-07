@@ -14,7 +14,7 @@ var registrations []interface{}
 //	}
 //
 //	func init() {
-//		args.Register(&argsFoo)
+//		arg.Register(&args)
 //	}
 func Register(dest ...interface{}) {
 	registrations = append(registrations, dest...)
