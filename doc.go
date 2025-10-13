@@ -36,4 +36,6 @@
 // Other valid tag strings are `positional` and `required`.
 //
 // Fields can be excluded from processing with `arg:"-"`.
+//
+// Explicitly setting `help:"-"` on a subcommand will hide it from the help output.
 package arg
