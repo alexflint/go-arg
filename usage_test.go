@@ -1016,6 +1016,31 @@ Commands:
 	assert.Equal(t, expectedHelp[1:], help.String())
 }
 
+func TestHelpSkipsSubcommandHelpDash(t *testing.T) {
+	expectedHelp := `
+Usage: example <command> [<args>]
+
+Options:
+  --help, -h             display this help and exit
+
+Commands:
+  remove, rm, r          remove something from somewhere
+  halt, stop             stop now
+`
+
+	var args struct {
+		Remove *struct{} `arg:"subcommand:remove|rm|r" help:"remove something from somewhere"`
+		Simple *struct{} `arg:"subcommand" help:"-"`
+		Stop   *struct{} `arg:"subcommand:halt|stop" help:"stop now"`
+	}
+	p, err := NewParser(Config{Program: "example"}, &args)
+	require.NoError(t, err)
+
+	var help bytes.Buffer
+	p.WriteHelp(&help)
+	assert.Equal(t, expectedHelp[1:], help.String())
+}
+
 func TestHelpShowsPositionalWithDefault(t *testing.T) {
 	expectedHelp := `
 Usage: example [FOO]

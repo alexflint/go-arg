@@ -293,6 +293,11 @@ func (p *Parser) WriteHelpForSubcommand(w io.Writer, subcommand ...string) error
 	if len(cmd.subcommands) > 0 {
 		fmt.Fprint(w, "\nCommands:\n")
 		for _, subcmd := range cmd.subcommands {
+			if subcmd.help == "-" {
+				// skip this subcommand in the help message
+				continue
+			}
+
 			names := append([]string{subcmd.name}, subcmd.aliases...)
 			print(w, strings.Join(names, ", "), subcmd.help)
 		}
