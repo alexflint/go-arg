@@ -53,6 +53,7 @@ type spec struct {
 	positional    bool                // if true, this option will be looked for in the positional flags
 	separate      bool                // if true, each slice and map entry will have its own --flag
 	help          string              // the help text for this option
+	hidden        bool                // if true, this option will be hidden from help text
 	env           string              // the name of the environment variable for this option, or empty for none
 	defaultValue  reflect.Value       // default value for this option
 	defaultString string              // default value for this option, in string form to be displayed in help text
@@ -68,6 +69,7 @@ type command struct {
 	specs       []*spec
 	subcommands []*command
 	parent      *command
+	hidden      bool
 }
 
 // ErrHelp indicates that the builtin -h or --help were provided
@@ -386,6 +388,8 @@ func cmdFromStruct(name string, dest path, t reflect.Type, envPrefix string) (*c
 				spec.separate = true
 			case key == "help": // deprecated
 				spec.help = value
+			case key == "hidden":
+				spec.hidden = true
 			case key == "env":
 				// Use override name if provided
 				if value != "" {
@@ -436,6 +440,9 @@ func cmdFromStruct(name string, dest path, t reflect.Type, envPrefix string) (*c
 
 		// if this is a subcommand then we've done everything we need to do
 		if isSubcommand {
+			if spec.hidden {
+				cmd.subcommands[len(cmd.subcommands)-1].hidden = true
+			}
 			return false
 		}
 

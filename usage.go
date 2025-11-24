@@ -49,6 +49,9 @@ func (p *Parser) WriteUsageForSubcommand(w io.Writer, subcommand ...string) erro
 
 	var positionals, longOptions, shortOptions []*spec
 	for _, spec := range cmd.specs {
+		if spec.hidden {
+			continue
+		}
 		switch {
 		case spec.positional:
 			positionals = append(positionals, spec)
@@ -199,6 +202,10 @@ func (p *Parser) WriteHelpForSubcommand(w io.Writer, subcommand ...string) error
 	var positionals, longOptions, shortOptions, envOnlyOptions []*spec
 	var hasVersionOption bool
 	for _, spec := range cmd.specs {
+		if spec.hidden {
+			continue
+		}
+
 		switch {
 		case spec.positional:
 			positionals = append(positionals, spec)
@@ -293,7 +300,7 @@ func (p *Parser) WriteHelpForSubcommand(w io.Writer, subcommand ...string) error
 	if len(cmd.subcommands) > 0 {
 		fmt.Fprint(w, "\nCommands:\n")
 		for _, subcmd := range cmd.subcommands {
-			if subcmd.help == "-" {
+			if subcmd.hidden {
 				// skip this subcommand in the help message
 				continue
 			}
