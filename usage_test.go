@@ -1016,6 +1016,31 @@ Commands:
 	assert.Equal(t, expectedHelp[1:], help.String())
 }
 
+func TestHelpSkipsSubcommandHelpDash(t *testing.T) {
+	expectedHelp := `
+Usage: example <command> [<args>]
+
+Options:
+  --help, -h             display this help and exit
+
+Commands:
+  remove, rm, r          remove something from somewhere
+  halt, stop             stop now
+`
+
+	var args struct {
+		Remove *struct{} `arg:"subcommand:remove|rm|r" help:"remove something from somewhere"`
+		Simple *struct{} `arg:"subcommand,hidden" help:"simple hidden subcommand"`
+		Stop   *struct{} `arg:"subcommand:halt|stop" help:"stop now"`
+	}
+	p, err := NewParser(Config{Program: "example"}, &args)
+	require.NoError(t, err)
+
+	var help bytes.Buffer
+	p.WriteHelp(&help)
+	assert.Equal(t, expectedHelp[1:], help.String())
+}
+
 func TestHelpShowsPositionalWithDefault(t *testing.T) {
 	expectedHelp := `
 Usage: example [FOO]
@@ -1029,6 +1054,30 @@ Options:
 
 	var args struct {
 		Foo string `arg:"positional" default:"bar" help:"this is a positional with a default"`
+	}
+
+	p, err := NewParser(Config{Program: "example"}, &args)
+	require.NoError(t, err)
+
+	var help bytes.Buffer
+	p.WriteHelp(&help)
+	assert.Equal(t, expectedHelp[1:], help.String())
+}
+
+func TestHelpShowsPositionalWithDefaultSkipHidden(t *testing.T) {
+	expectedHelp := `
+Usage: example [FOO]
+
+Positional arguments:
+  FOO                    this is a positional with a default [default: bar]
+
+Options:
+  --help, -h             display this help and exit
+`
+
+	var args struct {
+		Foo string `arg:"positional" default:"bar" help:"this is a positional with a default"`
+		Bar string `arg:"positional,hidden" default:"baz" help:"this is a hidden positional with a default"`
 	}
 
 	p, err := NewParser(Config{Program: "example"}, &args)
