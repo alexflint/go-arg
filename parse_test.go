@@ -8,6 +8,7 @@ import (
 	"net/mail"
 	"net/url"
 	"os"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -808,6 +809,20 @@ func TestEnvironmentVariableOverrideName(t *testing.T) {
 	assert.Equal(t, "bar", args.Foo)
 }
 
+func TestEnvironmentVariableOverrideNameFunc(t *testing.T) {
+	var args struct {
+		Foo string `arg:"env"`
+		Bar string
+	}
+	config := Config{DefaultEnvName: func(field reflect.StructField) string {
+		return "EnvVar_" + field.Name[:1]
+	}}
+	_, err := parseWithEnv(config, "", []string{"FOO=foo", "EnvVar_F=foobar", "EnvVar_B=bar"}, &args)
+	require.NoError(t, err)
+	assert.Equal(t, "foobar", args.Foo)
+	assert.Equal(t, "", args.Bar)
+}
+
 func TestEnvironmentVariableOverrideArgument(t *testing.T) {
 	var args struct {
 		Foo string `arg:"env"`
@@ -985,6 +1000,46 @@ func TestEnvironmentVariableInSubcommandIgnored(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, args.Sub)
 	assert.Equal(t, "", args.Sub.Foo)
+}
+
+func TestDefaultEnvNameUpper(t *testing.T) {
+	var args struct {
+		Foo    string `expected:"FOO"`
+		foo    string `expected:"FOO"`
+		FooBar string `expected:"FOOBAR"`
+	}
+	assertExpectedEnvNames(t, args, DefaultEnvNameUpper)
+}
+
+func TestDefaultEnvNameUpperSnake(t *testing.T) {
+	var args struct {
+		Foo          string `expected:"FOO"`
+		FooN         int    `expected:"FOO_N"`
+		FooID        int    `expected:"FOO_ID"`
+		FooIDBar     int    `expected:"FOO_ID_BAR"`
+		FooBar       string `expected:"FOO_BAR"`
+		FOOBar       string `expected:"FOO_BAR"`
+		Foo____Bar   string `expected:"FOO_BAR"`
+		fooBar       string `expected:"FOO_BAR"`
+		Foo_Bar      string `expected:"FOO_BAR"`
+		Foo__Bar     string `expected:"FOO_BAR"`
+		HTTPPort     string `expected:"HTTP_PORT"`
+		SSHPort      string `expected:"SSH_PORT"`
+		_SSH___Port_ string `expected:"SSH_PORT"`
+		_ssh___port_ string `expected:"SSH_PORT"`
+		_PortHTTP    string `expected:"PORT_HTTP"`
+	}
+	assertExpectedEnvNames(t, args, DefaultEnvNameUpperSnake)
+}
+
+func assertExpectedEnvNames(t *testing.T, args interface{}, defaultEnvNameFunc DefaultEnvNameFunc) {
+	t.Helper()
+
+	tArgs := reflect.TypeOf(args)
+	for i := 0; i < tArgs.NumField(); i++ {
+		field := tArgs.Field(i)
+		assert.Equal(t, field.Tag.Get("expected"), defaultEnvNameFunc(field))
+	}
 }
 
 func TestParserMustParseEmptyArgs(t *testing.T) {

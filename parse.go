@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
+	"unicode"
 
 	scalar "github.com/alexflint/go-scalar"
 )
@@ -119,6 +120,51 @@ func flags() []string {
 	return os.Args[1:]
 }
 
+// DefaultEnvNameFunc is a function that takes a field and returns the default name for the environment variable that sets its value.
+type DefaultEnvNameFunc func(field reflect.StructField) string
+
+// DefaultEnvNameUpper converts the given field name to uppercase.
+func DefaultEnvNameUpper(field reflect.StructField) string {
+	return strings.ToUpper(field.Name)
+}
+
+// DefaultEnvNameUpperSnake converts the given field name to upper-snake-case (e.g. FooABCBar -> FOO_ABC_BAR).
+func DefaultEnvNameUpperSnake(field reflect.StructField) string {
+	fieldName := strings.Trim(field.Name, "_") // Ignore leading/trailing underscores
+	if fieldName == "" {
+		return ""
+	}
+
+	output := make([]rune, 0, 2*len(fieldName))
+	for i, c := range fieldName {
+		if c == '_' { // Ignore existing underscores
+			continue
+		}
+
+		// Insert an underscore if either: _* -> _U; lU -> l_U; UUl -> U_Ul
+		if i > 0 {
+			addUnderscore := false
+			prev := rune(fieldName[i-1])
+			if prev == '_' {
+				addUnderscore = true
+			} else if unicode.IsUpper(c) {
+				if unicode.IsLower(prev) {
+					addUnderscore = true
+				} else if i+1 < len(fieldName) && unicode.IsLower(rune(fieldName[i+1])) {
+					addUnderscore = true
+				}
+			}
+
+			if addUnderscore {
+				output = append(output, '_')
+			}
+		}
+
+		output = append(output, unicode.ToUpper(c))
+	}
+	return string(output)
+}
+
 // Config represents configuration options for an argument parser
 type Config struct {
 	// Program is the name of the program used in the help text
@@ -137,6 +183,9 @@ type Config struct {
 
 	// EnvPrefix instructs the library to use a name prefix when reading environment variables.
 	EnvPrefix string
+
+	// DefaultEnvName provides the name of the environment variable for fields with an empty `env` tag.
+	DefaultEnvName DefaultEnvNameFunc
 
 	// Exit is called to terminate the process with an error code (defaults to os.Exit)
 	Exit func(int)
@@ -242,7 +291,7 @@ func NewParser(config Config, dests ...interface{}) (*Parser, error) {
 			panic(fmt.Sprintf("%s is not a pointer (did you forget an ampersand?)", t))
 		}
 
-		cmd, err := cmdFromStruct(name, path{root: i}, t, config.EnvPrefix)
+		cmd, err := cmdFromStruct(name, path{root: i}, t, config.EnvPrefix, config.DefaultEnvName)
 		if err != nil {
 			return nil, err
 		}
@@ -299,7 +348,7 @@ func NewParser(config Config, dests ...interface{}) (*Parser, error) {
 	return &p, nil
 }
 
-func cmdFromStruct(name string, dest path, t reflect.Type, envPrefix string) (*command, error) {
+func cmdFromStruct(name string, dest path, t reflect.Type, envPrefix string, defaultEnvName DefaultEnvNameFunc) (*command, error) {
 	// commands can only be created from pointers to structs
 	if t.Kind() != reflect.Ptr {
 		return nil, fmt.Errorf("subcommands must be pointers to structs but %s is a %s",
@@ -395,7 +444,10 @@ func cmdFromStruct(name string, dest path, t reflect.Type, envPrefix string) (*c
 				if value != "" {
 					spec.env = envPrefix + value
 				} else {
-					spec.env = envPrefix + strings.ToUpper(field.Name)
+					if defaultEnvName == nil {
+						defaultEnvName = DefaultEnvNameUpper
+					}
+					spec.env = envPrefix + defaultEnvName(field)
 				}
 			case key == "subcommand":
 				// decide on a name for the subcommand
@@ -410,7 +462,7 @@ func cmdFromStruct(name string, dest path, t reflect.Type, envPrefix string) (*c
 				}
 
 				// parse the subcommand recursively
-				subcmd, err := cmdFromStruct(cmdnames[0], subdest, field.Type, envPrefix)
+				subcmd, err := cmdFromStruct(cmdnames[0], subdest, field.Type, envPrefix, defaultEnvName)
 				if err != nil {
 					errs = append(errs, err.Error())
 					return false
