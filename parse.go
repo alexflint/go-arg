@@ -138,6 +138,13 @@ type Config struct {
 	// EnvPrefix instructs the library to use a name prefix when reading environment variables.
 	EnvPrefix string
 
+	// DefaultEnvName provides the default environment variable name for each field (can be overwritten with an `env` tag).
+	DefaultEnvName func(field reflect.StructField) string
+
+	// AllHaveEnv instructs the library to assign an environment variable to all fields.
+	// By default, the environment variable would be the name of the field converted to uppercase. Use DefaultEnvName to dynamically set the name of the environment variables instead.
+	AllHaveEnv bool
+
 	// Exit is called to terminate the process with an error code (defaults to os.Exit)
 	Exit func(int)
 
@@ -242,7 +249,7 @@ func NewParser(config Config, dests ...interface{}) (*Parser, error) {
 			panic(fmt.Sprintf("%s is not a pointer (did you forget an ampersand?)", t))
 		}
 
-		cmd, err := cmdFromStruct(name, path{root: i}, t, config.EnvPrefix)
+		cmd, err := cmdFromStruct(name, path{root: i}, t, config.EnvPrefix, config.DefaultEnvName, config.AllHaveEnv)
 		if err != nil {
 			return nil, err
 		}
@@ -299,7 +306,15 @@ func NewParser(config Config, dests ...interface{}) (*Parser, error) {
 	return &p, nil
 }
 
-func cmdFromStruct(name string, dest path, t reflect.Type, envPrefix string) (*command, error) {
+func upperCaseFromFieldName(field reflect.StructField) string {
+	return strings.ToUpper(field.Name)
+}
+
+func cmdFromStruct(name string, dest path, t reflect.Type, envPrefix string, defaultEnvName func(reflect.StructField) string, allHaveEnv bool) (*command, error) {
+	if defaultEnvName == nil {
+		defaultEnvName = upperCaseFromFieldName
+	}
+
 	// commands can only be created from pointers to structs
 	if t.Kind() != reflect.Ptr {
 		return nil, fmt.Errorf("subcommands must be pointers to structs but %s is a %s",
@@ -344,6 +359,11 @@ func cmdFromStruct(name string, dest path, t reflect.Type, envPrefix string) (*c
 			dest:  subdest,
 			field: field,
 			long:  strings.ToLower(field.Name),
+		}
+
+		// assign a default environment variable name
+		if allHaveEnv {
+			spec.env = envPrefix + defaultEnvName(field)
 		}
 
 		help, exists := field.Tag.Lookup("help")
@@ -395,7 +415,7 @@ func cmdFromStruct(name string, dest path, t reflect.Type, envPrefix string) (*c
 				if value != "" {
 					spec.env = envPrefix + value
 				} else {
-					spec.env = envPrefix + strings.ToUpper(field.Name)
+					spec.env = envPrefix + defaultEnvName(field)
 				}
 			case key == "subcommand":
 				// decide on a name for the subcommand
@@ -410,7 +430,7 @@ func cmdFromStruct(name string, dest path, t reflect.Type, envPrefix string) (*c
 				}
 
 				// parse the subcommand recursively
-				subcmd, err := cmdFromStruct(cmdnames[0], subdest, field.Type, envPrefix)
+				subcmd, err := cmdFromStruct(cmdnames[0], subdest, field.Type, envPrefix, defaultEnvName, allHaveEnv)
 				if err != nil {
 					errs = append(errs, err.Error())
 					return false

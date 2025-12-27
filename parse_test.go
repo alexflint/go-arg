@@ -8,6 +8,7 @@ import (
 	"net/mail"
 	"net/url"
 	"os"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -806,6 +807,52 @@ func TestEnvironmentVariableOverrideName(t *testing.T) {
 	_, err := parseWithEnv(Config{}, "", []string{"BAZ=bar"}, &args)
 	require.NoError(t, err)
 	assert.Equal(t, "bar", args.Foo)
+}
+
+func TestEnvironmentVariableAllHaveEnv(t *testing.T) {
+	var args struct {
+		Foo string
+		Bar string `arg:"env:BAR_ENV"`
+	}
+	_, err := parseWithEnv(Config{AllHaveEnv: true}, "", []string{"FOO=foo", "BAR=bar", "BAR_ENV=foobar"}, &args)
+	require.NoError(t, err)
+	assert.Equal(t, "foo", args.Foo)
+	assert.Equal(t, "foobar", args.Bar) // env tag still overrides the default name
+}
+
+func TestEnvironmentVariableOverrideNameFunc(t *testing.T) {
+	var args struct {
+		Foo string `arg:"env"`
+		Bar string
+	}
+	config := Config{
+		EnvPrefix: "EnvVar_",
+		DefaultEnvName: func(field reflect.StructField) string {
+			return field.Name[:1]
+		},
+	}
+	_, err := parseWithEnv(config, "", []string{"F=foobar", "EnvVar_F=foo", "EnvVar_B=bar"}, &args)
+	require.NoError(t, err)
+	assert.Equal(t, "foo", args.Foo)
+	assert.Equal(t, "", args.Bar) // No env tag, so DefaultEnvName isn't called
+}
+
+func TestEnvironmentVariableOverrideNameFuncAllHaveEnv(t *testing.T) {
+	var args struct {
+		Foo string `arg:"env:BAZ"`
+		Bar string
+	}
+	config := Config{
+		AllHaveEnv: true,
+		EnvPrefix:  "EnvVar_",
+		DefaultEnvName: func(field reflect.StructField) string {
+			return field.Name[:1]
+		},
+	}
+	_, err := parseWithEnv(config, "", []string{"EnvVar_F=foo", "EnvVar_BAZ=baz", "EnvVar_B=bar"}, &args)
+	require.NoError(t, err)
+	assert.Equal(t, "baz", args.Foo) // env tag still overrides the default name
+	assert.Equal(t, "bar", args.Bar)
 }
 
 func TestEnvironmentVariableOverrideArgument(t *testing.T) {
