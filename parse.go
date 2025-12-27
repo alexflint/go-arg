@@ -138,8 +138,9 @@ type Config struct {
 	// EnvPrefix instructs the library to use a name prefix when reading environment variables.
 	EnvPrefix string
 
-	// DefaultEnvName provides the name of the environment variable for fields with an empty `env` tag.
-	DefaultEnvName func(field reflect.StructField) string
+	// DefaultEnvName provides the default environment variable name for each field (can be overwritten with an `env` tag).
+	// If the function returns an empty string, the field won't be assigned a default environment variable name.
+	DefaultEnvName func(field reflect.StructField, envPrefix string) string
 
 	// Exit is called to terminate the process with an error code (defaults to os.Exit)
 	Exit func(int)
@@ -302,7 +303,7 @@ func NewParser(config Config, dests ...interface{}) (*Parser, error) {
 	return &p, nil
 }
 
-func cmdFromStruct(name string, dest path, t reflect.Type, envPrefix string, defaultEnvName func(field reflect.StructField) string) (*command, error) {
+func cmdFromStruct(name string, dest path, t reflect.Type, envPrefix string, defaultEnvName func(reflect.StructField, string) string) (*command, error) {
 	// commands can only be created from pointers to structs
 	if t.Kind() != reflect.Ptr {
 		return nil, fmt.Errorf("subcommands must be pointers to structs but %s is a %s",
@@ -347,6 +348,11 @@ func cmdFromStruct(name string, dest path, t reflect.Type, envPrefix string, def
 			dest:  subdest,
 			field: field,
 			long:  strings.ToLower(field.Name),
+		}
+
+		// assign a default environment variable name
+		if defaultEnvName != nil {
+			spec.env = defaultEnvName(field, envPrefix)
 		}
 
 		help, exists := field.Tag.Lookup("help")
@@ -399,8 +405,6 @@ func cmdFromStruct(name string, dest path, t reflect.Type, envPrefix string, def
 					spec.env = envPrefix + value
 				} else if defaultEnvName == nil {
 					spec.env = envPrefix + strings.ToUpper(field.Name)
-				} else {
-					spec.env = envPrefix + defaultEnvName(field)
 				}
 			case key == "subcommand":
 				// decide on a name for the subcommand

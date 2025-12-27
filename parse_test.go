@@ -811,16 +811,19 @@ func TestEnvironmentVariableOverrideName(t *testing.T) {
 
 func TestEnvironmentVariableOverrideNameFunc(t *testing.T) {
 	var args struct {
-		Foo string `arg:"env"`
+		Foo string `arg:"env:JUST_FOO"`
 		Bar string
 	}
-	config := Config{DefaultEnvName: func(field reflect.StructField) string {
-		return "EnvVar_" + field.Name[:1]
-	}}
-	_, err := parseWithEnv(config, "", []string{"FOO=foo", "EnvVar_F=foobar", "EnvVar_B=bar"}, &args)
+	config := Config{
+		EnvPrefix: "EnvVar_",
+		DefaultEnvName: func(field reflect.StructField, envPrefix string) string {
+			return envPrefix + field.Name[:1]
+		},
+	}
+	_, err := parseWithEnv(config, "", []string{"EnvVar_JUST_FOO=foo", "EnvVar_F=foobar", "EnvVar_B=bar"}, &args)
 	require.NoError(t, err)
-	assert.Equal(t, "foobar", args.Foo)
-	assert.Equal(t, "", args.Bar)
+	assert.Equal(t, "foo", args.Foo)
+	assert.Equal(t, "bar", args.Bar)
 }
 
 func TestEnvironmentVariableOverrideArgument(t *testing.T) {
