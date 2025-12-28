@@ -350,6 +350,24 @@ func TestLongFlag(t *testing.T) {
 	assert.Equal(t, "xyz", args.Foo)
 }
 
+func TestLongFlagOverrideNameFunc(t *testing.T) {
+	var args struct {
+		Foo string
+		Bar int `arg:"--barbar"`
+	}
+	config := Config{DefaultLongArgName: func(field reflect.StructField) string {
+		return strings.ToLower(field.Name[:1])
+	}}
+	_, err := parseWithEnv(config, "--f foo --barbar 123", nil, &args)
+	require.NoError(t, err)
+	assert.Equal(t, "foo", args.Foo)
+	assert.Equal(t, 123, args.Bar)
+
+	// Ensure `arg` overwrites DefaultLongArgName
+	_, err = parseWithEnv(config, "--b bar", nil, &args)
+	require.Error(t, err, "unknown argument --b")
+}
+
 func TestSlice(t *testing.T) {
 	var args struct {
 		Strings []string
