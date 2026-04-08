@@ -1,7 +1,5 @@
 package arg
 
-import "fmt"
-
 // Subcommand returns the user struct for the subcommand selected by
 // the command line arguments most recently processed by the parser.
 // The return value is always a pointer to a struct. If no subcommand
@@ -35,7 +33,7 @@ func (p *Parser) lookupCommand(path ...string) (*command, error) {
 	for _, name := range path {
 		found := findSubcommand(cmd.subcommands, name)
 		if found == nil {
-			return nil, fmt.Errorf("%q is not a subcommand of %s", name, cmd.name)
+			return nil, &SubcommandNotFoundError{Name: name, CmdName: cmd.name}
 		}
 		cmd = found
 	}

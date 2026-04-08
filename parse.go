@@ -274,7 +274,7 @@ func NewParser(config Config, dests ...interface{}) (*Parser, error) {
 			if m, ok := v.Interface().(encoding.TextMarshaler); ok {
 				s, err := m.MarshalText()
 				if err != nil {
-					return nil, fmt.Errorf("%v: error marshaling default value to string: %v", spec.dest, err)
+					return nil, &MarshalDefaultValueError{Dest: spec.dest, Err: err}
 				}
 				spec.defaultString = string(s)
 			} else {
@@ -317,14 +317,12 @@ func cmdFromStruct(name string, dest path, t reflect.Type, envPrefix string, def
 
 	// commands can only be created from pointers to structs
 	if t.Kind() != reflect.Ptr {
-		return nil, fmt.Errorf("subcommands must be pointers to structs but %s is a %s",
-			dest, t.Kind())
+		return nil, &SubcommandTypeError{Dest: dest, Kind: t.Kind(), Pointer: false}
 	}
 
 	t = t.Elem()
 	if t.Kind() != reflect.Struct {
-		return nil, fmt.Errorf("subcommands must be pointers to structs but %s is a pointer to %s",
-			dest, t.Kind())
+		return nil, &SubcommandTypeError{Dest: dest, Kind: t.Kind(), Pointer: true}
 	}
 
 	cmd := command{
@@ -538,7 +536,7 @@ func cmdFromStruct(name string, dest path, t reflect.Type, envPrefix string, def
 		}
 	}
 	if hasPositional && len(cmd.subcommands) > 0 {
-		return nil, fmt.Errorf("%s cannot have both subcommands and positional arguments", dest)
+		return nil, &SubcommandsAndPositionalsError{Dest: dest}
 	}
 
 	return &cmd, nil
@@ -603,23 +601,15 @@ func (p *Parser) captureEnvVars(specs []*spec, wasPresent map[*spec]bool) error 
 			if len(strings.TrimSpace(value)) > 0 {
 				values, err = csv.NewReader(strings.NewReader(value)).Read()
 				if err != nil {
-					return fmt.Errorf(
-						"error reading a CSV string from environment variable %s with multiple values: %v",
-						spec.env,
-						err,
-					)
+					return &EnvVarParseError{Env: spec.env, Err: err, Multiple: true}
 				}
 			}
 			if err = setSliceOrMap(p.val(spec.dest), values, !spec.separate); err != nil {
-				return fmt.Errorf(
-					"error processing environment variable %s with multiple values: %v",
-					spec.env,
-					err,
-				)
+				return &EnvVarParseError{Env: spec.env, Err: err, Multiple: true}
 			}
 		} else {
 			if err := scalar.ParseValue(p.val(spec.dest), value); err != nil {
-				return fmt.Errorf("error processing environment variable %s: %v", spec.env, err)
+				return &EnvVarParseError{Env: spec.env, Err: err}
 			}
 		}
 		wasPresent[spec] = true
@@ -681,7 +671,7 @@ func (p *Parser) process(args []string) error {
 			// if we have a subcommand then make sure it is valid for the current context
 			subcmd := findSubcommand(curCmd.subcommands, arg)
 			if subcmd == nil {
-				return fmt.Errorf("invalid subcommand: %s", arg)
+				return &InvalidSubcommandError{Arg: arg}
 			}
 
 			// instantiate the field to point to a new struct
@@ -733,7 +723,7 @@ func (p *Parser) process(args []string) error {
 		// we expand subcommands so it is better not to use a map)
 		spec := findOption(specs, opt)
 		if spec == nil || opt == "" {
-			return fmt.Errorf("unknown argument %s", arg)
+			return &UnknownArgumentError{Arg: arg}
 		}
 		wasPresent[spec] = true
 
@@ -753,7 +743,7 @@ func (p *Parser) process(args []string) error {
 			}
 			err := setSliceOrMap(p.val(spec.dest), values, !spec.separate)
 			if err != nil {
-				return fmt.Errorf("error processing %s: %v", arg, err)
+				return &ArgumentProcessingError{Arg: arg, Err: err}
 			}
 			continue
 		}
@@ -767,10 +757,10 @@ func (p *Parser) process(args []string) error {
 		// if we have something like "--foo" then the value is the next argument
 		if value == "" {
 			if i+1 == len(args) {
-				return fmt.Errorf("missing value for %s", arg)
+				return &MissingValueError{Arg: arg}
 			}
 			if !isValue(args[i+1], spec.field.Type, specs) {
-				return fmt.Errorf("missing value for %s", arg)
+				return &MissingValueError{Arg: arg}
 			}
 			value = args[i+1]
 			i++
@@ -778,7 +768,7 @@ func (p *Parser) process(args []string) error {
 
 		err := scalar.ParseValue(p.val(spec.dest), value)
 		if err != nil {
-			return fmt.Errorf("error processing %s: %v", arg, err)
+			return &ArgumentProcessingError{Arg: arg, Err: err}
 		}
 	}
 
@@ -794,19 +784,19 @@ func (p *Parser) process(args []string) error {
 		if spec.cardinality == multiple {
 			err := setSliceOrMap(p.val(spec.dest), positionals, true)
 			if err != nil {
-				return fmt.Errorf("error processing %s: %v", spec.placeholder, err)
+				return &ArgumentProcessingError{Arg: spec.placeholder, Err: err}
 			}
 			positionals = nil
 		} else {
 			err := scalar.ParseValue(p.val(spec.dest), positionals[0])
 			if err != nil {
-				return fmt.Errorf("error processing %s: %v", spec.placeholder, err)
+				return &ArgumentProcessingError{Arg: spec.placeholder, Err: err}
 			}
 			positionals = positionals[1:]
 		}
 	}
 	if len(positionals) > 0 {
-		return fmt.Errorf("too many positional arguments at '%s'", positionals[0])
+		return &TooManyPositionalsError{Arg: positionals[0]}
 	}
 
 	// fill in defaults and check that all the required args were provided

@@ -1,7 +1,6 @@
 package arg
 
 import (
-	"fmt"
 	"reflect"
 	"strings"
 
@@ -12,7 +11,7 @@ import (
 // true then any values already in the slice or map are first removed.
 func setSliceOrMap(dest reflect.Value, values []string, clear bool) error {
 	if !dest.CanSet() {
-		return fmt.Errorf("field is not writable")
+		return &FieldNotWritableError{}
 	}
 
 	t := dest.Type()
@@ -27,7 +26,7 @@ func setSliceOrMap(dest reflect.Value, values []string, clear bool) error {
 	case reflect.Map:
 		return setMap(dest, values, clear)
 	default:
-		return fmt.Errorf("setSliceOrMap cannot insert values into a %v", t)
+		return &SetSliceOrMapTypeError{Type: t}
 	}
 }
 
@@ -95,7 +94,7 @@ func setMap(dest reflect.Value, values []string, clear bool) error {
 		// split at the first equals sign
 		pos := strings.Index(s, "=")
 		if pos == -1 {
-			return fmt.Errorf("cannot parse %q into a map, expected format key=value", s)
+			return &MapParseFormatError{Input: s}
 		}
 
 		// parse the key
