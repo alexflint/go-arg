@@ -1927,3 +1927,91 @@ func TestNoPositionalMapAfterPositionalMap(t *testing.T) {
 	_, err := NewParser(Config{}, &args)
 	assert.Error(t, err)
 }
+
+// logLevel implements Helpful with a value receiver.
+type logLevel string
+
+func (logLevel) Help() string {
+	return "one of: debug, info, warn, error"
+}
+
+// verbosity implements Helpful with a pointer receiver.
+type verbosity int
+
+func (*verbosity) Help() string {
+	return "repeat for more detail"
+}
+
+func TestHelpfulTypeProvidesHelp(t *testing.T) {
+	var args struct {
+		Level logLevel
+	}
+	p, err := NewParser(Config{Program: "example"}, &args)
+	require.NoError(t, err)
+
+	var help bytes.Buffer
+	p.WriteHelp(&help)
+	assert.Contains(t, help.String(), "one of: debug, info, warn, error")
+}
+
+func TestHelpfulTypePointerReceiver(t *testing.T) {
+	var args struct {
+		Verbose verbosity `arg:"-v"`
+	}
+	p, err := NewParser(Config{Program: "example"}, &args)
+	require.NoError(t, err)
+
+	var help bytes.Buffer
+	p.WriteHelp(&help)
+	assert.Contains(t, help.String(), "repeat for more detail")
+}
+
+func TestHelpfulTypePointerField(t *testing.T) {
+	var args struct {
+		Level *logLevel
+	}
+	p, err := NewParser(Config{Program: "example"}, &args)
+	require.NoError(t, err)
+
+	var help bytes.Buffer
+	p.WriteHelp(&help)
+	assert.Contains(t, help.String(), "one of: debug, info, warn, error")
+}
+
+func TestHelpTagOverridesHelpfulType(t *testing.T) {
+	var args struct {
+		Level logLevel `help:"the logging level"`
+	}
+	p, err := NewParser(Config{Program: "example"}, &args)
+	require.NoError(t, err)
+
+	var help bytes.Buffer
+	p.WriteHelp(&help)
+	assert.Contains(t, help.String(), "the logging level")
+	assert.NotContains(t, help.String(), "one of: debug, info, warn, error")
+}
+
+func TestHelpFromType(t *testing.T) {
+	got, ok := helpFromType(reflect.TypeOf(logLevel("")))
+	assert.True(t, ok)
+	assert.Equal(t, "one of: debug, info, warn, error", got)
+
+	got, ok = helpFromType(reflect.TypeOf((*logLevel)(nil)))
+	assert.True(t, ok)
+	assert.Equal(t, "one of: debug, info, warn, error", got)
+
+	_, ok = helpFromType(reflect.TypeOf(""))
+	assert.False(t, ok)
+}
+
+func TestEmptyHelpTagSuppressesHelpfulType(t *testing.T) {
+	var args struct {
+		Level logLevel `help:""`
+	}
+	p, err := NewParser(Config{Program: "example"}, &args)
+	require.NoError(t, err)
+
+	var help bytes.Buffer
+	p.WriteHelp(&help)
+	assert.NotContains(t, help.String(), "one of: debug, info, warn, error")
+}
