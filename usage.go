@@ -263,29 +263,42 @@ func (p *Parser) WriteHelpForSubcommand(w io.Writer, subcommand ...string) error
 		for _, spec := range longOptions {
 			p.printOption(w, spec)
 		}
+		if cmd.parent == nil {
+			p.printOption(w, &spec{
+				cardinality: zero,
+				long:        "help",
+				short:       "h",
+				help:        "display this help and exit",
+			})
+			if !hasVersionOption && p.version != "" {
+				p.printOption(w, &spec{
+					cardinality: zero,
+					long:        "version",
+					help:        "display version and exit",
+				})
+			}
+		}
 	}
 
 	// write the list of global options
-	if len(globals) > 0 {
+	if cmd.parent != nil {
 		fmt.Fprint(w, "\nGlobal options:\n")
 		for _, spec := range globals {
 			p.printOption(w, spec)
 		}
-	}
-
-	// write the list of built in options
-	p.printOption(w, &spec{
-		cardinality: zero,
-		long:        "help",
-		short:       "h",
-		help:        "display this help and exit",
-	})
-	if !hasVersionOption && p.version != "" {
 		p.printOption(w, &spec{
 			cardinality: zero,
-			long:        "version",
-			help:        "display version and exit",
+			long:        "help",
+			short:       "h",
+			help:        "display this help and exit",
 		})
+		if !hasVersionOption && p.version != "" {
+			p.printOption(w, &spec{
+				cardinality: zero,
+				long:        "version",
+				help:        "display version and exit",
+			})
+		}
 	}
 
 	// write the list of environment only variables

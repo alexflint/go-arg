@@ -362,6 +362,8 @@ Usage: example cmd [--number NUMBER]
 Options:
   --number NUMBER, -n NUMBER
                          compute something on the given number
+
+Global options:
   --help, -h             display this help and exit
   --version              display version and exit
 `
@@ -1128,6 +1130,33 @@ Options:
 
 	p, err := NewParser(Config{Program: "example"}, &args)
 	require.NoError(t, err)
+
+	var help bytes.Buffer
+	p.WriteHelp(&help)
+	assert.Equal(t, expectedHelp[1:], help.String())
+}
+
+func TestHelpForSubcommandWithOnlyPositionals(t *testing.T) {
+	expectedHelp := `
+Usage: example sub [A]
+
+Positional arguments:
+  A
+
+Global options:
+  --help, -h             display this help and exit
+`
+
+	var args struct {
+		Sub *struct {
+			A string `arg:"positional"`
+		} `arg:"subcommand"`
+	}
+
+	p, err := NewParser(Config{Program: "example"}, &args)
+	require.NoError(t, err)
+
+	_ = p.Parse([]string{"sub"})
 
 	var help bytes.Buffer
 	p.WriteHelp(&help)
