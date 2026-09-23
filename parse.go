@@ -618,6 +618,21 @@ func (p *Parser) captureEnvVars(specs []*spec, wasPresent map[*spec]bool) error 
 				)
 			}
 		} else {
+			// An explicitly empty environment variable represents the zero
+			// value for numeric arguments. Preserve an empty string for string
+			// arguments, including *string, so presence is not lost.
+			if value == "" {
+				t := p.val(spec.dest).Type()
+				for t.Kind() == reflect.Ptr {
+					t = t.Elem()
+				}
+				switch t.Kind() {
+				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+					reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
+					reflect.Float32, reflect.Float64:
+					value = "0"
+				}
+			}
 			if err := scalar.ParseValue(p.val(spec.dest), value); err != nil {
 				return fmt.Errorf("error processing environment variable %s: %v", spec.env, err)
 			}

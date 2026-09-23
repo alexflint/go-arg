@@ -872,6 +872,60 @@ func TestEnvironmentVariableError(t *testing.T) {
 	assert.Error(t, err)
 }
 
+func TestEnvironmentVariableEmptyInteger(t *testing.T) {
+	t.Setenv("GO_ARG_EMPTY_INT", "")
+	var args struct {
+		Count int  `arg:"env:GO_ARG_EMPTY_INT" default:"7"`
+		Ptr   *int `arg:"env:GO_ARG_EMPTY_INT"`
+	}
+	_, err := pparse("", &args)
+	require.NoError(t, err)
+	assert.Zero(t, args.Count)
+	if assert.NotNil(t, args.Ptr) {
+		assert.Zero(t, *args.Ptr)
+	}
+}
+
+func TestEnvironmentVariableEmptyNumericTypes(t *testing.T) {
+	t.Setenv("GO_ARG_EMPTY_NUMBER", "")
+	var args struct {
+		Unsigned uint64  `arg:"env:GO_ARG_EMPTY_NUMBER"`
+		Float    float64 `arg:"env:GO_ARG_EMPTY_NUMBER"`
+	}
+	_, err := pparse("", &args)
+	require.NoError(t, err)
+	assert.Zero(t, args.Unsigned)
+	assert.Zero(t, args.Float)
+}
+
+func TestEnvironmentVariableEmptyPointer(t *testing.T) {
+	for _, tc := range []struct {
+		name, value string
+		present     bool
+	}{
+		{"absent", "", false},
+		{"empty", "", true},
+		{"non-empty", "text", true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Setenv("GO_ARG_EMPTY_POINTER", tc.value)
+			if !tc.present {
+				require.NoError(t, os.Unsetenv("GO_ARG_EMPTY_POINTER"))
+			}
+			var args struct {
+				Value *string `arg:"env:GO_ARG_EMPTY_POINTER"`
+			}
+			_, err := pparse("", &args)
+			require.NoError(t, err)
+			if !tc.present {
+				assert.Nil(t, args.Value)
+			} else if assert.NotNil(t, args.Value) {
+				assert.Equal(t, tc.value, *args.Value)
+			}
+		})
+	}
+}
+
 func TestEnvironmentVariableRequired(t *testing.T) {
 	var args struct {
 		Foo string `arg:"env,required"`
