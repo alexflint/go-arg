@@ -407,10 +407,10 @@ Commands:
 	p.WriteUsage(&usage)
 	assert.Equal(t, expectedUsage, strings.TrimSpace(usage.String()))
 
-	expectedUsage = "Usage: example cmd [--number NUMBER]"
+	expectedUsage = "Usage: example [--version] cmd [--number NUMBER]"
 
 	expectedHelp = `
-Usage: example cmd [--number NUMBER]
+Usage: example [--version] cmd [--number NUMBER]
 
 Options:
   --number NUMBER, -n NUMBER
@@ -463,10 +463,10 @@ Commands:
 	p.WriteUsage(&usage)
 	assert.Equal(t, expectedUsage, strings.TrimSpace(usage.String()))
 
-	expectedUsage = "Usage: example cmd [--number NUMBER]"
+	expectedUsage = "Usage: example [--version] cmd [--number NUMBER]"
 
 	expectedHelp = `
-Usage: example cmd [--number NUMBER]
+Usage: example [--version] cmd [--number NUMBER]
 
 Options:
   --number NUMBER, -n NUMBER
@@ -643,10 +643,10 @@ Options:
 }
 
 func TestUsageWithSubcommands(t *testing.T) {
-	expectedUsage := "Usage: example child [--values VALUES]"
+	expectedUsage := "Usage: example [--verbose] child [--values VALUES]"
 
 	expectedHelp := `
-Usage: example child [--values VALUES]
+Usage: example [--verbose] child [--values VALUES]
 
 Options:
   --values VALUES        Values
@@ -687,10 +687,10 @@ Global options:
 }
 
 func TestUsageWithNestedSubcommands(t *testing.T) {
-	expectedUsage := "Usage: example child nested [--enable] OUTPUT"
+	expectedUsage := "Usage: example [--verbose] child [--values VALUES] nested [--enable] OUTPUT"
 
 	expectedHelp := `
-Usage: example child nested [--enable] OUTPUT
+Usage: example [--verbose] child [--values VALUES] nested [--enable] OUTPUT
 
 Positional arguments:
   OUTPUT
@@ -738,6 +738,27 @@ Global options:
 	var usage2 bytes.Buffer
 	p.WriteUsageForSubcommand(&usage2, "child", "nested")
 	assert.Equal(t, expectedUsage, strings.TrimSpace(usage2.String()))
+}
+
+func TestSubcommandUsageIncludesAncestorArguments(t *testing.T) {
+	var args struct {
+		Foo   string
+		Child *struct {
+			Bar    string
+			Nested *struct {
+				Baz string
+			} `arg:"subcommand:nested"`
+		} `arg:"subcommand:child"`
+	}
+	p, err := NewParser(Config{Program: "example"}, &args)
+	require.NoError(t, err)
+	var usage bytes.Buffer
+	require.NoError(t, p.WriteUsageForSubcommand(&usage, "child", "nested"))
+	assert.Equal(t, "Usage: example [--foo FOO] child [--bar BAR] nested [--baz BAZ]\n", usage.String())
+	require.NoError(t, p.Parse([]string{"--foo", "one", "child", "--bar", "two", "nested", "--baz", "three"}))
+	assert.Equal(t, "one", args.Foo)
+	assert.Equal(t, "two", args.Child.Bar)
+	assert.Equal(t, "three", args.Child.Nested.Baz)
 }
 
 func TestNonexistentSubcommand(t *testing.T) {

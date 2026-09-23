@@ -47,6 +47,29 @@ func (p *Parser) WriteUsageForSubcommand(w io.Writer, subcommand ...string) erro
 		return err
 	}
 
+	// Render each command's arguments before its child name so that the
+	// synopsis includes options and positionals accepted by ancestors.
+	var commands []*command
+	for current := cmd; current != nil; current = current.parent {
+		commands = append(commands, current)
+	}
+	fmt.Fprintf(w, "Usage: %s", p.cmd.name)
+	for i := len(commands) - 1; i >= 0; i-- {
+		if i < len(commands)-1 {
+			fmt.Fprint(w, " "+subcommand[len(commands)-2-i])
+		}
+		writeUsageCommandArguments(w, commands[i])
+	}
+
+	// If the selected command has children, hint that it accepts another one.
+	if len(cmd.subcommands) > 0 {
+		fmt.Fprint(w, " <command> [<args>]")
+	}
+	fmt.Fprint(w, "\n")
+	return nil
+}
+
+func writeUsageCommandArguments(w io.Writer, cmd *command) {
 	var positionals, longOptions, shortOptions []*spec
 	for _, spec := range cmd.specs {
 		if spec.hidden {
@@ -60,12 +83,6 @@ func (p *Parser) WriteUsageForSubcommand(w io.Writer, subcommand ...string) erro
 		case spec.short != "":
 			shortOptions = append(shortOptions, spec)
 		}
-	}
-
-	// print the beginning of the usage string
-	fmt.Fprintf(w, "Usage: %s", p.cmd.name)
-	for _, s := range subcommand {
-		fmt.Fprint(w, " "+s)
 	}
 
 	// write the option component of the usage message
@@ -119,14 +136,6 @@ func (p *Parser) WriteUsageForSubcommand(w io.Writer, subcommand ...string) erro
 		}
 	}
 	fmt.Fprint(w, strings.Repeat("]", closeBrackets))
-
-	// if the program supports subcommands, give a hint to the user about their existence
-	if len(cmd.subcommands) > 0 {
-		fmt.Fprint(w, " <command> [<args>]")
-	}
-
-	fmt.Fprint(w, "\n")
-	return nil
 }
 
 // print prints a line like this:
