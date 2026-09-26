@@ -124,6 +124,10 @@ type Config struct {
 	// Program is the name of the program used in the help text
 	Program string
 
+	// DisableHelpShort reserves only --help for built-in help, so applications
+	// can use -h for another option (for example, human-readable output).
+	DisableHelpShort bool
+
 	// IgnoreEnv instructs the library not to read environment variables
 	IgnoreEnv bool
 
@@ -558,7 +562,7 @@ func (p *Parser) Parse(args []string) error {
 	if err != nil {
 		// If -h or --help were specified then make sure help text supercedes other errors
 		for _, arg := range args {
-			if arg == "-h" || arg == "--help" {
+			if arg == "--help" || (arg == "-h" && !p.config.DisableHelpShort) {
 				return ErrHelp
 			}
 			if arg == "--" {
@@ -713,8 +717,12 @@ func (p *Parser) process(args []string) error {
 
 		// check for special --help and --version flags
 		switch arg {
-		case "-h", "--help":
+		case "--help":
 			return ErrHelp
+		case "-h":
+			if !p.config.DisableHelpShort {
+				return ErrHelp
+			}
 		case "--version":
 			if !hasVersionOption && p.version != "" {
 				return ErrVersion

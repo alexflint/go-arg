@@ -274,10 +274,14 @@ func (p *Parser) WriteHelpForSubcommand(w io.Writer, subcommand ...string) error
 	}
 
 	// write the list of built in options
+	helpShort := "h"
+	if p.config.DisableHelpShort {
+		helpShort = ""
+	}
 	p.printOption(w, &spec{
 		cardinality: zero,
 		long:        "help",
-		short:       "h",
+		short:       helpShort,
 		help:        "display this help and exit",
 	})
 	if !hasVersionOption && p.version != "" {
