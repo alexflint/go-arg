@@ -693,6 +693,27 @@ func TestHelpFlag(t *testing.T) {
 	assert.Equal(t, ErrHelp, err)
 }
 
+func TestDisableHelpShort(t *testing.T) {
+	var args struct {
+		Human bool `arg:"-h,--human" help:"human-readable output"`
+	}
+	config := Config{DisableHelpShort: true}
+	p, err := parseWithEnv(config, "-h", nil, &args)
+	require.NoError(t, err)
+	assert.True(t, args.Human)
+
+	var out bytes.Buffer
+	p.WriteHelp(&out)
+	assert.Contains(t, out.String(), "--human, -h")
+	assert.Contains(t, out.String(), "--help")
+	assert.NotContains(t, out.String(), "--help, -h")
+
+	_, err = parseWithEnv(config, "--help", nil, &args)
+	assert.ErrorIs(t, err, ErrHelp)
+	_, err = parseWithEnv(config, "--unknown -h", nil, &args)
+	assert.NotErrorIs(t, err, ErrHelp)
+}
+
 func TestPanicOnNonPointer(t *testing.T) {
 	var args struct{}
 	assert.Panics(t, func() {

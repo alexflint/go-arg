@@ -611,6 +611,22 @@ if p.Subcommand() == nil {
 
 ### Custom handling of --help and --version
 
+By default, both `-h` and `--help` request help. To use `-h` for an application
+option such as human-readable output, construct the parser with
+`arg.Config{DisableHelpShort: true}`. The built-in `--help` still works, and
+the help text lists it without `-h`:
+
+```go
+var args struct {
+	Human bool `arg:"-h,--human" help:"human-readable output"`
+}
+p, err := arg.NewParser(arg.Config{DisableHelpShort: true}, &args)
+if err != nil {
+	log.Fatal(err)
+}
+p.MustParse(os.Args[1:])
+```
+
 The following reproduces the internal logic of `MustParse` for the simple case where
 you are not using subcommands or --version. This allows you to respond
 programatically to --help, and to any errors that come up.
