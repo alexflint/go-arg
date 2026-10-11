@@ -236,6 +236,26 @@ func (p *Parser) WriteHelpForSubcommand(w io.Writer, subcommand ...string) error
 		ancestor = ancestor.parent
 	}
 
+	// the built in options are local to the root command and global for subcommands
+	builtins := []*spec{{
+		cardinality: zero,
+		long:        "help",
+		short:       "h",
+		help:        "display this help and exit",
+	}}
+	if !hasVersionOption && p.version != "" {
+		builtins = append(builtins, &spec{
+			cardinality: zero,
+			long:        "version",
+			help:        "display version and exit",
+		})
+	}
+	if cmd.parent == nil {
+		longOptions = append(longOptions, builtins...)
+	} else {
+		globals = append(globals, builtins...)
+	}
+
 	if p.description != "" {
 		fmt.Fprintln(w, p.description)
 	}
@@ -255,7 +275,7 @@ func (p *Parser) WriteHelpForSubcommand(w io.Writer, subcommand ...string) error
 	}
 
 	// write the list of options with the short-only ones first to match the usage string
-	if len(shortOptions)+len(longOptions) > 0 || cmd.parent == nil {
+	if len(shortOptions)+len(longOptions) > 0 {
 		fmt.Fprint(w, "\nOptions:\n")
 		for _, spec := range shortOptions {
 			p.printOption(w, spec)
@@ -271,21 +291,6 @@ func (p *Parser) WriteHelpForSubcommand(w io.Writer, subcommand ...string) error
 		for _, spec := range globals {
 			p.printOption(w, spec)
 		}
-	}
-
-	// write the list of built in options
-	p.printOption(w, &spec{
-		cardinality: zero,
-		long:        "help",
-		short:       "h",
-		help:        "display this help and exit",
-	})
-	if !hasVersionOption && p.version != "" {
-		p.printOption(w, &spec{
-			cardinality: zero,
-			long:        "version",
-			help:        "display version and exit",
-		})
 	}
 
 	// write the list of environment only variables

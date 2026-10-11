@@ -377,6 +377,8 @@ func Example_writeHelpForSubcommandNested() {
 	//
 	// Options:
 	//   --item ITEM
+	//
+	// Global options:
 	//   --help, -h             display this help and exit
 }
 
