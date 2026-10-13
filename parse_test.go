@@ -1305,12 +1305,40 @@ func TestEmbedded(t *testing.T) {
 }
 
 func TestEmbeddedPtr(t *testing.T) {
-	// embedded pointer fields are not supported so this should return an error
 	var args struct {
 		*A
 	}
 	err := parse("--x=hello", &args)
-	require.Error(t, err)
+	require.NoError(t, err)
+	require.NotNil(t, args.A)
+	assert.Equal(t, "hello", args.X)
+}
+
+func TestEmbeddedPtrPreservesExistingValue(t *testing.T) {
+	initial := &A{X: "before"}
+	args := struct {
+		*A
+	}{A: initial}
+
+	err := parse("--x=after", &args)
+	require.NoError(t, err)
+	assert.Same(t, initial, args.A)
+	assert.Equal(t, "after", args.X)
+}
+
+func TestNestedEmbeddedPtr(t *testing.T) {
+	type Nested struct {
+		*A
+	}
+	var args struct {
+		*Nested
+	}
+
+	err := parse("--x=nested", &args)
+	require.NoError(t, err)
+	require.NotNil(t, args.Nested)
+	require.NotNil(t, args.A)
+	assert.Equal(t, "nested", args.X)
 }
 
 func TestEmbeddedPtrIgnored(t *testing.T) {

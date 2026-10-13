@@ -200,12 +200,19 @@ func walkFieldsImpl(t reflect.Type, visit func(field reflect.StructField, owner 
 		field.Index = make([]int, len(path)+1)
 		copy(field.Index, append(path, i))
 		expand := visit(field, t)
-		if expand && field.Type.Kind() == reflect.Struct {
+		if expand {
+			embeddedType := field.Type
+			if embeddedType.Kind() == reflect.Ptr {
+				embeddedType = embeddedType.Elem()
+			}
+			if embeddedType.Kind() != reflect.Struct {
+				continue
+			}
 			var subpath []int
 			if field.Anonymous {
 				subpath = append(path, i)
 			}
-			walkFieldsImpl(field.Type, visit, subpath)
+			walkFieldsImpl(embeddedType, visit, subpath)
 		}
 	}
 }
@@ -344,7 +351,7 @@ func cmdFromStruct(name string, dest path, t reflect.Type, envPrefix string, def
 		// if this is an embedded struct then recurse into its fields, even if
 		// it is unexported, because exported fields on unexported embedded
 		// structs are still writable
-		if field.Anonymous && field.Type.Kind() == reflect.Struct {
+		if field.Anonymous && isEmbeddedStructType(field.Type) && (field.Type.Kind() != reflect.Ptr || isExported(field.Name)) {
 			return true
 		}
 
@@ -542,6 +549,13 @@ func cmdFromStruct(name string, dest path, t reflect.Type, envPrefix string, def
 	}
 
 	return &cmd, nil
+}
+
+func isEmbeddedStructType(t reflect.Type) bool {
+	if t.Kind() == reflect.Ptr {
+		t = t.Elem()
+	}
+	return t.Kind() == reflect.Struct
 }
 
 // Parse processes the given command line option, storing the results in the fields
@@ -879,7 +893,22 @@ func (p *Parser) val(dest path) reflect.Value {
 			v = v.Elem()
 		}
 
-		v = v.FieldByIndex(field.Index)
+		v = fieldByIndex(v, field.Index)
+	}
+	return v
+}
+
+// fieldByIndex follows a field index path, initializing pointers that must be
+// traversed to reach an embedded field.
+func fieldByIndex(v reflect.Value, index []int) reflect.Value {
+	for _, i := range index {
+		if v.Kind() == reflect.Ptr {
+			if v.IsNil() {
+				v.Set(reflect.New(v.Type().Elem()))
+			}
+			v = v.Elem()
+		}
+		v = v.Field(i)
 	}
 	return v
 }
