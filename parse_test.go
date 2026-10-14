@@ -1341,6 +1341,70 @@ func TestNestedEmbeddedPtr(t *testing.T) {
 	assert.Equal(t, "nested", args.X)
 }
 
+func TestEmptyEmbeddedPtr(t *testing.T) {
+	type Empty struct{}
+	var args struct{ *Empty }
+	_, err := NewParser(Config{}, &args)
+	require.NoError(t, err)
+	require.NotNil(t, args.Empty)
+}
+
+type EmbeddedMetadata struct {
+	Name string `arg:"-"`
+}
+
+func (e *EmbeddedMetadata) Version() string { return "version:" + e.Name }
+
+func TestEmbeddedPtrWithOnlyMetadata(t *testing.T) {
+	var args struct{ *EmbeddedMetadata }
+	var p *Parser
+	var err error
+	require.NotPanics(t, func() { p, err = NewParser(Config{}, &args) })
+	require.NoError(t, err)
+	require.NotNil(t, args.EmbeddedMetadata)
+	assert.Equal(t, "version:", p.version)
+}
+
+func TestEmptyEmbeddedPtrInSubcommand(t *testing.T) {
+	type Empty struct{}
+	type Sub struct{ *Empty }
+	var args struct {
+		Sub *Sub `arg:"subcommand:sub"`
+	}
+	p, err := NewParser(Config{}, &args)
+	require.NoError(t, err)
+	assert.Nil(t, args.Sub)
+	require.NoError(t, p.Parse([]string{"sub"}))
+	require.NotNil(t, args.Sub)
+	require.NotNil(t, args.Sub.Empty)
+}
+
+func TestSharedEmbeddedPtrType(t *testing.T) {
+	type Empty struct{}
+	type Left struct{ *Empty }
+	type Right struct{ *Empty }
+	var args struct {
+		Left
+		Right
+	}
+	_, err := NewParser(Config{}, &args)
+	require.NoError(t, err)
+	require.NotNil(t, args.Left.Empty)
+	require.NotNil(t, args.Right.Empty)
+}
+
+type RecursiveEmbeddedA struct{ *RecursiveEmbeddedB }
+type RecursiveEmbeddedB struct{ *RecursiveEmbeddedA }
+
+func TestRecursiveEmbeddedPtr(t *testing.T) {
+	type Recursive struct{ *Recursive }
+	for _, args := range []interface{}{&Recursive{}, &RecursiveEmbeddedA{}} {
+		_, err := NewParser(Config{}, args)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "recursive embedded struct")
+	}
+}
+
 func TestEmbeddedPtrIgnored(t *testing.T) {
 	// embedded pointer fields are not normally supported but here
 	// we explicitly exclude it so the non-nil embedded structs
