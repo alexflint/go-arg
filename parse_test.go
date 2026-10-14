@@ -1927,3 +1927,53 @@ func TestNoPositionalMapAfterPositionalMap(t *testing.T) {
 	_, err := NewParser(Config{}, &args)
 	assert.Error(t, err)
 }
+
+func TestCompactShortFlag(t *testing.T) {
+	var args struct {
+		Count int `arg:"-c,compact"`
+	}
+	err := parse("-c10", &args)
+	require.NoError(t, err)
+	assert.Equal(t, 10, args.Count)
+}
+
+func TestCompactShortFlagPreservesSeparatedAndEquals(t *testing.T) {
+	var args1 struct {
+		Count int `arg:"-c,compact"`
+	}
+	err := parse("-c 10", &args1)
+	require.NoError(t, err)
+	assert.Equal(t, 10, args1.Count)
+
+	var args2 struct {
+		Count int `arg:"-c,compact"`
+	}
+	err = parse("-c=10", &args2)
+	require.NoError(t, err)
+	assert.Equal(t, 10, args2.Count)
+}
+
+func TestCompactShortFlagValidationErrors(t *testing.T) {
+	// Compact on boolean flag (cardinality == zero) should error
+	var argsBool struct {
+		Verbose bool `arg:"-v,compact"`
+	}
+	_, err := NewParser(Config{}, &argsBool)
+	assert.Error(t, err)
+
+	// Compact without short name should error
+	var argsNoShort struct {
+		Count int `arg:"--count,compact"`
+	}
+	_, err = NewParser(Config{}, &argsNoShort)
+	assert.Error(t, err)
+}
+
+func TestNonCompactShortFlagNotTreatedAsCompact(t *testing.T) {
+	var args struct {
+		Count int `arg:"-c"`
+	}
+	err := parse("-c10", &args)
+	assert.Error(t, err)
+}
+
