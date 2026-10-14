@@ -67,6 +67,7 @@ type command struct {
 	help        string
 	dest        path
 	specs       []*spec
+	embedded    []path
 	subcommands []*command
 	parent      *command
 	hidden      bool
@@ -190,27 +191,45 @@ type Epilogued interface {
 }
 
 // walkFields calls a function for each field of a struct, recursively expanding struct fields.
-func walkFields(t reflect.Type, visit func(field reflect.StructField, owner reflect.Type) bool) {
-	walkFieldsImpl(t, visit, nil)
+func walkFields(t reflect.Type, visit func(field reflect.StructField, owner reflect.Type) bool) error {
+	return walkFieldsImpl(t, visit, nil, make(map[reflect.Type]bool))
 }
 
-func walkFieldsImpl(t reflect.Type, visit func(field reflect.StructField, owner reflect.Type) bool, path []int) {
+func walkFieldsImpl(t reflect.Type, visit func(field reflect.StructField, owner reflect.Type) bool, path []int, active map[reflect.Type]bool) error {
+	if active[t] {
+		return fmt.Errorf("recursive embedded struct %s", t)
+	}
+	active[t] = true
+	defer delete(active, t)
+
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
 		field.Index = make([]int, len(path)+1)
 		copy(field.Index, append(path, i))
 		expand := visit(field, t)
-		if expand && field.Type.Kind() == reflect.Struct {
+		if expand {
+			embeddedType := field.Type
+			if embeddedType.Kind() == reflect.Ptr {
+				embeddedType = embeddedType.Elem()
+			}
+			if embeddedType.Kind() != reflect.Struct {
+				continue
+			}
 			var subpath []int
 			if field.Anonymous {
 				subpath = append(path, i)
 			}
-			walkFieldsImpl(field.Type, visit, subpath)
+			if err := walkFieldsImpl(embeddedType, visit, subpath, active); err != nil {
+				return err
+			}
 		}
 	}
+	return nil
 }
 
 // NewParser constructs a parser from a list of destination structs
+// and initializes their anonymous struct pointers. Pointers inside subcommands
+// are initialized when that subcommand is selected. Recursive embeddings are rejected.
 func NewParser(config Config, dests ...interface{}) (*Parser, error) {
 	// fill in defaults
 	if config.Exit == nil {
@@ -253,6 +272,7 @@ func NewParser(config Config, dests ...interface{}) (*Parser, error) {
 		if err != nil {
 			return nil, err
 		}
+		p.initializeEmbedded(cmd)
 
 		// for backwards compatibility, add nonzero field values as defaults
 		// this applies only to the top-level command, not to subcommands (this inconsistency
@@ -334,7 +354,7 @@ func cmdFromStruct(name string, dest path, t reflect.Type, envPrefix string, def
 
 	var errs []string
 	var multiPositional string
-	walkFields(t, func(field reflect.StructField, t reflect.Type) bool {
+	err := walkFields(t, func(field reflect.StructField, t reflect.Type) bool {
 		// check for the ignore switch in the tag
 		tag := field.Tag.Get("arg")
 		if tag == "-" {
@@ -344,7 +364,10 @@ func cmdFromStruct(name string, dest path, t reflect.Type, envPrefix string, def
 		// if this is an embedded struct then recurse into its fields, even if
 		// it is unexported, because exported fields on unexported embedded
 		// structs are still writable
-		if field.Anonymous && field.Type.Kind() == reflect.Struct {
+		if field.Anonymous && isEmbeddedStructType(field.Type) && (field.Type.Kind() != reflect.Ptr || isExported(field.Name)) {
+			if field.Type.Kind() == reflect.Ptr {
+				cmd.embedded = append(cmd.embedded, dest.Child(field))
+			}
 			return true
 		}
 
@@ -525,6 +548,9 @@ func cmdFromStruct(name string, dest path, t reflect.Type, envPrefix string, def
 		// if this was an embedded field then we already returned true up above
 		return false
 	})
+	if err != nil {
+		errs = append(errs, err.Error())
+	}
 
 	if len(errs) > 0 {
 		return nil, errors.New(strings.Join(errs, "\n"))
@@ -542,6 +568,13 @@ func cmdFromStruct(name string, dest path, t reflect.Type, envPrefix string, def
 	}
 
 	return &cmd, nil
+}
+
+func isEmbeddedStructType(t reflect.Type) bool {
+	if t.Kind() == reflect.Ptr {
+		t = t.Elem()
+	}
+	return t.Kind() == reflect.Struct
 }
 
 // Parse processes the given command line option, storing the results in the fields
@@ -689,6 +722,7 @@ func (p *Parser) process(args []string) error {
 			if v.IsNil() {
 				v.Set(reflect.New(v.Type().Elem())) // we already checked that all subcommands are struct pointers
 			}
+			p.initializeEmbedded(subcmd)
 
 			// add the new options to the set of allowed options
 			if p.config.StrictSubcommands {
@@ -867,6 +901,17 @@ func isValue(s string, t reflect.Type, specs []*spec) bool {
 	return !isFlag(s)
 }
 
+// initializeEmbedded allocates anonymous pointers even when their structs have
+// no registered options. Subcommand pointers are initialized only after selection.
+func (p *Parser) initializeEmbedded(cmd *command) {
+	for _, dest := range cmd.embedded {
+		v := p.val(dest)
+		if v.IsNil() {
+			v.Set(reflect.New(v.Type().Elem()))
+		}
+	}
+}
+
 // val returns a reflect.Value corresponding to the current value for the
 // given path
 func (p *Parser) val(dest path) reflect.Value {
@@ -879,7 +924,22 @@ func (p *Parser) val(dest path) reflect.Value {
 			v = v.Elem()
 		}
 
-		v = v.FieldByIndex(field.Index)
+		v = fieldByIndex(v, field.Index)
+	}
+	return v
+}
+
+// fieldByIndex follows a field index path, initializing pointers that must be
+// traversed to reach an embedded field.
+func fieldByIndex(v reflect.Value, index []int) reflect.Value {
+	for _, i := range index {
+		if v.Kind() == reflect.Ptr {
+			if v.IsNil() {
+				v.Set(reflect.New(v.Type().Elem()))
+			}
+			v = v.Elem()
+		}
+		v = v.Field(i)
 	}
 	return v
 }
