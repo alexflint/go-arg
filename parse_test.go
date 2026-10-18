@@ -358,6 +358,21 @@ func TestSlice(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, []string{"a", "b", "c"}, args.Strings)
 }
+
+func TestNilSlicePointer(t *testing.T) {
+	var args struct {
+		Values *[]string
+	}
+	err := parse("", &args)
+	require.NoError(t, err)
+	require.Nil(t, args.Values)
+
+	err = parse("--values a b", &args)
+	require.NoError(t, err)
+	require.NotNil(t, args.Values)
+	assert.Equal(t, []string{"a", "b"}, *args.Values)
+}
+
 func TestSliceOfBools(t *testing.T) {
 	var args struct {
 		B []bool
@@ -378,6 +393,20 @@ func TestMap(t *testing.T) {
 	assert.Equal(t, 1, args.Values["a"])
 	assert.Equal(t, 2, args.Values["b"])
 	assert.Equal(t, 3, args.Values["c"])
+}
+
+func TestNilMapPointer(t *testing.T) {
+	var args struct {
+		Values *map[string]int
+	}
+	err := parse("", &args)
+	require.NoError(t, err)
+	require.Nil(t, args.Values)
+
+	err = parse("--values a=1 b=2", &args)
+	require.NoError(t, err)
+	require.NotNil(t, args.Values)
+	assert.Equal(t, map[string]int{"a": 1, "b": 2}, *args.Values)
 }
 
 func TestMapPositional(t *testing.T) {
@@ -890,6 +919,21 @@ func TestEnvironmentVariableSliceArgumentString(t *testing.T) {
 	assert.Equal(t, []string{"bar", "baz, qux"}, args.Foo)
 }
 
+func TestEnvironmentVariableSlicePointer(t *testing.T) {
+	var args struct {
+		Values *[]string `arg:"env:GO_ARG_SLICE_POINTER"`
+	}
+	_, err := parseWithEnv(Config{}, "", nil, &args)
+	require.NoError(t, err)
+	require.Nil(t, args.Values)
+
+	t.Setenv("GO_ARG_SLICE_POINTER", "a,b")
+	_, err = parseWithEnv(Config{}, "", nil, &args)
+	require.NoError(t, err)
+	require.NotNil(t, args.Values)
+	assert.Equal(t, []string{"a", "b"}, *args.Values)
+}
+
 func TestEnvironmentVariableSliceEmpty(t *testing.T) {
 	var args struct {
 		Foo []string `arg:"env"`
@@ -951,6 +995,21 @@ func TestEnvironmentVariableMap(t *testing.T) {
 	assert.Len(t, args.Foo, 2)
 	assert.Equal(t, "one", args.Foo[1])
 	assert.Equal(t, "ninetynine", args.Foo[99])
+}
+
+func TestEnvironmentVariableMapPointer(t *testing.T) {
+	var args struct {
+		Values *map[string]int `arg:"env:GO_ARG_MAP_POINTER"`
+	}
+	_, err := parseWithEnv(Config{}, "", nil, &args)
+	require.NoError(t, err)
+	require.Nil(t, args.Values)
+
+	t.Setenv("GO_ARG_MAP_POINTER", "a=1,b=2")
+	_, err = parseWithEnv(Config{}, "", nil, &args)
+	require.NoError(t, err)
+	require.NotNil(t, args.Values)
+	assert.Equal(t, map[string]int{"a": 1, "b": 2}, *args.Values)
 }
 
 func TestEnvironmentVariableEmptyMap(t *testing.T) {
