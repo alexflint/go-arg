@@ -17,6 +17,9 @@ func setSliceOrMap(dest reflect.Value, values []string, clear bool) error {
 
 	t := dest.Type()
 	if t.Kind() == reflect.Ptr {
+		if dest.IsNil() {
+			dest.Set(reflect.New(t.Elem()))
+		}
 		dest = dest.Elem()
 		t = t.Elem()
 	}
