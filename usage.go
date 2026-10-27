@@ -289,6 +289,9 @@ func (p *Parser) WriteHelpForSubcommand(w io.Writer, subcommand ...string) error
 	if len(globals) > 0 {
 		fmt.Fprint(w, "\nGlobal options:\n")
 		for _, spec := range globals {
+			if spec.hidden {
+				continue
+			}
 			p.printOption(w, spec)
 		}
 	}
