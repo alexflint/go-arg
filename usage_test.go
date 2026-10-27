@@ -1043,6 +1043,45 @@ Commands:
 	assert.Equal(t, expectedHelp[1:], help.String())
 }
 
+func TestHelpSkipsHiddenAncestorOptions(t *testing.T) {
+	var args struct {
+		RootHidden  string `arg:"--root-hidden,hidden" default:"root-default" help:"root hidden description"`
+		RootVisible bool   `arg:"--root-visible"`
+		Child       *struct {
+			ParentHidden  string `arg:"--parent-hidden,hidden" default:"parent-default" help:"parent hidden description"`
+			ParentVisible bool   `arg:"--parent-visible"`
+			Nested        *struct {
+				LocalHidden  string `arg:"--local-hidden,hidden"`
+				LocalVisible bool   `arg:"--local-visible"`
+			} `arg:"subcommand:nested"`
+		} `arg:"subcommand:child|c"`
+	}
+	p, err := NewParser(Config{Program: "example"}, &args)
+	require.NoError(t, err)
+
+	for _, command := range [][]string{nil, {"child"}, {"c"}, {"child", "nested"}, {"c", "nested"}} {
+		t.Run(strings.Join(command, "/"), func(t *testing.T) {
+			var help bytes.Buffer
+			require.NoError(t, p.WriteHelpForSubcommand(&help, command...))
+			for _, hidden := range []string{"--root-hidden", "root-default", "root hidden description", "--parent-hidden", "parent-default", "parent hidden description", "--local-hidden"} {
+				assert.NotContains(t, help.String(), hidden)
+			}
+			assert.Contains(t, help.String(), "--root-visible")
+			if len(command) > 0 {
+				assert.Contains(t, help.String(), "--parent-visible")
+			}
+			if len(command) > 1 {
+				assert.Contains(t, help.String(), "--local-visible")
+			}
+		})
+	}
+
+	require.NoError(t, p.Parse([]string{"--root-hidden", "root-set", "child", "--parent-hidden", "parent-set", "nested", "--local-hidden", "local-set"}))
+	assert.Equal(t, "root-set", args.RootHidden)
+	assert.Equal(t, "parent-set", args.Child.ParentHidden)
+	assert.Equal(t, "local-set", args.Child.Nested.LocalHidden)
+}
+
 func TestHelpShowsPositionalWithDefault(t *testing.T) {
 	expectedHelp := `
 Usage: example [FOO]
