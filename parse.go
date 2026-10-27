@@ -716,7 +716,7 @@ func (p *Parser) process(args []string) error {
 		case "-h", "--help":
 			return ErrHelp
 		case "--version":
-			if !hasVersionOption && p.version != "" {
+			if !hasVersionOption && findOption(specs, "version") == nil && p.version != "" {
 				return ErrVersion
 			}
 		}

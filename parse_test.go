@@ -1637,6 +1637,44 @@ func TestArgsAndBuiltinVersion(t *testing.T) {
 	require.Equal(t, args.Version, true)
 }
 
+func TestSubcommandArgsAndBuiltinVersion(t *testing.T) {
+	for _, strict := range []bool{false, true} {
+		for _, name := range []string{"child", "c"} {
+			t.Run(fmt.Sprintf("strict=%v/%s", strict, name), func(t *testing.T) {
+				var args struct {
+					versioned
+					Child *struct {
+						Version string `arg:"--version"`
+					} `arg:"subcommand:child|c"`
+				}
+				p, err := NewParser(Config{StrictSubcommands: strict}, &args)
+				require.NoError(t, err)
+				assert.Equal(t, ErrVersion, p.Parse([]string{"--version"}))
+				require.NoError(t, p.Parse([]string{name, "--version", "release"}))
+				require.NotNil(t, args.Child)
+				assert.Equal(t, "release", args.Child.Version)
+			})
+		}
+	}
+}
+
+func TestNestedSubcommandArgsAndBuiltinVersion(t *testing.T) {
+	var args struct {
+		versioned
+		Child *struct {
+			Nested *struct {
+				Version bool `arg:"--version"`
+			} `arg:"subcommand:nested"`
+		} `arg:"subcommand:child"`
+	}
+	p, err := NewParser(Config{}, &args)
+	require.NoError(t, err)
+	require.NoError(t, p.Parse([]string{"child", "nested", "--version"}))
+	require.NotNil(t, args.Child)
+	require.NotNil(t, args.Child.Nested)
+	assert.True(t, args.Child.Nested.Version)
+}
+
 func TestMultipleTerminates(t *testing.T) {
 	var args struct {
 		X []string
