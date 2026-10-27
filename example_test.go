@@ -279,7 +279,7 @@ func Example_helpTextWhenUsingSubcommand() {
 	MustParse(&args)
 
 	// output:
-	// Usage: example get ITEM
+	// Usage: example [--verbose] get ITEM
 	//
 	// Positional arguments:
 	//   ITEM                   item to fetch
@@ -325,7 +325,7 @@ func Example_writeHelpForSubcommand() {
 	}
 
 	// output:
-	// Usage: example list [--format FORMAT] [--limit LIMIT]
+	// Usage: example [--verbose] list [--format FORMAT] [--limit LIMIT]
 	//
 	// Options:
 	//   --format FORMAT        output format
