@@ -58,19 +58,19 @@ func cardinalityOf(t reflect.Type) (cardinality, error) {
 	switch t.Kind() {
 	case reflect.Slice:
 		if !scalar.CanParse(t.Elem()) {
-			return unsupported, fmt.Errorf("cannot parse into %v because %v not supported", t, t.Elem())
+			return unsupported, &CardinalityTypeError{Type: t, Reason: fmt.Sprintf("%v not supported", t.Elem())}
 		}
 		return multiple, nil
 	case reflect.Map:
 		if !scalar.CanParse(t.Key()) {
-			return unsupported, fmt.Errorf("cannot parse into %v because key type %v not supported", t, t.Elem())
+			return unsupported, &CardinalityTypeError{Type: t, Reason: fmt.Sprintf("key type %v not supported", t.Elem())}
 		}
 		if !scalar.CanParse(t.Elem()) {
-			return unsupported, fmt.Errorf("cannot parse into %v because value type %v not supported", t, t.Elem())
+			return unsupported, &CardinalityTypeError{Type: t, Reason: fmt.Sprintf("value type %v not supported", t.Elem())}
 		}
 		return multiple, nil
 	default:
-		return unsupported, fmt.Errorf("cannot parse into %v", t)
+		return unsupported, &CardinalityTypeError{Type: t}
 	}
 }
 
