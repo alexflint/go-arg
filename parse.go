@@ -723,8 +723,10 @@ func (p *Parser) process(args []string) error {
 
 		// check for an equals sign, as in "--foo=bar"
 		var value string
+		var hasEquals bool
 		opt := strings.TrimLeft(arg, "-")
 		if pos := strings.Index(opt, "="); pos != -1 {
+			hasEquals = true
 			value = opt[pos+1:]
 			opt = opt[:pos]
 		}
@@ -765,7 +767,7 @@ func (p *Parser) process(args []string) error {
 		}
 
 		// if we have something like "--foo" then the value is the next argument
-		if value == "" {
+		if value == "" && !hasEquals {
 			if i+1 == len(args) {
 				return fmt.Errorf("missing value for %s", arg)
 			}
