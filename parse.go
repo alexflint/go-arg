@@ -201,11 +201,7 @@ func walkFieldsImpl(t reflect.Type, visit func(field reflect.StructField, owner 
 		copy(field.Index, append(path, i))
 		expand := visit(field, t)
 		if expand && field.Type.Kind() == reflect.Struct {
-			var subpath []int
-			if field.Anonymous {
-				subpath = append(path, i)
-			}
-			walkFieldsImpl(field.Type, visit, subpath)
+			walkFieldsImpl(field.Type, visit, append(path, i))
 		}
 	}
 }
@@ -351,6 +347,21 @@ func cmdFromStruct(name string, dest path, t reflect.Type, envPrefix string, def
 		// ignore any other unexported field
 		if !isExported(field.Name) {
 			return false
+		}
+
+		// Inline groups keep the destination's nesting while sharing the command's flags.
+		if tag == "inline" {
+			if field.Type.Kind() != reflect.Struct {
+				errs = append(errs, fmt.Sprintf("%s.%s: inline fields must be structs", t.Name(), field.Name))
+				return false
+			}
+			for _, key := range []string{"default", "help", "placeholder"} {
+				if _, ok := field.Tag.Lookup(key); ok {
+					errs = append(errs, fmt.Sprintf("%s.%s: %s belongs on an argument, not an inline group", t.Name(), field.Name, key))
+					return false
+				}
+			}
+			return true
 		}
 
 		// duplicate the entire path to avoid slice overwrites
