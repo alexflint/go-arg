@@ -63,7 +63,7 @@ func cardinalityOf(t reflect.Type) (cardinality, error) {
 		return multiple, nil
 	case reflect.Map:
 		if !scalar.CanParse(t.Key()) {
-			return unsupported, fmt.Errorf("cannot parse into %v because key type %v not supported", t, t.Elem())
+			return unsupported, fmt.Errorf("cannot parse into %v because key type %v not supported", t, t.Key())
 		}
 		if !scalar.CanParse(t.Elem()) {
 			return unsupported, fmt.Errorf("cannot parse into %v because value type %v not supported", t, t.Elem())
