@@ -86,6 +86,51 @@ func TestBool(t *testing.T) {
 	assert.Nil(t, args.D)
 }
 
+func TestExplicitEmptyScalarValue(t *testing.T) {
+	for _, flag := range []string{"--source=", "-s="} {
+		for _, trailing := range [][]string{nil, {"input.txt"}, {"--verbose"}} {
+			t.Run(flag+strings.Join(trailing, " "), func(t *testing.T) {
+				var args struct {
+					Source  *string `arg:"--source,-s"`
+					Input   string  `arg:"positional"`
+					Verbose bool
+				}
+				p, err := NewParser(Config{}, &args)
+				require.NoError(t, err)
+				err = p.Parse(append([]string{flag}, trailing...))
+				require.NoError(t, err)
+				require.NotNil(t, args.Source)
+				assert.Equal(t, "", *args.Source)
+				assert.Equal(t, len(trailing) > 0 && trailing[0] == "--verbose", args.Verbose)
+				if len(trailing) > 0 && trailing[0] == "input.txt" {
+					assert.Equal(t, "input.txt", args.Input)
+				} else {
+					assert.Empty(t, args.Input)
+				}
+			})
+		}
+	}
+}
+
+func TestExplicitEmptyStringOverridesDefault(t *testing.T) {
+	var args struct {
+		Source string `default:"default.txt"`
+	}
+	require.NoError(t, parse("--source=", &args))
+	assert.Empty(t, args.Source)
+}
+
+func TestExplicitEmptyNumberDoesNotConsumeNextValue(t *testing.T) {
+	var args struct {
+		Number int
+		Input  string `arg:"positional"`
+	}
+	err := parse("--number= 42", &args)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "error processing --number=")
+	assert.Zero(t, args.Number)
+}
+
 func TestInt(t *testing.T) {
 	var args struct {
 		Foo int
