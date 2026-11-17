@@ -55,6 +55,7 @@ type spec struct {
 	help          string              // the help text for this option
 	hidden        bool                // if true, this option will be hidden from help text
 	env           string              // the name of the environment variable for this option, or empty for none
+	compact       bool                // allows compact short flag syntax like -c10
 	defaultValue  reflect.Value       // default value for this option
 	defaultString string              // default value for this option, in string form to be displayed in help text
 	placeholder   string              // placeholder string in help
@@ -406,6 +407,8 @@ func cmdFromStruct(name string, dest path, t reflect.Type, envPrefix string, def
 				}
 			case key == "separate":
 				spec.separate = true
+			case key == "compact":
+				spec.compact = true
 			case key == "help": // deprecated
 				spec.help = value
 			case key == "hidden":
@@ -476,6 +479,17 @@ func cmdFromStruct(name string, dest path, t reflect.Type, envPrefix string, def
 			errs = append(errs, fmt.Sprintf("%s.%s: %s fields are not supported",
 				t.Name(), field.Name, field.Type.String()))
 			return false
+		}
+
+		if spec.compact {
+			if spec.short == "" {
+				errs = append(errs, fmt.Sprintf("%s.%s: 'compact' can only be used on options that have a short name", t.Name(), field.Name))
+				return false
+			}
+			if spec.cardinality == zero {
+				errs = append(errs, fmt.Sprintf("%s.%s: 'compact' cannot be used on boolean flags", t.Name(), field.Name))
+				return false
+			}
 		}
 
 		// record the existence of a slice or map that will consume all remaining
@@ -727,6 +741,18 @@ func (p *Parser) process(args []string) error {
 		if pos := strings.Index(opt, "="); pos != -1 {
 			value = opt[pos+1:]
 			opt = opt[:pos]
+		}
+
+		// check for compact short flag syntax, e.g. -c10
+		if strings.HasPrefix(arg, "-") && !strings.HasPrefix(arg, "--") && len(arg) > 2 && !strings.Contains(arg, "=") {
+			shortChar := string(arg[1])
+			for _, s := range specs {
+				if s.short == shortChar && s.compact {
+					opt = shortChar
+					value = arg[2:]
+					break
+				}
+			}
 		}
 
 		// lookup the spec for this option (note that the "specs" slice changes as
