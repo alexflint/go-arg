@@ -641,6 +641,9 @@ func (p *Parser) process(args []string) error {
 	// make a copy of the specs because we will add to this list each time we expand a subcommand
 	specs := make([]*spec, len(curCmd.specs))
 	copy(specs, curCmd.specs)
+	// Keep ancestor options for defaults and required checks even when strict
+	// subcommand parsing removes them from the active options.
+	allSpecs := specs
 
 	// deal with environment vars
 	if !p.config.IgnoreEnv {
@@ -691,11 +694,12 @@ func (p *Parser) process(args []string) error {
 			}
 
 			// add the new options to the set of allowed options
+			allSpecs = append(allSpecs, subcmd.specs...)
 			if p.config.StrictSubcommands {
 				specs = make([]*spec, len(subcmd.specs))
 				copy(specs, subcmd.specs)
 			} else {
-				specs = append(specs, subcmd.specs...)
+				specs = allSpecs
 			}
 
 			// capture environment vars for these new options
@@ -810,7 +814,7 @@ func (p *Parser) process(args []string) error {
 	}
 
 	// fill in defaults and check that all the required args were provided
-	for _, spec := range specs {
+	for _, spec := range allSpecs {
 		if wasPresent[spec] {
 			continue
 		}
