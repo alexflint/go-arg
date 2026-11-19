@@ -364,6 +364,30 @@ func main() {
 
 As usual, any field tagged with `arg:"-"` is ignored.
 
+### Nested argument groups
+
+Use `arg:"inline"` on an exported struct value to parse its fields as arguments
+of the current command. This also works with named struct types and nested
+groups. The destination retains its structure, for example when encoding it as JSON:
+
+```go
+var args struct {
+	Database struct {
+		Host string `arg:"--db-host" default:"localhost"`
+		Port int    `arg:"--db-port" default:"5432"`
+	} `arg:"inline"`
+	Verbose bool
+}
+arg.MustParse(&args)
+```
+
+Here `--db-host` and `--db-port` are flags of the current command; `Database`
+does not add a flag or prefix. Apply argument tags, help, defaults and placeholders
+to the group's fields. The group tag must be exactly `arg:"inline"`, and the
+field must be a struct value, not a pointer. Use `arg:"-"` to ignore a whole group.
+Fields without `arg:"inline"` keep their existing behavior, including structs
+parsed through `encoding.TextUnmarshaler`.
+
 ### Supported types
 
 The following types may be used as arguments:
