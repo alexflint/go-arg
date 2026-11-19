@@ -313,6 +313,39 @@ Usage: samples [--foo FOO] [--bar BAR]
 error: you must provide either --foo or --bar
 ```
 
+### Help strings for field types
+
+A field type can provide its own help text by implementing a `Help` method that
+returns a string. When a field has no `help` tag, that string is used as the help
+text for the field. This is handy for enumerated types that want to list their
+allowed values:
+
+```go
+type logLevel string
+
+func (logLevel) Help() string {
+	return "one of: debug, info, warn, error"
+}
+
+var args struct {
+	Level logLevel
+	Force bool `help:"overwrite existing files"`
+}
+arg.MustParse(&args)
+```
+
+```shell
+$ ./example --help
+Usage: example [--level LEVEL] [--force]
+
+Options:
+  --level LEVEL          one of: debug, info, warn, error
+  --force                overwrite existing files
+  --help, -h             display this help and exit
+```
+
+A `help` tag on the field takes precedence over the `Help` method.
+
 ### Overriding option names
 
 ```go

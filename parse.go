@@ -189,6 +189,28 @@ type Epilogued interface {
 	Epilogue() string
 }
 
+// Helpful is the interface that a field type may implement to provide its own
+// help text. When a field has no help tag, the string returned by Help is used
+// as the help text for that field. This is handy for enumerated types that want
+// to list their allowed values in the help message.
+type Helpful interface {
+	// Help returns the help text for a field of this type.
+	Help() string
+}
+
+// helpFromType returns the help text for a type that implements Helpful. Pointer
+// types are dereferenced so that both T and *T are handled, and the method set of
+// a pointer is used so value and pointer receivers both work.
+func helpFromType(t reflect.Type) (string, bool) {
+	for t.Kind() == reflect.Ptr {
+		t = t.Elem()
+	}
+	if h, ok := reflect.New(t).Interface().(Helpful); ok {
+		return h.Help(), true
+	}
+	return "", false
+}
+
 // walkFields calls a function for each field of a struct, recursively expanding struct fields.
 func walkFields(t reflect.Type, visit func(field reflect.StructField, owner reflect.Type) bool) {
 	walkFieldsImpl(t, visit, nil)
@@ -366,8 +388,8 @@ func cmdFromStruct(name string, dest path, t reflect.Type, envPrefix string, def
 			spec.env = envPrefix + defaultEnvName(field)
 		}
 
-		help, exists := field.Tag.Lookup("help")
-		if exists {
+		help, hasHelp := field.Tag.Lookup("help")
+		if hasHelp {
 			spec.help = help
 		}
 
@@ -408,6 +430,7 @@ func cmdFromStruct(name string, dest path, t reflect.Type, envPrefix string, def
 				spec.separate = true
 			case key == "help": // deprecated
 				spec.help = value
+				hasHelp = true
 			case key == "hidden":
 				spec.hidden = true
 			case key == "env":
@@ -464,6 +487,14 @@ func cmdFromStruct(name string, dest path, t reflect.Type, envPrefix string, def
 				cmd.subcommands[len(cmd.subcommands)-1].hidden = true
 			}
 			return false
+		}
+
+		// if no help tag was given then fall back to the field type's Help
+		// method, if it implements Helpful
+		if !hasHelp {
+			if help, ok := helpFromType(field.Type); ok {
+				spec.help = help
+			}
 		}
 
 		// check whether this field is supported. It's good to do this here rather than
