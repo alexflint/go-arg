@@ -145,6 +145,9 @@ type Config struct {
 	// By default, the environment variable would be the name of the field converted to uppercase. Use DefaultEnvName to dynamically set the name of the environment variables instead.
 	AllHaveEnv bool
 
+	// DefaultLongArgName provides the default (--long) argument name for each field (can be overwritten with the `arg` tag).
+	DefaultLongArgName func(field reflect.StructField) string
+
 	// Exit is called to terminate the process with an error code (defaults to os.Exit)
 	Exit func(int)
 
@@ -249,7 +252,7 @@ func NewParser(config Config, dests ...interface{}) (*Parser, error) {
 			panic(fmt.Sprintf("%s is not a pointer (did you forget an ampersand?)", t))
 		}
 
-		cmd, err := cmdFromStruct(name, path{root: i}, t, config.EnvPrefix, config.DefaultEnvName, config.AllHaveEnv)
+		cmd, err := cmdFromStruct(name, path{root: i}, t, config.EnvPrefix, config.DefaultEnvName, config.AllHaveEnv, config.DefaultLongArgName)
 		if err != nil {
 			return nil, err
 		}
@@ -310,9 +313,16 @@ func upperCaseFromFieldName(field reflect.StructField) string {
 	return strings.ToUpper(field.Name)
 }
 
-func cmdFromStruct(name string, dest path, t reflect.Type, envPrefix string, defaultEnvName func(reflect.StructField) string, allHaveEnv bool) (*command, error) {
+func lowerCaseFromFieldName(field reflect.StructField) string {
+	return strings.ToLower(field.Name)
+}
+
+func cmdFromStruct(name string, dest path, t reflect.Type, envPrefix string, defaultEnvName func(reflect.StructField) string, allHaveEnv bool, defaultLongArgName func(field reflect.StructField) string) (*command, error) {
 	if defaultEnvName == nil {
 		defaultEnvName = upperCaseFromFieldName
+	}
+	if defaultLongArgName == nil {
+		defaultLongArgName = lowerCaseFromFieldName
 	}
 
 	// commands can only be created from pointers to structs
@@ -358,7 +368,7 @@ func cmdFromStruct(name string, dest path, t reflect.Type, envPrefix string, def
 		spec := spec{
 			dest:  subdest,
 			field: field,
-			long:  strings.ToLower(field.Name),
+			long:  defaultLongArgName(field),
 		}
 
 		// assign a default environment variable name
@@ -430,7 +440,7 @@ func cmdFromStruct(name string, dest path, t reflect.Type, envPrefix string, def
 				}
 
 				// parse the subcommand recursively
-				subcmd, err := cmdFromStruct(cmdnames[0], subdest, field.Type, envPrefix, defaultEnvName, allHaveEnv)
+				subcmd, err := cmdFromStruct(cmdnames[0], subdest, field.Type, envPrefix, defaultEnvName, allHaveEnv, defaultLongArgName)
 				if err != nil {
 					errs = append(errs, err.Error())
 					return false
